@@ -1,35 +1,49 @@
-@import './base.css';
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --accent: #FF6B6B;
+  --accent-light: #FFF5F5;
+  --accent-border: #FFCDD2;
+  --text-primary: #1a1a1a;
+  --text-secondary: #888;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f6f6;
+  --border-light: #f0f0f0;
+  --border-medium: #e5e5e5;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  background: #e8e8e8;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+  height: 100%;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+button {
+  font-family: inherit;
+  cursor: pointer;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
+input, select, textarea {
+  font-family: inherit;
+  outline: none;
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }

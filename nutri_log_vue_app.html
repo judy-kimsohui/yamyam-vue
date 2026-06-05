@@ -1,0 +1,394 @@
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans);background:var(--color-background-tertiary)}
+  #app{display:flex;height:680px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary)}
+
+  .sidebar{width:64px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:8px;flex-shrink:0}
+  .nav-btn{width:42px;height:42px;border:none;background:transparent;border-radius:var(--border-radius-md);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);font-size:20px;transition:all .15s}
+  .nav-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary)}
+  .nav-btn:hover{background:var(--color-background-secondary)}
+  .nav-logo{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px;writing-mode:vertical-rl;transform:rotate(180deg)}
+
+  .main{flex:1;display:flex;overflow:hidden}
+
+  .feed-col{width:320px;border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;overflow:hidden}
+  .col-header{padding:16px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .col-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+  .col-sub{font-size:12px;color:var(--color-text-secondary)}
+  .group-tabs{display:flex;gap:6px;padding:10px 16px;border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0;overflow-x:auto}
+  .group-tab{padding:4px 10px;border-radius:20px;font-size:12px;cursor:pointer;border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);white-space:nowrap;transition:all .15s}
+  .group-tab.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+  .feed-list{flex:1;overflow-y:auto;padding:12px}
+
+  .feed-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+  .feed-card:hover{border-color:var(--color-border-secondary)}
+  .feed-card.selected{border-color:var(--color-border-primary)}
+  .feed-user{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
+  .av-green{background:#EAF3DE;color:#3B6D11}
+  .av-coral{background:#FAECE7;color:#993C1D}
+  .av-blue{background:#E6F1FB;color:#185FA5}
+  .av-purple{background:#EEEDFE;color:#534AB7}
+  .av-amber{background:#FAEEDA;color:#854F0B}
+  .feed-name{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+  .feed-time{font-size:11px;color:var(--color-text-secondary)}
+  .food-thumb{width:100%;height:100px;border-radius:var(--border-radius-md);object-fit:cover;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative;overflow:hidden}
+  .food-emoji-bg{font-size:40px;position:absolute}
+  .video-badge{position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;display:flex;align-items:center;gap:3px}
+  .analyzed-badge{position:absolute;top:6px;right:6px;background:#EAF3DE;color:#3B6D11;font-size:10px;padding:2px 6px;border-radius:10px}
+  .food-name{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+  .food-kcal{font-size:11px;color:var(--color-text-secondary)}
+  .reactions-row{display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap}
+  .reaction-btn{display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--color-border-tertiary);border-radius:20px;background:transparent;cursor:pointer;font-size:12px;color:var(--color-text-secondary);transition:all .12s}
+  .reaction-btn:hover{background:var(--color-background-secondary);border-color:var(--color-border-secondary)}
+  .reaction-btn.my{background:var(--color-background-secondary);border-color:var(--color-border-primary)}
+  .add-reaction{padding:3px 7px;font-size:14px;cursor:pointer;border:0.5px dashed var(--color-border-tertiary);border-radius:20px;background:transparent;color:var(--color-text-secondary);transition:all .12s}
+  .add-reaction:hover{border-color:var(--color-border-primary)}
+
+  .right-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .tab-bar{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0}
+  .tab-btn{flex:1;padding:12px 0;font-size:13px;color:var(--color-text-secondary);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+  .tab-btn.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+  .tab-content{flex:1;overflow-y:auto;padding:16px}
+
+  .detail-food-hero{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);height:160px;display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:14px;position:relative}
+  .ai-tag{position:absolute;bottom:10px;right:10px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:4px 10px;font-size:11px;color:var(--color-text-secondary);display:flex;align-items:center;gap:4px}
+  .detail-title{font-size:18px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+  .detail-sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:16px}
+  .nutrition-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .nut-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 8px;text-align:center}
+  .nut-val{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+  .nut-label{font-size:10px;color:var(--color-text-secondary);margin-top:2px}
+  .section-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .macro-bar-wrap{margin-bottom:6px}
+  .macro-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .macro-name{font-size:12px;color:var(--color-text-secondary);width:40px;flex-shrink:0}
+  .macro-bar-bg{flex:1;height:6px;border-radius:3px;background:var(--color-background-secondary);overflow:hidden}
+  .macro-bar{height:100%;border-radius:3px;transition:width .4s}
+  .bar-carb{background:#378ADD}
+  .bar-prot{background:#1D9E75}
+  .bar-fat{background:#EF9F27}
+  .bar-fiber{background:#D4537E}
+  .macro-pct{font-size:11px;color:var(--color-text-secondary);width:28px;text-align:right;flex-shrink:0}
+
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+  .cal-day-header{font-size:10px;color:var(--color-text-secondary);text-align:center;padding:4px 0}
+  .cal-day{border-radius:var(--border-radius-md);padding:4px;min-height:42px;cursor:pointer;border:0.5px solid transparent;transition:all .15s;font-size:10px;color:var(--color-text-secondary)}
+  .cal-day:hover{border-color:var(--color-border-tertiary)}
+  .cal-day.has-data{background:var(--color-background-secondary)}
+  .cal-day.today{border-color:var(--color-border-primary)}
+  .cal-day .day-num{font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+  .dot-row{display:flex;gap:2px;flex-wrap:wrap}
+  .meal-dot{width:6px;height:6px;border-radius:50%}
+  .dot-b{background:#378ADD}.dot-l{background:#1D9E75}.dot-d{background:#EF9F27}.dot-s{background:#D4537E}
+
+  .my-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:12px}
+  .stat-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+  .stat-value{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+  .stat-unit{font-size:12px;color:var(--color-text-secondary);font-weight:400}
+
+  .week-bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:16px}
+  .week-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .week-bar{width:100%;border-radius:3px;background:var(--color-background-secondary);position:relative;overflow:hidden;min-height:4px}
+  .week-bar-fill{width:100%;position:absolute;bottom:0;border-radius:3px;background:#378ADD;transition:height .4s}
+  .week-day{font-size:10px;color:var(--color-text-secondary)}
+  .week-goal-line{width:100%;height:1px;background:var(--color-border-secondary);position:absolute}
+
+  .upload-area{border:1px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:24px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all .15s}
+  .upload-area:hover{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
+  .upload-icon{font-size:28px;color:var(--color-text-secondary);margin-bottom:8px}
+  .upload-text{font-size:13px;color:var(--color-text-secondary)}
+  .upload-sub{font-size:11px;color:var(--color-text-secondary);opacity:.7;margin-top:4px}
+
+  .group-member-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .member-chip{display:flex;align-items:center;gap:6px;padding:6px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:20px;font-size:12px;color:var(--color-text-secondary)}
+  .chip-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500}
+
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--color-border-secondary);border-radius:2px}
+</style>
+
+<div id="app">
+  <div class="sidebar">
+    <span class="nav-logo">NutriLog</span>
+    <button class="nav-btn" :class="{active: tab==='feed'}" @click="tab='feed'" title="피드">
+      <i class="ti ti-home" aria-hidden="true"></i>
+    </button>
+    <button class="nav-btn" :class="{active: tab==='groups'}" @click="tab='groups'" title="그룹">
+      <i class="ti ti-users" aria-hidden="true"></i>
+    </button>
+    <button class="nav-btn" :class="{active: tab==='my'}" @click="tab='my'" title="마이페이지">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i>
+    </button>
+    <button class="nav-btn" :class="{active: tab==='upload'}" @click="tab='upload'" title="식사 기록">
+      <i class="ti ti-plus" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="main">
+    <div class="feed-col">
+      <div class="col-header">
+        <div>
+          <div class="col-title">그룹 피드</div>
+          <div class="col-sub">오늘 {{ feedItems.length }}개의 식사 공유</div>
+        </div>
+        <i class="ti ti-bell" style="font-size:18px;color:var(--color-text-secondary)" aria-hidden="true"></i>
+      </div>
+      <div class="group-tabs">
+        <button class="group-tab" :class="{active: activeGroup===g}" v-for="g in groups" :key="g" @click="activeGroup=g">{{g}}</button>
+      </div>
+      <div class="feed-list">
+        <div class="feed-card" :class="{selected: selectedFeed===i}" v-for="(item,i) in feedItems" :key="i" @click="selectedFeed=i;rightTab='detail'">
+          <div class="feed-user">
+            <div class="avatar" :class="item.avClass">{{item.initials}}</div>
+            <div style="flex:1">
+              <div class="feed-name">{{item.name}}</div>
+              <div class="feed-time">{{item.time}}</div>
+            </div>
+            <span v-if="item.analyzed" style="font-size:10px;color:#3B6D11;background:#EAF3DE;padding:2px 6px;border-radius:10px">AI 분석완료</span>
+          </div>
+          <div class="food-thumb">
+            <span class="food-emoji-bg">{{item.emoji}}</span>
+            <span class="video-badge"><i class="ti ti-player-play" style="font-size:10px" aria-hidden="true"></i> {{item.duration}}s</span>
+            <span v-if="item.analyzed" class="analyzed-badge">분석됨</span>
+          </div>
+          <div class="food-name">{{item.food}}</div>
+          <div class="food-kcal" v-if="item.analyzed">{{item.kcal}} kcal · 탄{{item.carb}}g 단{{item.protein}}g 지{{item.fat}}g</div>
+          <div class="food-kcal" v-else>분석 중...</div>
+          <div class="reactions-row">
+            <button class="reaction-btn" :class="{my: r.my}" v-for="(r,ri) in item.reactions" :key="ri" @click.stop="toggleReaction(i,ri)">
+              {{r.emoji}} {{r.count}}
+            </button>
+            <button class="add-reaction" @click.stop>+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="tab-bar" v-if="tab==='feed'||tab==='my'">
+        <button class="tab-btn" :class="{active: rightTab==='detail'}" @click="rightTab='detail'">상세분석</button>
+        <button class="tab-btn" :class="{active: rightTab==='calendar'}" @click="rightTab='calendar'">캘린더</button>
+        <button class="tab-btn" :class="{active: rightTab==='stats'}" @click="rightTab='stats'">주간통계</button>
+      </div>
+
+      <div class="tab-content" v-if="rightTab==='detail' && selectedItem">
+        <div class="detail-food-hero">
+          <span>{{selectedItem.emoji}}</span>
+          <div class="ai-tag"><i class="ti ti-robot" style="font-size:12px" aria-hidden="true"></i> AI 자동 분석</div>
+        </div>
+        <div class="detail-title">{{selectedItem.food}}</div>
+        <div class="detail-sub">{{selectedItem.name}} · {{selectedItem.time}} · {{selectedItem.duration}}초 영상</div>
+        <div class="nutrition-grid" v-if="selectedItem.analyzed">
+          <div class="nut-card">
+            <div class="nut-val">{{selectedItem.kcal}}</div>
+            <div class="nut-label">kcal</div>
+          </div>
+          <div class="nut-card">
+            <div class="nut-val">{{selectedItem.carb}}g</div>
+            <div class="nut-label">탄수화물</div>
+          </div>
+          <div class="nut-card">
+            <div class="nut-val">{{selectedItem.protein}}g</div>
+            <div class="nut-label">단백질</div>
+          </div>
+          <div class="nut-card">
+            <div class="nut-val">{{selectedItem.fat}}g</div>
+            <div class="nut-label">지방</div>
+          </div>
+        </div>
+        <div v-if="selectedItem.analyzed">
+          <div class="section-title">영양소 비율</div>
+          <div class="macro-bar-wrap">
+            <div class="macro-row"><span class="macro-name">탄수화물</span><div class="macro-bar-bg"><div class="macro-bar bar-carb" :style="{width: macroCarb+'%'}"></div></div><span class="macro-pct">{{macroCarb}}%</span></div>
+            <div class="macro-row"><span class="macro-name">단백질</span><div class="macro-bar-bg"><div class="macro-bar bar-prot" :style="{width: macroProt+'%'}"></div></div><span class="macro-pct">{{macroProt}}%</span></div>
+            <div class="macro-row"><span class="macro-name">지방</span><div class="macro-bar-bg"><div class="macro-bar bar-fat" :style="{width: macroFat+'%'}"></div></div><span class="macro-pct">{{macroFat}}%</span></div>
+          </div>
+        </div>
+        <div v-else style="padding:24px;text-align:center;color:var(--color-text-secondary);font-size:13px">
+          <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px" aria-hidden="true"></i>
+          AI가 음식을 분석하는 중입니다...
+        </div>
+      </div>
+
+      <div class="tab-content" v-if="rightTab==='calendar'">
+        <div class="section-title" style="margin-bottom:12px">6월 2026</div>
+        <div class="calendar-grid">
+          <div class="cal-day-header" v-for="d in ['일','월','화','수','목','금','토']" :key="d">{{d}}</div>
+          <div v-for="n in 4" :key="'e'+n"></div>
+          <div class="cal-day" :class="{'has-data': day.dots.length, 'today': day.num===5}" v-for="day in calDays" :key="day.num">
+            <div class="day-num">{{day.num}}</div>
+            <div class="dot-row">
+              <div class="meal-dot" :class="dot" v-for="(dot,di) in day.dots" :key="di"></div>
+            </div>
+          </div>
+        </div>
+        <div class="section-title">범례</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)"><div class="meal-dot dot-b"></div> 아침</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)"><div class="meal-dot dot-l"></div> 점심</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)"><div class="meal-dot dot-d"></div> 저녁</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)"><div class="meal-dot dot-s"></div> 간식</div>
+        </div>
+      </div>
+
+      <div class="tab-content" v-if="rightTab==='stats'">
+        <div class="my-stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">이번 주 평균 칼로리</div>
+            <div class="stat-value">1,842 <span class="stat-unit">kcal</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">목표 달성률</div>
+            <div class="stat-value">87 <span class="stat-unit">%</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">이번 주 기록 수</div>
+            <div class="stat-value">14 <span class="stat-unit">끼</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">그룹 랭킹</div>
+            <div class="stat-value">2 <span class="stat-unit">위</span></div>
+          </div>
+        </div>
+        <div class="section-title">일일 칼로리 (이번 주)</div>
+        <div class="week-bar-chart">
+          <div class="week-bar-wrap" v-for="(d,i) in weekData" :key="i">
+            <div class="week-bar" style="flex:1;width:100%;position:relative">
+              <div class="week-bar-fill" :style="{height: (d.kcal/2500*100)+'%'}"></div>
+            </div>
+            <div class="week-day">{{d.day}}</div>
+          </div>
+        </div>
+        <div class="section-title">그룹 멤버</div>
+        <div class="group-member-row">
+          <div class="member-chip" v-for="m in members" :key="m.name">
+            <div class="chip-av" :class="m.avClass">{{m.init}}</div>
+            {{m.name}}
+            <span style="font-size:10px;opacity:.7">{{m.kcal}}kcal</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" v-if="tab==='upload'||(rightTab!=='detail'&&rightTab!=='calendar'&&rightTab!=='stats')">
+      </div>
+
+      <div class="tab-content" v-if="tab==='upload'">
+        <div class="section-title" style="margin-bottom:12px">식사 영상 업로드</div>
+        <div class="upload-area" @click="simulateUpload">
+          <div class="upload-icon"><i class="ti ti-video-plus" aria-hidden="true"></i></div>
+          <div class="upload-text">1~2초 식사 영상을 업로드하세요</div>
+          <div class="upload-sub">MP4, MOV · 최대 10MB</div>
+        </div>
+        <div v-if="uploading" style="text-align:center;padding:20px;color:var(--color-text-secondary);font-size:13px">
+          <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px" aria-hidden="true"></i>
+          AI가 음식을 인식하고 있습니다...
+        </div>
+        <div v-if="uploadDone" style="background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:16px">
+          <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px">분석 결과</div>
+          <div style="font-size:32px;text-align:center;margin-bottom:8px">🍱</div>
+          <div style="font-size:14px;font-weight:500;text-align:center;margin-bottom:4px">제육볶음 정식</div>
+          <div style="font-size:12px;color:var(--color-text-secondary);text-align:center;margin-bottom:12px">신뢰도 92% · 약 680kcal</div>
+          <button style="width:100%;padding:10px;border-radius:var(--border-radius-md);background:var(--color-text-primary);color:var(--color-background-primary);border:none;font-size:13px;cursor:pointer;font-weight:500" @click="postFeed">그룹에 공유하기</button>
+        </div>
+      </div>
+
+      <div class="tab-content" v-if="tab==='groups'">
+        <div class="section-title" style="margin-bottom:12px">내 그룹</div>
+        <div v-for="g in groupList" :key="g.name" style="background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)">{{g.name}}</div>
+            <span style="font-size:11px;color:var(--color-text-secondary)">{{g.members}}명</span>
+          </div>
+          <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">{{g.desc}}</div>
+          <div style="display:flex;gap:4px">
+            <div class="avatar" style="width:24px;height:24px;font-size:9px" :class="av" v-for="av in g.avatars" :key="av">{{av.replace('av-','')[0].toUpperCase()}}</div>
+          </div>
+        </div>
+        <button style="width:100%;padding:10px;border:1px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);background:transparent;font-size:13px;color:var(--color-text-secondary);cursor:pointer;margin-top:4px">
+          <i class="ti ti-plus" aria-hidden="true"></i> 새 그룹 만들기
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue;
+createApp({
+  setup() {
+    const tab = ref('feed');
+    const rightTab = ref('detail');
+    const activeGroup = ref('전체');
+    const selectedFeed = ref(0);
+    const uploading = ref(false);
+    const uploadDone = ref(false);
+
+    const groups = ['전체', '다이어트팀', '헬스장친구', '가족'];
+    const feedItems = ref([
+      { name: '김민지', initials: 'KM', avClass: 'av-green', time: '12:34', duration: 1, emoji: '🍱', food: '제육볶음 정식', kcal: 680, carb: 85, protein: 32, fat: 18, analyzed: true, reactions: [{emoji:'💪',count:4,my:true},{emoji:'😮',count:2,my:false},{emoji:'👍',count:5,my:false}] },
+      { name: '박지훈', initials: 'PJ', avClass: 'av-coral', time: '12:58', duration: 2, emoji: '🥗', food: '그린 샐러드', kcal: 210, carb: 18, protein: 9, fat: 12, analyzed: true, reactions: [{emoji:'🥬',count:6,my:false},{emoji:'👏',count:3,my:true}] },
+      { name: '이서연', initials: 'LS', avClass: 'av-blue', time: '13:22', duration: 1, emoji: '🍜', food: '분석 중...', kcal: 0, carb: 0, protein: 0, fat: 0, analyzed: false, reactions: [] },
+      { name: '최현우', initials: 'CH', avClass: 'av-amber', time: '09:11', duration: 2, emoji: '🍳', food: '스크램블에그 토스트', kcal: 420, carb: 42, protein: 18, fat: 22, analyzed: true, reactions: [{emoji:'☀️',count:3,my:false},{emoji:'😋',count:4,my:false}] },
+    ]);
+
+    const selectedItem = computed(() => feedItems.value[selectedFeed.value]);
+
+    const totalMacro = computed(() => {
+      if (!selectedItem.value?.analyzed) return 1;
+      return selectedItem.value.carb + selectedItem.value.protein + selectedItem.value.fat;
+    });
+    const macroCarb = computed(() => selectedItem.value?.analyzed ? Math.round(selectedItem.value.carb / totalMacro.value * 100) : 0);
+    const macroProt = computed(() => selectedItem.value?.analyzed ? Math.round(selectedItem.value.protein / totalMacro.value * 100) : 0);
+    const macroFat = computed(() => selectedItem.value?.analyzed ? Math.round(selectedItem.value.fat / totalMacro.value * 100) : 0);
+
+    const calDays = computed(() => {
+      const dots = {1:['dot-b','dot-l','dot-d'],2:['dot-l'],3:['dot-b','dot-l','dot-d','dot-s'],4:['dot-b','dot-d'],5:['dot-l'],6:[],7:['dot-b','dot-l'],8:['dot-d','dot-s'],9:['dot-b','dot-l','dot-d'],10:['dot-l','dot-d'],11:['dot-b'],12:['dot-b','dot-l','dot-d','dot-s'],13:['dot-l'],14:['dot-b','dot-d']};
+      return Array.from({length:14}, (_,i) => ({num: i+1, dots: dots[i+1]||[]}));
+    });
+
+    const weekData = [
+      {day:'월',kcal:1920},{day:'화',kcal:1650},{day:'수',kcal:2100},{day:'목',kcal:1780},{day:'금',kcal:2050},{day:'토',kcal:1600},{day:'일',kcal:1750}
+    ];
+
+    const members = [
+      {name:'김민지',init:'KM',avClass:'av-green',kcal:1840},
+      {name:'박지훈',init:'PJ',avClass:'av-coral',kcal:2100},
+      {name:'이서연',init:'LS',avClass:'av-blue',kcal:1720},
+      {name:'최현우',init:'CH',avClass:'av-amber',kcal:1950},
+    ];
+
+    const groupList = [
+      {name:'다이어트팀 🥗',members:5,desc:'매일 식사 인증하고 서로 응원해요!',avatars:['av-green','av-coral','av-blue']},
+      {name:'헬스장 친구들 💪',members:8,desc:'운동 후 단백질 식사 공유',avatars:['av-amber','av-purple','av-green']},
+      {name:'가족 식사 📸',members:4,desc:'가족끼리 식사 기록 공유',avatars:['av-coral','av-blue']},
+    ];
+
+    function toggleReaction(fi, ri) {
+      const r = feedItems.value[fi].reactions[ri];
+      r.my = !r.my;
+      r.count += r.my ? 1 : -1;
+    }
+
+    function simulateUpload() {
+      uploading.value = true;
+      uploadDone.value = false;
+      setTimeout(() => { uploading.value = false; uploadDone.value = true; }, 2000);
+    }
+
+    function postFeed() {
+      tab.value = 'feed';
+      rightTab.value = 'detail';
+      uploadDone.value = false;
+    }
+
+    return { tab, rightTab, activeGroup, selectedFeed, selectedItem, groups, feedItems, calDays, weekData, members, groupList, uploading, uploadDone, macroCarb, macroProt, macroFat, toggleReaction, simulateUpload, postFeed };
+  }
+}).mount('#app');
+</script>

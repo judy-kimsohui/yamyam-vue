@@ -1,47 +1,73 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { ref, computed, provide } from 'vue'
+import HomeView from './views/HomeView.vue'
+import CalendarView from './views/CalendarView.vue'
+import GroupsView from './views/GroupsView.vue'
+import ChatView from './views/ChatView.vue'
+
+const history = ref(['home'])
+const currentScreen = computed(() => history.value[history.value.length - 1])
+
+function goTo(screen) {
+  if (screen !== currentScreen.value) {
+    history.value.push(screen)
+  }
+}
+
+function goBack() {
+  if (history.value.length > 1) {
+    history.value.pop()
+  }
+}
+
+provide('navigation', { currentScreen, goTo, goBack })
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+  <div class="app-wrapper">
+    <div class="app-container">
+      <Transition name="fade" mode="out-in">
+        <HomeView v-if="currentScreen === 'home'" key="home" />
+        <CalendarView v-else-if="currentScreen === 'calendar'" key="calendar" />
+        <GroupsView v-else-if="currentScreen === 'groups'" key="groups" />
+        <ChatView v-else-if="currentScreen === 'chat'" key="chat" />
+      </Transition>
     </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main>
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
+<style>
+.app-wrapper {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  background: #e8e8e8;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.app-container {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  background: var(--bg-primary);
+  position: relative;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+@media (min-width: 480px) {
+  .app-container {
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.06),
+      0 8px 48px rgba(0,0,0,0.16);
   }
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
+/* Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
