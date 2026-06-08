@@ -4,7 +4,12 @@ import BottomNav from '../components/BottomNav.vue'
 import { useStore } from '../composables/useStore.js'
 
 const { goTo } = inject('navigation')
-const { groups } = useStore()
+const { groups, selectedGroup } = useStore()
+
+function openGroup(group) {
+  selectedGroup.value = group
+  goTo('group-detail')
+}
 
 const showCreate = ref(false)
 const newGroupName = ref('')
@@ -42,7 +47,7 @@ function createGroup() {
             v-for="group in groups"
             :key="group.id"
             class="group-card"
-            @click="goTo('chat')"
+            @click="openGroup(group)"
           >
             <div class="group-icon">👥</div>
             <div class="group-info">

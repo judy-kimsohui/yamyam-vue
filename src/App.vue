@@ -3,6 +3,7 @@ import { ref, computed, provide, onMounted } from "vue"; // 💡 onMounted 추�
 import HomeView from "./views/HomeView.vue";
 import CalendarView from "./views/CalendarView.vue";
 import GroupsView from "./views/GroupsView.vue";
+import GroupDetailView from "./views/GroupDetailView.vue";
 import ChatView from "./views/ChatView.vue";
 
 // ==================== [네비게이션 로직] ====================
@@ -63,6 +64,7 @@ onMounted(() => {
       <HomeView v-if="currentScreen === 'home'" key="home" />
       <CalendarView v-else-if="currentScreen === 'calendar'" key="calendar" />
       <GroupsView v-else-if="currentScreen === 'groups'" key="groups" />
+      <GroupDetailView v-else-if="currentScreen === 'group-detail'" key="group-detail" />
       <ChatView v-else-if="currentScreen === 'chat'" key="chat" />
     </Transition>
   </div>
