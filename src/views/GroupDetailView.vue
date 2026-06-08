@@ -63,6 +63,32 @@
           </div>
           <div class="day-ai"><span class="ai-chip">AI</span>{{ dayRecord.aiComment }}</div>
         </div>
+
+        <!-- 참가자별 식단 요약 -->
+        <div class="member-summary-list">
+          <div class="summary-title">{{ currentMonth + 1 }}월 {{ selectedDay }}일 · 참가자 식단</div>
+          <div v-for="member in teamMembers" :key="member.id" class="summary-row">
+            <img
+              :src="member.profileImg || '/default_avatar.svg'"
+              class="summary-avatar"
+              @error="(e) => e.target.src = '/default_avatar.svg'"
+            />
+            <div class="summary-info">
+              <div class="summary-name">
+                {{ member.nickName }}
+                <span v-if="isMe(member.id)" class="mine-badge">나</span>
+              </div>
+              <div v-if="memberMeals(member.id).length > 0" class="summary-meals">
+                <span v-for="mt in memberMeals(member.id)" :key="mt.key" class="summary-chip">
+                  <span class="summary-meal-type">{{ mt.label }}</span>
+                  {{ mt.video.description || '기록됨' }}
+                </span>
+              </div>
+              <div v-else class="summary-no-record">이 날 기록 없음</div>
+            </div>
+          </div>
+          <div v-if="teamMembers.length === 0" class="summary-no-record" style="padding: 12px 0">멤버 정보 없음</div>
+        </div>
       </section>
 
       <!-- ── 피드 ── -->
@@ -170,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed, watch, inject, onMounted } from 'vue'
 import axios from 'axios'
 import { groupDayExpressions, groupDayRecords } from '../data/mockData.js'
 import { useStore } from '../composables/useStore.js'
@@ -184,6 +210,9 @@ const teamMembers = ref([])
 const videoMap = ref({})  // key: `${userId}_${mealType}`
 const loading = ref(false)
 const showCalendar = ref(false)
+
+// 달력이 열릴 때 선택된 날짜 데이터 즉시 로드
+watch(showCalendar, (val) => { if (val) selectDay(selectedDay.value) })
 
 const mealTypes = [
   { key: 'BREAKFAST', label: '아침' },
@@ -297,7 +326,38 @@ function nextMonth() {
   if (currentMonth.value === 11) { currentMonth.value = 0; currentYear.value++ }
   else currentMonth.value++
 }
-function selectDay(d) { selectedDay.value = d }
+const calendarVideoMap = ref({})
+
+function calDateStr(day) {
+  const y = currentYear.value
+  const m = String(currentMonth.value + 1).padStart(2, '0')
+  const d = String(day).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+async function selectDay(d) {
+  selectedDay.value = d
+  if (!selectedGroup.value?.id) return
+  try {
+    const res = await axios.get(`/api/videos/team/${selectedGroup.value.id}?date=${calDateStr(d)}`)
+    const map = {}
+    res.data.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
+    calendarVideoMap.value = map
+  } catch (e) {
+    console.error('달력 영상 로드 실패:', e)
+  }
+}
+
+function getCalVideo(userId, mealType) {
+  return calendarVideoMap.value[`${userId}_${mealType}`] || null
+}
+
+function memberMeals(memberId) {
+  return mealTypes
+    .map(mt => ({ ...mt, video: getCalVideo(memberId, mt.key) }))
+    .filter(mt => mt.video)
+}
+
 function calPercent(val, total) { return Math.min(100, Math.round((val / total) * 100)) }
 
 const dayRecord = computed(() => groupDayRecords[selectedDay.value] ?? groupDayRecords.default)
@@ -450,6 +510,18 @@ const dayRecord = computed(() => groupDayRecords[selectedDay.value] ?? groupDayR
 .bar-val { font-size:10px; color:#888; width:80px; text-align:right; flex-shrink:0; }
 .day-ai { font-size:12px; color:#666; line-height:1.6; display:flex; align-items:flex-start; gap:6px; }
 .ai-chip { font-size:10px; font-weight:700; background:#000; color:#fff; padding:2px 6px; border-radius:20px; flex-shrink:0; margin-top:1px; }
+
+/* 참가자 식단 요약 */
+.member-summary-list { display:flex; flex-direction:column; gap:10px; }
+.summary-title { font-size:12px; font-weight:700; color:#888; padding:4px 0 2px; border-top:1px solid #e5e5e5; margin-top:4px; }
+.summary-row { display:flex; align-items:flex-start; gap:10px; background:#fff; border-radius:12px; padding:10px 12px; }
+.summary-avatar { width:34px; height:34px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+.summary-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.summary-name { font-size:13px; font-weight:700; color:#000; display:flex; align-items:center; gap:5px; }
+.summary-meals { display:flex; flex-direction:column; gap:3px; }
+.summary-chip { font-size:12px; color:#444; line-height:1.4; display:flex; align-items:baseline; gap:5px; }
+.summary-meal-type { font-size:10px; font-weight:700; background:#f0f0f0; color:#555; padding:1px 6px; border-radius:10px; flex-shrink:0; }
+.summary-no-record { font-size:12px; color:#bbb; }
 
 /* 업로드 모달 */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
