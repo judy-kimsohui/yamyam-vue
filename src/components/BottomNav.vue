@@ -6,9 +6,7 @@ const emit = defineEmits(['navigate'])
 
 const tabs = [
   { id: 'home', icon: 'ti-home', label: '홈' },
-  { id: 'calendar', icon: 'ti-calendar', label: '달력' },
-  { id: 'groups', icon: 'ti-users', label: '그룹' },
-  { id: 'chat', icon: 'ti-message-circle', label: '채팅' }
+  { id: 'groups', icon: 'ti-users', label: '그룹' }
 ]
 </script>
 
