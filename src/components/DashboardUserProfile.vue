@@ -3,12 +3,11 @@
     <div class="profile-header">
       <div class="avatar-wrapper">
         <img
-          v-if="profile?.profileImg || profile?.profile_img"
-          :src="profile?.profileImg || profile?.profile_img"
+          :src="profile?.profileImg || profile?.profile_img || '/default_avatar.svg'"
           alt="프로필 이미지"
           class="avatar-img"
+          @error="(e) => e.target.src = '/default_avatar.svg'"
         />
-        <div v-else class="avatar-placeholder">👥</div>
       </div>
 
       <div class="user-meta">
@@ -189,9 +188,7 @@ const submitWeight = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-.avatar-placeholder {
-  font-size: 24px;
+  display: block;
 }
 .user-nickname {
   margin: 0;

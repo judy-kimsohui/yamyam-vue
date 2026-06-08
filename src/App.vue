@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, provide, onMounted } from "vue"; // 💡 onMounted 추가
 import HomeView from "./views/HomeView.vue";
-import CalendarView from "./views/CalendarView.vue";
+import DashboardView from "./views/DashboardView.vue";
 import GroupsView from "./views/GroupsView.vue";
 import GroupDetailView from "./views/GroupDetailView.vue";
 import ChatView from "./views/ChatView.vue";
@@ -42,15 +42,14 @@ const logout = () => {
 };
 
 provide("auth", { isLoggedIn, loginUser, loginSuccess, logout });
+// loginUser 구조: { id: Long, nickName: String, userId: String }
 
-// 💡 2번 요구사항 핵심: 앱이 켜질 때 로컬 스토리지를 검사해 로그인 상태 복구
+// 앱 시작 시 로컬 스토리지에서 로그인 상태 복구
 onMounted(() => {
   const savedUser = localStorage.getItem("yamyam_user");
   if (savedUser) {
     isLoggedIn.value = true;
-    loginUser.value = JSON.parse(savedUser);
-
-    // 이미 로그인 상태라면 홈 화면에 머물지 않고 바로 서비스 대시보드로 이동시킴!
+    loginUser.value = JSON.parse(savedUser); // { id, nickName, userId }
     if (currentScreen.value === "home") {
       goTo("calendar");
     }
@@ -62,7 +61,7 @@ onMounted(() => {
   <div class="full-screen-app">
     <Transition name="fade" mode="out-in">
       <HomeView v-if="currentScreen === 'home'" key="home" />
-      <CalendarView v-else-if="currentScreen === 'calendar'" key="calendar" />
+      <DashboardView v-else-if="currentScreen === 'calendar'" key="calendar" />
       <GroupsView v-else-if="currentScreen === 'groups'" key="groups" />
       <GroupDetailView v-else-if="currentScreen === 'group-detail'" key="group-detail" />
       <ChatView v-else-if="currentScreen === 'chat'" key="chat" />

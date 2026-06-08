@@ -166,9 +166,14 @@ const signupForm = ref({
 // 일반 로그인 로직
 const handleLogin = async () => {
   try {
-    const response = await axios.post("/api/users/login", loginForm.value);
-    alert(response.data);
-    auth.loginSuccess({ nickName: loginForm.value.userId });
+    await axios.post("/api/users/login", loginForm.value);
+    const profileRes = await axios.get("/api/users/profile");
+    const p = profileRes.data;
+    auth.loginSuccess({
+      id: p.id,
+      nickName: p.nick_name || p.nickName || loginForm.value.userId,
+      userId: loginForm.value.userId,
+    });
     navigation.goTo("calendar");
   } catch (error) {
     alert(error.response?.data || "Login failed");
@@ -180,13 +185,18 @@ const handleDevLogin = async () => {
   try {
     const devAccount = { userId: "test", password: "test" };
     await axios.post("/api/users/login", devAccount);
-    auth.loginSuccess({ nickName: "개발자테스트" });
-    navigation.goTo("calendar");
+    const profileRes = await axios.get("/api/users/profile");
+    const p = profileRes.data;
+    auth.loginSuccess({
+      id: p.id,
+      nickName: p.nick_name || p.nickName || "개발자테스트",
+      userId: "test",
+    });
   } catch (error) {
     console.warn("백엔드 통신 패스, 프론트 단독 세션 수립");
-    auth.loginSuccess({ nickName: "DevUser" });
-    navigation.goTo("calendar");
+    auth.loginSuccess({ id: 1, nickName: "DevUser", userId: "test" });
   }
+  navigation.goTo("calendar");
 };
 
 // 💡 FormData 멀티파트 포맷을 이용한 오리지널 회원가입 절차 완전 정상화
