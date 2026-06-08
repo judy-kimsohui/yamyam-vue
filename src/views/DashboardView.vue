@@ -48,7 +48,7 @@
           class="group-card"
           @click="openGroup(group)"
         >
-          <div class="group-icon">👥</div>
+          <img src="/default_group.svg" class="group-icon-img" alt="group" />
           <div class="group-info">
             <div class="group-name">{{ group.name }}</div>
             <div class="group-members">{{ group.members }}명 참여중</div>
@@ -428,6 +428,7 @@ const dayStats = computed(() => {
 }
 .group-card:hover { background: #fafafa; }
 .group-icon { font-size: 22px; }
+.group-icon-img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .group-info { flex: 1; }
 .group-name { font-size: 15px; font-weight: 600; color: #000; }
 .group-members { font-size: 12px; color: #888; margin-top: 2px; }

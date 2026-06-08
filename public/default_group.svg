@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 배경 원 -->
+  <circle cx="50" cy="50" r="50" fill="#FFF3E0"/>
+
+  <!-- 왼쪽 사람 -->
+  <circle cx="32" cy="36" r="11" fill="#FFCC80"/>
+  <ellipse cx="32" cy="65" rx="14" ry="10" fill="#FF8A65"/>
+  <!-- 왼쪽 눈 -->
+  <circle cx="28" cy="34" r="1.8" fill="#5D4037"/>
+  <circle cx="36" cy="34" r="1.8" fill="#5D4037"/>
+  <!-- 왼쪽 미소 -->
+  <path d="M27 40 Q32 44 37 40" stroke="#E64A19" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+  <!-- 오른쪽 사람 -->
+  <circle cx="68" cy="36" r="11" fill="#FFCC80"/>
+  <ellipse cx="68" cy="65" rx="14" ry="10" fill="#81C784"/>
+  <!-- 오른쪽 눈 -->
+  <circle cx="64" cy="34" r="1.8" fill="#5D4037"/>
+  <circle cx="72" cy="34" r="1.8" fill="#5D4037"/>
+  <!-- 오른쪽 미소 -->
+  <path d="M63 40 Q68 44 73 40" stroke="#388E3C" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+  <!-- 가운데 사람 (약간 앞) -->
+  <circle cx="50" cy="42" r="13" fill="#FFCC80"/>
+  <ellipse cx="50" cy="75" rx="16" ry="11" fill="#64B5F6"/>
+  <!-- 가운데 눈 -->
+  <circle cx="45.5" cy="40" r="2.1" fill="#4E342E"/>
+  <circle cx="54.5" cy="40" r="2.1" fill="#4E342E"/>
+  <!-- 눈 하이라이트 -->
+  <circle cx="46.5" cy="39" r="0.7" fill="#fff"/>
+  <circle cx="55.5" cy="39" r="0.7" fill="#fff"/>
+  <!-- 가운데 미소 -->
+  <path d="M44 47 Q50 52 56 47" stroke="#E64A19" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- 볼터치 -->
+  <circle cx="43" cy="46" r="3" fill="#FFAB91" opacity="0.5"/>
+  <circle cx="57" cy="46" r="3" fill="#FFAB91" opacity="0.5"/>
+</svg>

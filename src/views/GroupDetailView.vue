@@ -5,7 +5,10 @@
       <button class="icon-btn" @click="showCalendar ? (showCalendar = false) : goBack()">
         <i class="ti ti-arrow-left"></i>
       </button>
-      <div class="group-title">{{ showCalendar ? 'AI 달력' : (selectedGroup?.name ?? '그룹') }}</div>
+      <div class="group-title-wrap">
+        <img v-if="!showCalendar" src="/default_group.svg" class="group-header-img" alt="group" />
+        <span class="group-title">{{ showCalendar ? 'AI 달력' : (selectedGroup?.name ?? '그룹') }}</span>
+      </div>
       <div class="header-actions" v-if="!showCalendar">
         <button class="icon-btn" @click="showCalendar = true" title="AI 달력">
           <i class="ti ti-calendar"></i>
@@ -315,7 +318,9 @@ const dayRecord = computed(() => groupDayRecords[selectedDay.value] ?? groupDayR
   display: flex; align-items: center; gap: 8px;
   background: #fff; flex-shrink: 0;
 }
-.group-title { flex: 1; font-size: 16px; font-weight: 700; color: #000; }
+.group-title-wrap { flex: 1; display: flex; align-items: center; gap: 8px; }
+.group-header-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.group-title { font-size: 16px; font-weight: 700; color: #000; }
 .header-actions { display: flex; gap: 4px; }
 .icon-btn {
   width: 36px; height: 36px; border-radius: 50%;

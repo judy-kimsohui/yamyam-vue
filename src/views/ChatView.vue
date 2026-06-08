@@ -6,7 +6,7 @@
         <i class="ti ti-arrow-left"></i>
       </button>
       <div class="group-avatar">
-        <img src="/default_avatar.svg" alt="group" class="group-img" />
+        <img src="/default_group.svg" alt="group" class="group-img" />
       </div>
       <div class="group-info">
         <div class="group-name">{{ selectedGroup?.name ?? '채팅' }}</div>
