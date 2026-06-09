@@ -15,7 +15,7 @@
             Record,<br />
             and Share.
           </h1>
-          <p class="brand-desc">The minimal fitness log for teams.</p>
+          <p class="brand-desc">맛있는 로그를 함께 공유하세요!</p>
         </div>
       </div>
 
@@ -245,6 +245,7 @@ const handleSignup = async () => {
     alert(error.response?.data || "Signup failed");
   }
 };
+
 </script>
 
 <style scoped>
@@ -301,6 +302,19 @@ const handleSignup = async () => {
   color: #000000;
   margin: 0 0 20px 0;
   letter-spacing: -0.04em;
+
+  /* 파스텔 그라데이션 */
+  background: linear-gradient(
+    135deg,
+    #ffb6c1 0%,   /* 파스텔 핑크 */
+    #ffd6a5 30%,  /* 파스텔 오렌지 */
+    #caffbf 60%,  /* 파스텔 민트 */
+    #a0c4ff 100%  /* 파스텔 블루 */
+  );
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .brand-desc {
   font-size: 16px;
