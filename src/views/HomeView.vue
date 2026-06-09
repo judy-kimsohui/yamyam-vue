@@ -151,7 +151,6 @@ const authMode = ref("login");
 
 const loginForm = ref({ userId: "", password: "" });
 
-// 💡 백엔드 UserDto 스펙과 정확히 일치하도록 관통 데이터 모델링 복구
 const signupForm = ref({
   userId: "",
   password: "",
@@ -166,14 +165,29 @@ const signupForm = ref({
 // 일반 로그인 로직
 const handleLogin = async () => {
   try {
-    await axios.post("/api/users/login", loginForm.value);
-    const profileRes = await axios.get("/api/users/profile");
+    // 1. 로그인 요청을 보내 토큰을 받아옴
+    const loginRes = await axios.post("/api/users/login", loginForm.value);
+    const { token } = loginRes.data; // 백엔드가 뱉어준 token 꺼내기
+
+    // 2. 프로필을 조회하기 전, 방금 받은 토큰을 임시 헤더에 셋팅 (문지기 통과용)
+    const config = {
+      headers: { Authorization: `Bearer ${token}` },
+    };
+
+    // 3. 토큰을 실어서 프로필 상세 정보를 가져옴
+    const profileRes = await axios.get("/api/users/profile", config);
     const p = profileRes.data;
-    auth.loginSuccess({
-      id: p.id,
-      nickName: p.nick_name || p.nickName || loginForm.value.userId,
-      userId: loginForm.value.userId,
-    });
+
+    // 4. 전역 auth 상태에 유저 정보와 토큰을 같이 넘겨서 저장
+    auth.loginSuccess(
+      {
+        id: p.id,
+        nickName: p.nick_name || p.nickName || loginForm.value.userId,
+        userId: loginForm.value.userId,
+      },
+      token,
+    );
+
     navigation.goTo("calendar");
   } catch (error) {
     alert(error.response?.data || "Login failed");
@@ -184,17 +198,32 @@ const handleLogin = async () => {
 const handleDevLogin = async () => {
   try {
     const devAccount = { userId: "test", password: "test" };
-    await axios.post("/api/users/login", devAccount);
-    const profileRes = await axios.get("/api/users/profile");
+    const loginRes = await axios.post("/api/users/login", devAccount);
+    const { token } = loginRes.data;
+
+    // 프로필 요청용 임시 헤더 설정
+    const config = {
+      headers: { Authorization: `Bearer ${token}` },
+    };
+
+    const profileRes = await axios.get("/api/users/profile", config);
     const p = profileRes.data;
-    auth.loginSuccess({
-      id: p.id,
-      nickName: p.nick_name || p.nickName || "개발자테스트",
-      userId: "test",
-    });
+
+    auth.loginSuccess(
+      {
+        id: p.id,
+        nickName: p.nick_name || p.nickName || "개발자테스트",
+        userId: "test",
+      },
+      token,
+    );
   } catch (error) {
-    console.warn("백엔드 통신 패스, 프론트 단독 세션 수립");
-    auth.loginSuccess({ id: 1, nickName: "DevUser", userId: "test" });
+    console.warn("백엔드 통신 패스, 가짜 토큰 발급");
+    // 백엔드가 꺼져있을 때를 대비한 안전장치
+    auth.loginSuccess(
+      { id: 1, nickName: "DevUser", userId: "test" },
+      "dummy_token",
+    );
   }
   navigation.goTo("calendar");
 };

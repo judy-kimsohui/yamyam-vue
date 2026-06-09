@@ -1,31 +1,45 @@
 <script setup>
-import { ref, inject } from 'vue'
-import BottomNav from '../components/BottomNav.vue'
-import { useStore } from '../composables/useStore.js'
+import { ref, inject, onMounted } from "vue";
+import axios from "axios";
+import BottomNav from "../components/BottomNav.vue";
+import { useStore } from "../composables/useStore.js";
 
-const { goTo } = inject('navigation')
-const { groups, selectedGroup } = useStore()
+const { goTo } = inject("navigation");
+const { selectedGroup } = useStore();
+
+const groups = ref([]); // 서버에서 받아온 실제 그룹 데이터 저장
+
+onMounted(async () => {
+  try {
+    const response = await axios.get("/api/teams/my");
+    groups.value = response.data; // 서버가 준 TeamDto 리스트 바인딩
+  } catch (error) {
+    console.error("팀 목록을 가져오는데 실패했습니다:", error);
+    alert("그룹 정보를 불러오지 못했습니다. 다시 로그인해 주세요.");
+    goTo("home"); // 실패 시 로그인 화면이나 메인으로 튕기기
+  }
+});
 
 function openGroup(group) {
-  selectedGroup.value = group
-  goTo('group-detail')
+  selectedGroup.value = group;
+  goTo("group-detail");
 }
 
-const showCreate = ref(false)
-const newGroupName = ref('')
-const newMemberCount = ref('')
+const showCreate = ref(false);
+const newGroupName = ref("");
+const newMemberCount = ref("");
 
 function createGroup() {
-  const name = newGroupName.value.trim()
-  if (!name) return
+  const name = newGroupName.value.trim();
+  if (!name) return;
   groups.value.push({
     id: Date.now(),
     name,
-    members: parseInt(newMemberCount.value) || 2
-  })
-  newGroupName.value = ''
-  newMemberCount.value = ''
-  showCreate.value = false
+    members: parseInt(newMemberCount.value) || 2,
+  });
+  newGroupName.value = "";
+  newMemberCount.value = "";
+  showCreate.value = false;
 }
 </script>
 
@@ -35,7 +49,11 @@ function createGroup() {
     <template v-if="!showCreate">
       <header class="header">
         <div class="title">그룹</div>
-        <button class="add-btn" @click="showCreate = true" aria-label="그룹 만들기">
+        <button
+          class="add-btn"
+          @click="showCreate = true"
+          aria-label="그룹 만들기"
+        >
           <i class="ti ti-plus"></i>
         </button>
       </header>
@@ -86,7 +104,13 @@ function createGroup() {
           <label>최대 인원</label>
           <select v-model="newMemberCount" class="form-input">
             <option value="">인원수 선택</option>
-            <option v-for="n in [2,3,4,5,6,7,8,9,10,15,20]" :key="n" :value="String(n)">{{ n }}명</option>
+            <option
+              v-for="n in [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]"
+              :key="n"
+              :value="String(n)"
+            >
+              {{ n }}명
+            </option>
           </select>
         </div>
         <div class="form-hint">

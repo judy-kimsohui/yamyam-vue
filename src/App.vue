@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, provide, onMounted } from "vue"; // 💡 onMounted 추가
+import axios from "axios";
 import HomeView from "./views/HomeView.vue";
 import DashboardView from "./views/DashboardView.vue";
 import GroupsView from "./views/GroupsView.vue";
@@ -26,18 +27,25 @@ provide("navigation", { currentScreen, goTo, goBack });
 const isLoggedIn = ref(false);
 const loginUser = ref(null);
 
-const loginSuccess = (userData) => {
+const loginSuccess = (userData, token) => {
   isLoggedIn.value = true;
   loginUser.value = userData;
-  // 💡 로컬 스토리지에 로그인 상태 저장
+
+  // 로컬 스토리지에 유저 정보와 토큰을 각각 저장
   localStorage.setItem("yamyam_user", JSON.stringify(userData));
+  localStorage.setItem("yamyam_token", token);
+
+  axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 };
 
-// 💡 로그아웃 기능 (추후 대시보드 내부에서 쓸 수 있도록 provide에 포함)
 const logout = () => {
   isLoggedIn.value = false;
   loginUser.value = null;
   localStorage.removeItem("yamyam_user");
+  localStorage.removeItem("yamyam_token"); // 💡 토큰 삭제
+
+  // 💡 로그아웃 시 공통 헤더에서 토큰 제거
+  delete axios.defaults.headers.common["Authorization"];
   goTo("home");
 };
 
@@ -47,9 +55,12 @@ provide("auth", { isLoggedIn, loginUser, loginSuccess, logout });
 // 앱 시작 시 로컬 스토리지에서 로그인 상태 복구
 onMounted(() => {
   const savedUser = localStorage.getItem("yamyam_user");
-  if (savedUser) {
+  const savedToken = localStorage.getItem("yamyam_token");
+  if (savedUser && savedToken) {
     isLoggedIn.value = true;
     loginUser.value = JSON.parse(savedUser); // { id, nickName, userId }
+    axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
+
     if (currentScreen.value === "home") {
       goTo("calendar");
     }
@@ -63,7 +74,10 @@ onMounted(() => {
       <HomeView v-if="currentScreen === 'home'" key="home" />
       <DashboardView v-else-if="currentScreen === 'calendar'" key="calendar" />
       <GroupsView v-else-if="currentScreen === 'groups'" key="groups" />
-      <GroupDetailView v-else-if="currentScreen === 'group-detail'" key="group-detail" />
+      <GroupDetailView
+        v-else-if="currentScreen === 'group-detail'"
+        key="group-detail"
+      />
       <ChatView v-else-if="currentScreen === 'chat'" key="chat" />
     </Transition>
   </div>
