@@ -90,7 +90,7 @@ function createGroup() {
           </select>
         </div>
         <div class="form-hint">
-          그룹을 만들면 친구들을 초대하고 식단을 함께 공유할 수 있어요! 🥗
+          그룹을 만들면 친구들을 초대하고 식단을 함께 공유할 수 있어요!
         </div>
         <div class="form-actions">
           <button class="create-btn" @click="createGroup">그룹 만들기</button>

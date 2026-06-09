@@ -35,6 +35,7 @@ const tabs = [
   flex-shrink: 0;
 }
 
+
 .nav-btn {
   display: flex;
   flex-direction: column;

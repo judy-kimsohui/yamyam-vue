@@ -13,10 +13,10 @@ defineProps({
         <div class="card-time">{{ item.time }}</div>
       </div>
       <div class="card-meta">
-        <span>🔥 {{ item.calories }}kcal</span>
-        <span>💪 {{ item.protein }}g</span>
-        <span>🌾 {{ item.carbs }}g</span>
-        <span>🥑 {{ item.fat }}g</span>
+        <span>{{ item.calories }}kcal</span>
+        <span>{{ item.protein }}g</span>
+        <span>{{ item.carbs }}g</span>
+        <span>{{ item.fat }}g</span>
       </div>
       <div class="ai-tag">{{ item.aiTag }}</div>
     </div>

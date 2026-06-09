@@ -28,7 +28,7 @@
     </div>
 
     <div class="goal-phrase-box">
-      <p class="goal-title">🎯 나의 목표 한마디</p>
+      <p class="goal-title">나의 목표 한마디</p>
       <p class="goal-text">
         “
         {{
@@ -76,7 +76,7 @@
     <hr class="divider" />
 
     <div class="weight-recorder">
-      <p class="section-subtitle">📉 오늘 체중 기록하기</p>
+      <p class="section-subtitle">오늘 체중 기록하기</p>
       <form @submit.prevent="submitWeight" class="record-form">
         <div class="input-wrapper">
           <input

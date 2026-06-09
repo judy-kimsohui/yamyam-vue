@@ -19,26 +19,24 @@
 
     <!-- 메시지 목록 -->
     <main class="messages" ref="messagesEl">
-      <div class="date-divider">
-        <span>{{ todayLabel }}</span>
-      </div>
-
-      <div
-        v-for="msg in messages"
-        :key="msg.id"
-        class="msg-row"
-        :class="{ mine: isMyMessage(msg) }"
-      >
-        <div v-if="!isMyMessage(msg)" class="avatar">
-          <img src="/default_avatar.svg" alt="avatar" class="avatar-img" />
+      <template v-for="(item, i) in messageItems" :key="i">
+        <div v-if="item.type === 'divider'" class="date-divider">
+          <span>{{ item.label }}</span>
         </div>
-
-        <div class="msg-wrap">
-          <div v-if="!isMyMessage(msg)" class="sender-name">{{ msg.nickName }}</div>
-          <div class="bubble" :class="{ mine: isMyMessage(msg) }">{{ msg.text }}</div>
-          <div class="time" :class="{ mine: isMyMessage(msg) }">{{ formatTime(msg.timestamp) }}</div>
+        <div v-else
+          class="msg-row"
+          :class="{ mine: isMyMessage(item) }"
+        >
+          <div v-if="!isMyMessage(item)" class="avatar">
+            <img src="/default_avatar.svg" alt="avatar" class="avatar-img" />
+          </div>
+          <div class="msg-wrap">
+            <div v-if="!isMyMessage(item)" class="sender-name">{{ item.nickName }}</div>
+            <div class="bubble" :class="{ mine: isMyMessage(item) }">{{ item.text }}</div>
+            <div class="time" :class="{ mine: isMyMessage(item) }">{{ formatTime(item.timestamp) }}</div>
+          </div>
         </div>
-      </div>
+      </template>
 
       <div v-if="messages.length === 0 && !loading" class="empty-chat">
         <div class="empty-icon">💬</div>
@@ -64,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue'
 import axios from 'axios'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
@@ -89,7 +87,20 @@ function isMyMessage(msg) {
   return msg.userId != null && myUserId() != null && String(msg.userId) === String(myUserId())
 }
 
-const todayLabel = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+const messageItems = computed(() => {
+  const items = []
+  let lastKey = null
+  for (const msg of messages.value) {
+    const d = msg.timestamp ? new Date(msg.timestamp) : null
+    const key = d ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` : null
+    if (key && key !== lastKey) {
+      lastKey = key
+      items.push({ type: 'divider', label: d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) })
+    }
+    items.push({ type: 'msg', ...msg })
+  }
+  return items
+})
 
 function formatTime(iso) {
   if (!iso) return ''

@@ -1,6 +1,67 @@
+const E = (fill, fc, inner) =>
+  `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="${fill}"/>${inner.replace(/\$c/g, fc)}</svg>`
+
 export const emojis = {
-  great: '😄', good: '🙂', neutral: '😐', bad: '😔', terrible: '😣',
-  excited: '🤩', tired: '😴', sick: '🤢', happy: '😊', stressed: '😤'
+  // 복숭아 / 활짝 아치 눈 / 열린 입
+  great: E('#FFCCAA','#B06020',
+    `<path d="M7.5 11 Q9 8.5 10.5 11" fill="none" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M13.5 11 Q15 8.5 16.5 11" fill="none" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M8 14.5 Q12 19.5 16 14.5" fill="white"/>
+     <line x1="8" y1="14.5" x2="16" y2="14.5" stroke="$c" stroke-width="2" stroke-linecap="round"/>
+     <path d="M8 14.5 Q12 19.5 16 14.5" fill="none" stroke="$c" stroke-width="2" stroke-linecap="round"/>`),
+  // 파스텔 민트 / 아치 눈 / 미소
+  happy: E('#B8EDB8','#3A7030',
+    `<path d="M7.5 11 Q9 8.5 10.5 11" fill="none" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M13.5 11 Q15 8.5 16.5 11" fill="none" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M8.5 14.5 Q12 17.5 15.5 14.5" fill="none" stroke="$c" stroke-width="2.2" stroke-linecap="round"/>`),
+  // 연한 민트 / 작은 아치 눈 / 작은 미소
+  good: E('#C8F0C0','#3A7030',
+    `<path d="M7.5 11 Q9 9.5 10.5 11" fill="none" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M13.5 11 Q15 9.5 16.5 11" fill="none" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M9 15 Q12 17 15 15" fill="none" stroke="$c" stroke-width="2.2" stroke-linecap="round"/>`),
+  // 세이지 / 일자 눈(= =) / 평평한 입
+  neutral: E('#B8D8A8','#3A5A25',
+    `<line x1="7.5" y1="10.5" x2="10.5" y2="10.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="13.5" y1="10.5" x2="16.5" y2="10.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="8.5" y1="15" x2="15.5" y2="15" stroke="$c" stroke-width="2.2" stroke-linecap="round"/>`),
+  // 연한 라벤더-블루 / 처진 눈 / 찡그린 입
+  bad: E('#C8D8F0','#4055A0',
+    `<line x1="7.5" y1="10" x2="10.5" y2="11" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="13.5" y1="11" x2="16.5" y2="10" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M8.5 16.5 Q12 14 15.5 16.5" fill="none" stroke="$c" stroke-width="2.2" stroke-linecap="round"/>`),
+  // 블루그레이 / X X 눈 / 직사각형 입
+  terrible: E('#C8D0E0','#405070',
+    `<line x1="7.5" y1="8.5" x2="10.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="10.5" y1="8.5" x2="7.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="13.5" y1="8.5" x2="16.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="16.5" y1="8.5" x2="13.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <rect x="8.5" y="14" width="7" height="4.5" rx="2.2" fill="white" stroke="$c" stroke-width="1.8"/>`),
+  // 파스텔 노랑 / O O 눈 / O 입
+  excited: E('#FFF0A0','#906820',
+    `<circle cx="9" cy="10" r="2.2" fill="none" stroke="$c" stroke-width="2"/>
+     <circle cx="15" cy="10" r="2.2" fill="none" stroke="$c" stroke-width="2"/>
+     <circle cx="12" cy="15.5" r="2.6" fill="white" stroke="$c" stroke-width="1.8"/>`),
+  // 연한 라벤더 / 반쯤 감긴 눈 / 처진 입
+  tired: E('#D8C8EC','#604888',
+    `<line x1="7.5" y1="10.5" x2="10.5" y2="10.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M7.5 10.5 Q9 12.5 10.5 10.5" fill="#D8C8EC"/>
+     <line x1="13.5" y1="10.5" x2="16.5" y2="10.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M13.5 10.5 Q15 12.5 16.5 10.5" fill="#D8C8EC"/>
+     <path d="M9 15.5 Q12 17 15 15.5" fill="none" stroke="$c" stroke-width="2.2" stroke-linecap="round"/>`),
+  // 파스텔 아쿠아 / X X 눈 / 구불 입
+  sick: E('#B8ECD8','#2A7055',
+    `<line x1="7.5" y1="8.5" x2="10.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="10.5" y1="8.5" x2="7.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="13.5" y1="8.5" x2="16.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="16.5" y1="8.5" x2="13.5" y2="11.5" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <path d="M8 15.5 Q9.5 13.5 11 15.5 Q12.5 17.5 14 15.5 Q15.5 13.5 16 15" fill="none" stroke="$c" stroke-width="2" stroke-linecap="round"/>`),
+  // 파스텔 핑크 / 화난 눈썹 + 점 눈 / 물결 입
+  stressed: E('#F8C0C8','#A03050',
+    `<line x1="7" y1="8.5" x2="10.5" y2="10" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <line x1="17" y1="8.5" x2="13.5" y2="10" stroke="$c" stroke-width="2.4" stroke-linecap="round"/>
+     <circle cx="9" cy="11.5" r="1.5" fill="$c"/>
+     <circle cx="15" cy="11.5" r="1.5" fill="$c"/>
+     <path d="M8 16 Q9.5 14 11 16 Q12.5 18 14 16 Q15.5 14 16 15.5" fill="none" stroke="$c" stroke-width="2" stroke-linecap="round"/>`)
 }
 
 export const calendarData = {
@@ -42,7 +103,7 @@ export const groupMembers = [
     meals: {
       breakfast: { uploaded: true, emoji: '🥣', title: '프로틴 오트밀',    calories: 290, video: '/videos/mine_breakfast.mp4' },
       lunch:     { uploaded: true, emoji: '🥗', title: '닭가슴살 샐러드', calories: 320, video: '/videos/mine_lunch.mp4' },
-      dinner:    { uploaded: false }
+      dinner:    { uploaded: true, emoji: '🍝', title: '파스타',           calories: 410, video: '/videos/mine_dinner.mp4' }
     }
   },
   {
@@ -57,36 +118,37 @@ export const groupMembers = [
     id: 3, name: '박지훈', avatar: '😎',
     meals: {
       breakfast: { uploaded: true, emoji: '🥤', title: '단백질 쉐이크',    calories: 180, video: '/videos/jihun_breakfast.mp4' },
-      lunch:     { uploaded: false },
+      lunch:     { uploaded: true, emoji: '🍱', title: '비빔밥',           calories: 520, video: '/videos/jihun_lunch.mp4' },
       dinner:    { uploaded: true, emoji: '🐟', title: '연어 스테이크',    calories: 520, video: '/videos/jihun_dinner.mp4' }
     }
   },
   {
     id: 4, name: '이수현', avatar: '🤗',
     meals: {
-      breakfast: { uploaded: false },
-      lunch:     { uploaded: true, emoji: '🍜', title: '비빔밥',           calories: 520, video: '/videos/suhyun_lunch.mp4' },
-      dinner:    { uploaded: false }
+      breakfast: { uploaded: true, emoji: '🍞', title: '토스트',           calories: 230, video: '/videos/suhyun_breakfast.mp4' },
+      lunch:     { uploaded: true, emoji: '🍙', title: '김밥',             calories: 380, video: '/videos/suhyun_lunch.mp4' },
+      dinner:    { uploaded: true, emoji: '🥩', title: '갈비',             calories: 560, video: '/videos/suhyun_dinner.mp4' }
     }
   },
   {
     id: 5, name: '최유나', avatar: '😄',
     meals: {
-      breakfast: { uploaded: true, emoji: '🫐', title: '베리 스무디볼',    calories: 260, video: '/videos/yuna_breakfast.mp4' },
-      lunch:     { uploaded: true, emoji: '🌮', title: '치킨 랩',          calories: 430, video: '/videos/yuna_lunch.mp4' },
-      dinner:    { uploaded: true, emoji: '🍲', title: '된장찌개 정식',    calories: 450, video: '/videos/yuna_dinner.mp4' }
+      breakfast: { uploaded: true, emoji: '🫙', title: '요거트볼',         calories: 200, video: '/videos/yuna_breakfast.mp4' },
+      lunch:     { uploaded: true, emoji: '🍜', title: '라면',             calories: 490, video: '/videos/yuna_lunch.mp4' },
+      dinner:    { uploaded: true, emoji: '🍣', title: '스시',             calories: 420, video: '/videos/yuna_dinner.mp4' }
     }
   }
 ]
 
 // 날짜별 식습관 표정 (식단 질 & 목표 달성도)
+const { great, happy, neutral, bad, excited, tired, stressed } = emojis
 export const groupDayExpressions = {
-  1:'😄', 2:'😊', 3:'😐', 4:'😊', 5:'😄',
-  6:'😄', 7:'🤩', 8:'😴', 9:'😔', 10:'😊',
-  11:'😄', 12:'🤩', 13:'😊', 14:'😤', 15:'😐',
-  16:'😊', 17:'😔', 18:'😐', 19:'😄', 20:'😊',
-  21:'🤩', 22:'😴', 23:'😐', 24:'😊', 25:'😄',
-  26:'😊', 27:'😐', 28:'😊', 29:'😄', 30:'🤩'
+  1:great, 2:happy, 3:neutral, 4:happy, 5:great,
+  6:great, 7:excited, 8:tired, 9:bad, 10:happy,
+  11:great, 12:excited, 13:happy, 14:stressed, 15:neutral,
+  16:happy, 17:bad, 18:neutral, 19:great, 20:happy,
+  21:excited, 22:tired, 23:neutral, 24:happy, 25:great,
+  26:happy, 27:neutral, 28:happy, 29:great, 30:excited
 }
 
 // 날짜별 간단 기록

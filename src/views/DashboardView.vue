@@ -2,131 +2,235 @@
   <div class="dashboard">
     <!-- ── 헤더 ── -->
     <header class="dash-header">
-      <span class="dash-logo">YamYam</span>
-      <nav class="dash-nav">
-        <button
-          class="nav-pill"
-          :class="{ active: subView === 'ai-calendar' }"
-          @click="subView = 'ai-calendar'"
-        >AI 분석</button>
-        <button
-          class="nav-pill"
-          :class="{ active: subView === 'mypage' }"
-          @click="subView = 'mypage'"
-        >마이페이지</button>
-        <button class="nav-pill logout" @click="auth.logout()">로그아웃</button>
+      <div class="dash-logo-area">
+        <button v-if="subView !== 'groups'" class="logo-back" @click="subView = 'groups'">
+          <i class="ti ti-arrow-left"></i>
+        </button>
+        <span v-if="subView === 'groups'" class="dash-logo">YamYam</span>
+      </div>
+      <nav v-if="subView === 'groups'" class="dash-nav">
+        <button class="nav-pill" @click="subView = 'mylog'">마이로그</button>
+        <button class="nav-pill" @click="subView = 'mypage'">마이페이지</button>
       </nav>
     </header>
 
-    <!-- ── 그룹 메인 뷰 ── -->
+    <!-- ══════════════ 그룹 메인 뷰 ══════════════ -->
     <main v-if="subView === 'groups'" class="dash-body form-fade">
-      <!-- 얌얌 로그 업로드 배너 버튼 -->
-      <button class="upload-banner" @click="isUploadModalOpen = true">
-        <span class="upload-icon">🎥</span>
-        <div class="upload-text">
-          <strong>얌얌 로그 업로드</strong>
-          <span>오늘 식단을 촬영해서 공유하세요</span>
+      <!-- 광고 배너 -->
+      <div class="ad-banner">
+        <span class="ad-label">AD</span>
+        <span class="ad-text">건강한 식단 관리, 오늘부터 시작하세요</span>
+      </div>
+      <!-- 오늘 식단 업로드 슬롯 -->
+      <div class="section-row" style="margin-bottom:12px">
+        <span class="section-title">오늘 기록 · {{ todayMealLabel }}</span>
+      </div>
+      <div class="today-meals-section">
+        <div class="today-meal-slots">
+          <div v-for="mt in [{key:'BREAKFAST',label:'아침'},{key:'LUNCH',label:'점심'},{key:'DINNER',label:'저녁'}]"
+            :key="mt.key" class="meal-upload-slot" @click="openUploadForMeal(mt.key)">
+            <div class="meal-slot-placeholder">
+              <i class="ti ti-video-plus"></i>
+            </div>
+            <span class="meal-slot-lbl">{{ mt.label }}</span>
+          </div>
         </div>
-        <span class="upload-arrow">→</span>
-      </button>
-
-      <!-- 그룹 목록 -->
+      </div>
       <div class="section-row">
         <span class="section-title">참여 중인 그룹</span>
-        <button class="icon-btn-round" @click="isCreateModalOpen = true" title="그룹 만들기">+</button>
+        <button class="icon-btn-round" @click="isCreateModalOpen = true" title="그룹 만들기">
+          <i class="ti ti-plus"></i>
+        </button>
       </div>
-
       <div v-if="groups.length === 0" class="empty-groups">
         <p>아직 참여 중인 그룹이 없습니다.</p>
         <button class="btn-outline" @click="isCreateModalOpen = true">그룹 만들기</button>
       </div>
-
       <div class="group-list">
-        <div
-          v-for="group in groups"
-          :key="group.id"
-          class="group-card"
-          @click="openGroup(group)"
-        >
+        <div v-for="group in groups" :key="group.id" class="group-card" @click="openGroup(group)">
           <img src="/default_group.svg" class="group-icon-img" alt="group" />
           <div class="group-info">
             <div class="group-name">{{ group.name }}</div>
             <div class="group-members">{{ group.members }}명 참여중</div>
           </div>
-          <button class="share-btn" @click.stop="copyInviteCode(group)">공유하기</button>
+          <button class="share-btn" @click.stop="copyInviteCode(group)">초대 코드 복사</button>
         </div>
       </div>
     </main>
 
-    <!-- ── 마이페이지 뷰 ── -->
-    <main v-else-if="subView === 'mypage'" class="dash-body form-fade">
-      <button class="back-link" @click="subView = 'groups'">← 그룹으로 돌아가기</button>
+    <!-- ══════════════ 마이페이지 ══════════════ -->
+    <main v-else-if="subView === 'mypage'" class="dash-body form-fade mypage-body">
       <h2 class="sub-title">내 프로필</h2>
-      <DashboardUserProfile
-        :profile="userProfileData"
-        @update-weight="handleWeightUpdateBackend"
-      />
+      <DashboardUserProfile :profile="userProfileData" @update-weight="handleWeightUpdateBackend" />
+      <button class="mypage-logout" @click="auth.logout()">로그아웃</button>
     </main>
 
-    <!-- ── AI 분석 캘린더 뷰 ── -->
-    <main v-else-if="subView === 'ai-calendar'" class="dash-body form-fade">
-      <button class="back-link" @click="subView = 'groups'">← 그룹으로 돌아가기</button>
-      <h2 class="sub-title">AI 분석 캘린더</h2>
+    <!-- ══════════════ 마이로그 ══════════════ -->
+    <template v-else-if="subView === 'mylog'">
 
-      <div class="calendar-card">
-        <div class="cal-header">
-          <button class="cal-arrow" @click="prevMonth"><</button>
-          <span class="cal-month-label">{{ monthLabel }}</span>
-          <button class="cal-arrow" @click="nextMonth">></button>
-        </div>
-        <div class="cal-weekdays">
-          <span v-for="d in ['일','월','화','수','목','금','토']" :key="d">{{ d }}</span>
-        </div>
-        <div class="cal-grid">
-          <div
-            v-for="(cell, i) in calendarCells"
-            :key="i"
-            class="cal-cell"
-            :class="{
-              empty: !cell,
-              selected: cell === selectedDay,
-              today: cell === todayDate && currentMonth === todayMonth && currentYear === todayYear
-            }"
-            @click="cell && (selectedDay = cell)"
-          >
-            <template v-if="cell">
-              <span class="cal-emoji">{{ getDayEmoji(cell) }}</span>
-              <span class="cal-num">{{ cell }}</span>
-            </template>
+      <!-- MOBILE (< 768px): 세로 스택 -->
+      <main v-if="isMobile" class="scroll-body form-fade">
+        <!-- 달력 -->
+        <div class="mylog-cal-wrap">
+          <div class="cal-nav">
+            <button class="cal-arrow" @click="prevMonth"><i class="ti ti-chevron-left"></i></button>
+            <span class="cal-month">{{ monthLabel }}</span>
+            <button class="cal-arrow" @click="nextMonth"><i class="ti ti-chevron-right"></i></button>
+          </div>
+          <div class="cal-weekdays">
+            <span v-for="d in ['일','월','화','수','목','금','토']" :key="d">{{ d }}</span>
+          </div>
+          <div class="cal-grid">
+            <div v-for="(cell, i) in calendarCells" :key="i" class="cal-cell"
+              :class="{ empty: !cell, selected: cell === selectedDay,
+                today: cell === todayDate && currentMonth === todayMonth && currentYear === todayYear }"
+              @click="cell && selectDay(cell)">
+              <template v-if="cell">
+                <span class="cal-num">{{ cell }}</span>
+                <span v-if="getDayEmoji(cell)" class="cal-emoji" v-html="getDayEmoji(cell)"></span>
+              </template>
+            </div>
           </div>
         </div>
+
+        <!-- 선택일 영상 -->
+        <div class="mylog-day-header">
+          <span class="mylog-day-title">{{ currentMonth + 1 }}월 {{ selectedDay }}일 기록</span>
+        </div>
+        <div v-if="loadingDayVideos" class="mylog-empty">불러오는 중...</div>
+        <div v-else-if="dayVideos.length === 0" class="mylog-empty">
+          <i class="ti ti-video-off" style="font-size:28px;color:#ccc"></i>
+          <p>이 날 기록이 없어요</p>
+        </div>
+        <div v-else class="mylog-list-mobile">
+          <div v-for="v in dayVideos" :key="v.id" class="mylog-card">
+            <video :src="v.videoUrl" autoplay loop muted playsinline class="mylog-video"></video>
+            <span v-if="v.description" class="mylog-center-desc">{{ v.description }}</span>
+            <div class="mylog-vid-bottom">
+              <span class="mylog-vid-tag">{{ mealLabel(v.mealType) }}</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- TABLET (768–1199px): 좌 달력 + 우 영상 그리드 -->
+      <div v-else-if="!isWide" class="tablet-split form-fade">
+        <aside class="tablet-cal-panel">
+          <div class="cal-nav">
+            <button class="cal-arrow" @click="prevMonth"><i class="ti ti-chevron-left"></i></button>
+            <span class="cal-month">{{ monthLabel }}</span>
+            <button class="cal-arrow" @click="nextMonth"><i class="ti ti-chevron-right"></i></button>
+          </div>
+          <div class="cal-weekdays">
+            <span v-for="d in ['일','월','화','수','목','금','토']" :key="d">{{ d }}</span>
+          </div>
+          <div class="cal-grid">
+            <div v-for="(cell, i) in calendarCells" :key="i" class="cal-cell"
+              :class="{ empty: !cell, selected: cell === selectedDay,
+                today: cell === todayDate && currentMonth === todayMonth && currentYear === todayYear }"
+              @click="cell && selectDay(cell)">
+              <template v-if="cell">
+                <span class="cal-num">{{ cell }}</span>
+                <span v-if="getDayEmoji(cell)" class="cal-emoji" v-html="getDayEmoji(cell)"></span>
+              </template>
+            </div>
+          </div>
+        </aside>
+        <main class="tablet-video-panel">
+          <div class="mylog-day-header">
+            <span class="mylog-day-title">{{ currentMonth + 1 }}월 {{ selectedDay }}일 기록</span>
+            <div class="mylog-filter-bar">
+              <button v-for="f in mealFilters" :key="f.key"
+                class="mylog-filter-btn" :class="{ active: activeFilter === f.key }"
+                @click="activeFilter = f.key">{{ f.label }}</button>
+            </div>
+          </div>
+          <div v-if="loadingDayVideos" class="mylog-empty">불러오는 중...</div>
+          <div v-else-if="filteredDayVideos.length === 0" class="mylog-empty">
+            <i class="ti ti-video-off" style="font-size:32px;color:#ccc"></i>
+            <p>이 날 기록이 없어요</p>
+          </div>
+          <div v-else class="mylog-grid-2">
+            <div v-for="v in filteredDayVideos" :key="v.id" class="mylog-card">
+              <video :src="v.videoUrl" autoplay loop muted playsinline class="mylog-video"></video>
+              <span v-if="v.description" class="mylog-center-desc">{{ v.description }}</span>
+              <div class="mylog-vid-bottom">
+                <span class="mylog-vid-tag">{{ mealLabel(v.mealType) }}</span>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
 
-      <div class="analysis-card">
-        <div class="analysis-header">
-          <span class="ai-badge">AI 분석</span>
-          <span class="analysis-day">{{ currentMonth + 1 }}월 {{ selectedDay }}일</span>
-          <span class="analysis-emoji">{{ getDayEmoji(selectedDay) || '—' }}</span>
-        </div>
-        <p class="analysis-main">{{ moodText }}</p>
-        <p class="analysis-sub">단백질 섭취가 목표의 87%를 달성했으며 칼로리 균형이 잘 맞춰졌어요.</p>
-        <div class="stats-row">
-          <div class="stat"><div class="stat-val">{{ dayStats.calories }}</div><div class="stat-lbl">칼로리</div></div>
-          <div class="stat"><div class="stat-val">{{ dayStats.protein }}g</div><div class="stat-lbl">단백질</div></div>
-          <div class="stat"><div class="stat-val">{{ dayStats.carbs }}g</div><div class="stat-lbl">탄수화물</div></div>
-        </div>
+      <!-- WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 영상 그리드 -->
+      <div v-else class="wide-split form-fade">
+        <aside class="wide-cal-panel">
+          <div class="cal-nav">
+            <button class="cal-arrow" @click="prevMonth"><i class="ti ti-chevron-left"></i></button>
+            <span class="cal-month">{{ monthLabel }}</span>
+            <button class="cal-arrow" @click="nextMonth"><i class="ti ti-chevron-right"></i></button>
+          </div>
+          <div class="cal-weekdays">
+            <span v-for="d in ['일','월','화','수','목','금','토']" :key="d">{{ d }}</span>
+          </div>
+          <div class="cal-grid">
+            <div v-for="(cell, i) in calendarCells" :key="i" class="cal-cell"
+              :class="{ empty: !cell, selected: cell === selectedDay,
+                today: cell === todayDate && currentMonth === todayMonth && currentYear === todayYear }"
+              @click="cell && selectDay(cell)">
+              <template v-if="cell">
+                <span class="cal-num">{{ cell }}</span>
+                <span v-if="getDayEmoji(cell)" class="cal-emoji" v-html="getDayEmoji(cell)"></span>
+              </template>
+            </div>
+          </div>
+          <!-- 월간 통계 -->
+          <div class="month-stats">
+            <div class="month-stats-title">이번 달 기록</div>
+            <div class="month-stats-grid">
+              <div class="mstat"><div class="mstat-val">{{ allMyVideos.length }}</div><div class="mstat-lbl">총 영상</div></div>
+              <div class="mstat"><div class="mstat-val">{{ countByMeal('BREAKFAST') }}</div><div class="mstat-lbl">아침</div></div>
+              <div class="mstat"><div class="mstat-val">{{ countByMeal('LUNCH') }}</div><div class="mstat-lbl">점심</div></div>
+              <div class="mstat"><div class="mstat-val">{{ countByMeal('DINNER') }}</div><div class="mstat-lbl">저녁</div></div>
+            </div>
+          </div>
+        </aside>
+        <main class="wide-video-panel">
+          <div class="mylog-day-header">
+            <span class="mylog-day-title">{{ currentMonth + 1 }}월 {{ selectedDay }}일 기록</span>
+            <div class="mylog-filter-bar">
+              <button v-for="f in mealFilters" :key="f.key"
+                class="mylog-filter-btn" :class="{ active: activeFilter === f.key }"
+                @click="activeFilter = f.key">{{ f.label }}</button>
+            </div>
+          </div>
+          <div v-if="loadingDayVideos" class="mylog-empty">불러오는 중...</div>
+          <div v-else-if="filteredDayVideos.length === 0" class="mylog-empty">
+            <i class="ti ti-video-off" style="font-size:36px;color:#ccc"></i>
+            <p>이 날 기록이 없어요</p>
+          </div>
+          <div v-else class="mylog-grid-3">
+            <div v-for="v in filteredDayVideos" :key="v.id" class="mylog-card">
+              <video :src="v.videoUrl" autoplay loop muted playsinline class="mylog-video"></video>
+              <span v-if="v.description" class="mylog-center-desc">{{ v.description }}</span>
+              <div class="mylog-vid-bottom">
+                <span class="mylog-vid-tag">{{ mealLabel(v.mealType) }}</span>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-    </main>
+    </template>
 
-    <!-- ── 동영상 업로드 모달 ── -->
-    <VideoUploadModal
-      v-if="isUploadModalOpen"
-      :teams="groups"
-      @close="isUploadModalOpen = false"
-      @upload="onVideoUploadSubmit"
-    />
+    <!-- 동영상 업로드 모달 -->
+    <VideoUploadModal v-if="isUploadModalOpen" :teams="groups" :default-meal-type="uploadMealType"
+      @close="isUploadModalOpen = false" @upload="onVideoUploadSubmit" />
+    <!-- 토스트 -->
+    <Transition name="toast-fade">
+      <div v-if="toastVisible" class="toast-popup">{{ toastMessage }}</div>
+    </Transition>
 
-    <!-- ── 그룹 생성 모달 ── -->
+    <!-- 그룹 생성 모달 -->
     <div v-if="isCreateModalOpen" class="modal-overlay" @click.self="isCreateModalOpen = false">
       <div class="modal-box">
         <h3 class="modal-title">새로운 그룹 만들기</h3>
@@ -151,7 +255,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { emojis, calendarData } from '../data/mockData.js'
 import { useStore } from '../composables/useStore.js'
@@ -162,105 +266,90 @@ const { goTo } = inject('navigation')
 const auth = inject('auth')
 const { groups, selectedGroup } = useStore()
 
-const subView = ref('groups') // 'groups' | 'mypage' | 'ai-calendar'
+const subView = ref('groups')
 const isUploadModalOpen = ref(false)
 const isCreateModalOpen = ref(false)
 const newGroupName = ref('')
 const newMemberCount = ref('')
+const uploadMealType = ref('')
 
-const userProfileData = ref({
-  id: null, user_id: '', nickName: '', nick_name: '', profileImg: '', profile_img: '',
-  age: 0, gender: 'NONE', height: 0, weight: 0, goalWeight: 0, goal_weight: 0,
-  userGoal: '', user_goal: '',
-})
+const toastVisible = ref(false)
+const toastMessage = ref('')
+let toastTimer = null
+function showToast(msg) {
+  toastMessage.value = msg
+  toastVisible.value = true
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastVisible.value = false }, 2000)
+}
 
-// ── API 통신 ──
+const _today = new Date()
+const todayMealLabel = `${_today.getMonth() + 1}월 ${_today.getDate()}일`
 
-const fetchUserProfile = async () => {
+function openUploadForMeal(mealType) {
+  uploadMealType.value = mealType
+  isUploadModalOpen.value = true
+}
+
+// ── 반응형 ──
+const isMobile = ref(window.innerWidth < 768)
+const isWide = ref(window.innerWidth >= 1200)
+const onResize = () => { isMobile.value = window.innerWidth < 768; isWide.value = window.innerWidth >= 1200 }
+window.addEventListener('resize', onResize)
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
+// ── 마이로그 ──
+const mealFilters = [
+  { key: 'all', label: '전체' },
+  { key: 'BREAKFAST', label: '아침' },
+  { key: 'LUNCH', label: '점심' },
+  { key: 'DINNER', label: '저녁' },
+]
+const activeFilter = ref('all')
+const dayVideos = ref([])       // 선택된 날짜의 영상
+const allMyVideos = ref([])     // 이번 달 전체 (통계용)
+const loadingDayVideos = ref(false)
+
+function toDateStr(d, y, m) {
+  const yy = y ?? d.getFullYear()
+  const mm = String((m ?? d.getMonth()) + 1).padStart(2, '0')
+  const dd = String(d instanceof Date ? d.getDate() : d).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
+async function selectDay(d) {
+  selectedDay.value = d
+  loadingDayVideos.value = true
+  const dateStr = toDateStr(d, currentYear.value, currentMonth.value)
   try {
-    const res = await axios.get('/api/users/profile')
-    if (res.data) userProfileData.value = res.data
-  } catch (e) {
-    console.error('프로필 로드 실패:', e)
+    const res = await axios.get(`/api/videos/my?date=${dateStr}`)
+    dayVideos.value = res.data
+  } catch {
+    dayVideos.value = []
+  } finally {
+    loadingDayVideos.value = false
   }
 }
 
-const fetchMyTeams = async () => {
-  try {
-    const res = await axios.get('/api/teams/my')
-    groups.value = res.data
-  } catch (e) {
-    console.error('그룹 목록 로드 실패:', e)
-  }
+const filteredDayVideos = computed(() =>
+  activeFilter.value === 'all' ? dayVideos.value : dayVideos.value.filter(v => v.mealType === activeFilter.value)
+)
+
+function mealLabel(key) {
+  return { BREAKFAST: '아침', LUNCH: '점심', DINNER: '저녁' }[key] ?? key
+}
+function countByMeal(key) {
+  return allMyVideos.value.filter(v => v.mealType === key).length
 }
 
-const handleWeightUpdateBackend = async (newWeight) => {
-  try {
-    await axios.post('/api/users/weight-history', { weight: newWeight })
-    userProfileData.value.weight = newWeight
-    alert(`오늘의 몸무게(${newWeight}kg)가 기록되었습니다.`)
-  } catch (e) {
-    alert('체중 기록 실패: ' + (e.response?.data || '서버 오류'))
-  }
-}
-
-const handleCreateGroup = async () => {
-  const name = newGroupName.value.trim()
-  if (!name) return
-  try {
-    await axios.post('/api/teams', { teamName: name, capacity: parseInt(newMemberCount.value) || 10 })
-    await fetchMyTeams()
-    isCreateModalOpen.value = false
-    newGroupName.value = ''
-    newMemberCount.value = ''
-  } catch (e) {
-    alert('그룹 생성 오류: ' + (e.response?.data || '서버 오류'))
-  }
-}
-
-const onVideoUploadSubmit = async ({ teamIds, mealType, mealDate, description, file }) => {
-  try {
-    await Promise.all(teamIds.map(teamId => {
-      const formData = new FormData()
-      formData.append('teamId', teamId)
-      formData.append('mealType', mealType)
-      formData.append('mealDate', mealDate)
-      if (description) formData.append('description', description)
-      formData.append('videoFile', file)
-      return axios.post('/api/videos/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-    }))
-    const label = teamIds.length > 1 ? `${teamIds.length}개 팀에 ` : ''
-    alert(`얌얌 로그가 ${label}업로드되었습니다!`)
-    isUploadModalOpen.value = false
-  } catch (e) {
-    alert('업로드 실패: ' + (e.response?.data || '서버 오류'))
-  }
-}
-
-const copyInviteCode = (group) => {
-  alert(`그룹 "${group.name}" 공유 링크를 복사했습니다.`)
-}
-
-function openGroup(group) {
-  selectedGroup.value = group
-  goTo('group-detail')
-}
-
-onMounted(() => {
-  fetchUserProfile()
-  fetchMyTeams()
-})
-
-// ── 캘린더 로직 ──
+// ── 달력 ──
 const today = new Date()
 const todayDate = today.getDate()
 const todayMonth = today.getMonth()
 const todayYear = today.getFullYear()
-
 const currentYear = ref(today.getFullYear())
 const currentMonth = ref(today.getMonth())
 const selectedDay = ref(today.getDate())
-
 const monthLabel = computed(() => `${currentYear.value}년 ${currentMonth.value + 1}월`)
 
 function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate() }
@@ -285,33 +374,89 @@ function nextMonth() {
 }
 
 function getDayEmoji(day) {
+  if (currentYear.value > todayYear) return ''
+  if (currentYear.value === todayYear && currentMonth.value > todayMonth) return ''
+  if (currentYear.value === todayYear && currentMonth.value === todayMonth && day > todayDate) return ''
   const mood = calendarData[day]
   return mood ? emojis[mood] : ''
 }
 
-const moodText = computed(() => {
-  const mood = calendarData[selectedDay.value]
-  if (!mood) return '이 날은 기록이 없어요.'
-  if (mood === 'great' || mood === 'excited') return '컨디션이 최고였던 하루! 에너지가 넘쳤네요.'
-  if (mood === 'good' || mood === 'happy') return '좋은 하루를 보냈어요. 꾸준히 유지하세요!'
-  if (mood === 'tired') return '피곤했지만 식단을 지켜냈어요. 대단해요!'
-  if (mood === 'stressed') return '스트레스받은 하루지만 건강하게 먹었어요.'
-  if (mood === 'bad' || mood === 'terrible') return '힘든 하루였지만, 내일은 더 좋아질 거예요.'
-  return '평범하게 지낸 하루였어요.'
+// ── 마이페이지 ──
+const userProfileData = ref({
+  id: null, user_id: '', nickName: '', nick_name: '', profileImg: '', profile_img: '',
+  age: 0, gender: 'NONE', height: 0, weight: 0, goalWeight: 0, goal_weight: 0,
+  userGoal: '', user_goal: '',
 })
 
-const dayStats = computed(() => {
-  const base = ((selectedDay.value * 31) % 400) + 1400
-  return { calories: base, protein: Math.round(base * 0.08), carbs: Math.round(base * 0.085) }
+const fetchUserProfile = async () => {
+  try {
+    const res = await axios.get('/api/users/profile')
+    if (res.data) userProfileData.value = res.data
+  } catch (e) { console.error('프로필 로드 실패:', e) }
+}
+const fetchMyTeams = async () => {
+  try {
+    const res = await axios.get('/api/teams/my')
+    groups.value = res.data
+  } catch (e) { console.error('그룹 목록 로드 실패:', e) }
+}
+const handleWeightUpdateBackend = async (newWeight) => {
+  try {
+    await axios.post('/api/users/weight-history', { weight: newWeight })
+    userProfileData.value.weight = newWeight
+    alert(`오늘의 몸무게(${newWeight}kg)가 기록되었습니다.`)
+  } catch (e) { alert('체중 기록 실패: ' + (e.response?.data || '서버 오류')) }
+}
+const handleCreateGroup = async () => {
+  const name = newGroupName.value.trim()
+  if (!name) return
+  try {
+    await axios.post('/api/teams', { teamName: name, capacity: parseInt(newMemberCount.value) || 10 })
+    await fetchMyTeams()
+    isCreateModalOpen.value = false
+    newGroupName.value = ''; newMemberCount.value = ''
+  } catch (e) { alert('그룹 생성 오류: ' + (e.response?.data || '서버 오류')) }
+}
+const onVideoUploadSubmit = async ({ teamIds, mealType, mealDate, description, file }) => {
+  try {
+    await Promise.all(teamIds.map(teamId => {
+      const formData = new FormData()
+      formData.append('teamId', teamId); formData.append('mealType', mealType)
+      formData.append('mealDate', mealDate)
+      if (description) formData.append('description', description)
+      formData.append('videoFile', file)
+      return axios.post('/api/videos/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    }))
+    isUploadModalOpen.value = false
+    alert('얌얌 로그가 업로드되었습니다!')
+  } catch (e) { alert('업로드 실패: ' + (e.response?.data || '서버 오류')) }
+}
+function copyInviteCode(group) {
+  const code = `yamyam://invite/${group.id}`
+  navigator.clipboard?.writeText(code).catch(() => {})
+  showToast('링크 복사 완료!')
+}
+function openGroup(group) { selectedGroup.value = group; goTo('group-detail') }
+
+onMounted(async () => {
+  fetchUserProfile()
+  fetchMyTeams()
+  // 이번 달 전체 영상 (통계용)
+  try {
+    const res = await axios.get('/api/videos/my')
+    allMyVideos.value = res.data
+  } catch {
+    allMyVideos.value = []
+  }
+  // 오늘 영상 로드
+  await selectDay(today.getDate())
 })
 </script>
 
 <style scoped>
 .dashboard {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+  width: 100vw; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column;
   background: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.02em;
@@ -320,262 +465,248 @@ const dayStats = computed(() => {
 
 /* ── 헤더 ── */
 .dash-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 16px 28px;
-  border-bottom: 1px solid #e5e5e5;
-  flex-shrink: 0;
-}
-.dash-logo {
-  font-size: 20px;
-  font-weight: 800;
-  color: #000;
-  letter-spacing: -0.04em;
-}
-.dash-nav {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.nav-pill {
-  padding: 7px 14px;
-  border-radius: 20px;
-  border: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5; flex-shrink: 0;
   background: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  color: #555;
-  cursor: pointer;
-  transition: all 0.15s;
+}
+.dash-logo-area { display: flex; align-items: center; gap: 8px; }
+.logo-back {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: none; border: none;
+  font-size: 18px; color: #333; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.logo-back:hover { background: #f0f0f0; }
+.dash-logo { font-size: 20px; font-weight: 800; color: #000; letter-spacing: -0.04em; }
+.dash-logo.clickable { cursor: pointer; }
+.dash-logo.clickable:hover { opacity: 0.7; }
+.dash-nav { display: flex; gap: 8px; align-items: center; }
+.nav-pill {
+  padding: 7px 14px; border-radius: 20px;
+  border: 1px solid #e5e5e5; background: #fff;
+  font-size: 13px; font-weight: 500; color: #555;
+  cursor: pointer; transition: all 0.15s;
 }
 .nav-pill:hover { border-color: #000; color: #000; }
 .nav-pill.active { background: #000; color: #fff; border-color: #000; }
-.nav-pill.logout { color: #999; border-color: transparent; }
-.nav-pill.logout:hover { color: #e53e3e; border-color: #e53e3e; }
-
-/* ── 바디 ── */
+/* ── 공통 바디 ── */
 .dash-body {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1; overflow-y: auto;
   padding: 24px 28px 40px;
-  max-width: 720px;
-  margin: 0 auto;
-  width: 100%;
+  max-width: 720px; margin: 0 auto; width: 100%;
   box-sizing: border-box;
 }
-
-/* ── 업로드 배너 ── */
-.upload-banner {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  padding: 18px 22px;
-  cursor: pointer;
-  margin-bottom: 28px;
-  transition: opacity 0.15s;
-  text-align: left;
+.mypage-body { display: flex; flex-direction: column; }
+.mypage-logout {
+  margin-top: 32px; align-self: flex-start;
+  background: none; border: none;
+  color: #999; font-size: 13px; font-weight: 500;
+  padding: 0; cursor: pointer; transition: color 0.15s;
 }
-.upload-banner:hover { opacity: 0.88; }
-.upload-icon { font-size: 28px; flex-shrink: 0; }
-.upload-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.upload-text strong { font-size: 16px; font-weight: 700; }
-.upload-text span { font-size: 12px; color: rgba(255,255,255,0.7); }
-.upload-arrow { font-size: 18px; color: rgba(255,255,255,0.6); }
+.mypage-logout:hover { color: #e53e3e; }
+.scroll-body {
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column;
+  padding-bottom: 32px;
+}
+
+/* ── 광고 배너 ── */
+.ad-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #f7f3ee; border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  border: 1px solid #ede5da;
+}
+.ad-label {
+  font-size: 10px; font-weight: 700; color: #bbb;
+  padding: 1px 5px; border: 1px solid #ddd; border-radius: 3px;
+  flex-shrink: 0;
+}
+.ad-text { font-size: 13px; color: #999; }
+
+/* ── 오늘 식단 업로드 슬롯 ── */
+.today-meals-section { margin-bottom: 24px; }
+.today-meal-slots { display: flex; gap: 10px; width: 100%; }
+.meal-upload-slot {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+.meal-slot-placeholder {
+  width: 100%; aspect-ratio: 1;
+  border: 1.5px dashed #d8ccbf; border-radius: 12px;
+  background: #fdf8f3;
+  display: flex; align-items: center; justify-content: center;
+  color: #c8b49a; font-size: 24px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.meal-upload-slot:hover .meal-slot-placeholder {
+  border-color: #c0a882; background: #f5ede0;
+}
+.meal-slot-lbl { font-size: 12px; font-weight: 600; color: #bbb; }
+
+/* ── 토스트 ── */
+.toast-popup {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.78); color: #fff;
+  padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+  z-index: 9999; pointer-events: none;
+}
+.toast-fade-enter-active { transition: opacity 0.2s, transform 0.2s; }
+.toast-fade-leave-active { transition: opacity 0.3s; }
+.toast-fade-enter-from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+.toast-fade-leave-to { opacity: 0; }
 
 /* ── 섹션 헤더 ── */
-.section-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.section-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+.section-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
 .icon-btn-round {
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  background: #000;
-  color: #fff;
-  border: none;
-  font-size: 18px;
-  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #000; color: #fff; border: none; padding: 0;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  line-height: 1;
 }
-
-/* ── 그룹 리스트 ── */
 .group-list { display: flex; flex-direction: column; gap: 10px; }
 .group-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid #e5e5e5;
-  border-radius: 14px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: background 0.15s;
+  display: flex; align-items: center; gap: 14px;
+  border: 1px solid #e5e5e5; border-radius: 14px; padding: 14px 16px;
+  cursor: pointer; transition: background 0.15s;
 }
 .group-card:hover { background: #fafafa; }
-.group-icon { font-size: 22px; }
 .group-icon-img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .group-info { flex: 1; }
 .group-name { font-size: 15px; font-weight: 600; color: #000; }
 .group-members { font-size: 12px; color: #888; margin-top: 2px; }
-.share-btn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: #f5f5f5;
-  border: 1px solid #e5e5e5;
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-  cursor: pointer;
-}
+.share-btn { padding: 6px 12px; border-radius: 8px; background: #f5f5f5; border: 1px solid #e5e5e5; font-size: 12px; font-weight: 600; color: #555; cursor: pointer; }
 .share-btn:hover { background: #ebebeb; }
+.empty-groups { text-align: center; padding: 40px 0; color: #888; }
+.btn-outline { margin-top: 12px; padding: 10px 20px; border: 1px solid #000; border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.sub-title { font-size: 20px; font-weight: 700; margin: 0 0 20px 0; color: #000; }
 
-.empty-groups {
-  text-align: center;
-  padding: 40px 0;
-  color: #888;
-}
-.btn-outline {
-  margin-top: 12px;
-  padding: 10px 20px;
-  border: 1px solid #000;
-  border-radius: 8px;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* ── 서브뷰 공통 ── */
-.back-link {
-  background: none; border: none;
-  font-size: 13px; color: #888;
-  cursor: pointer; padding: 0;
-  margin-bottom: 16px;
-  display: block;
-}
-.back-link:hover { color: #000; }
-.sub-title {
-  font-size: 20px; font-weight: 700;
-  margin: 0 0 20px 0;
-  color: #000;
-}
-
-/* ── 캘린더 ── */
-.calendar-card {
-  border: 1px solid #e5e5e5;
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-.cal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.cal-month-label { font-size: 16px; font-weight: 700; color: #000; }
-.cal-arrow {
-  background: none; border: none;
-  font-size: 16px; color: #888;
-  cursor: pointer; width: 28px; height: 28px;
-  display: flex; align-items: center; justify-content: center;
-}
+/* ══════════════════════════════
+   달력 (공통)
+══════════════════════════════ */
+.mylog-cal-wrap { padding: 16px; background: #fff; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-month { font-size: 15px; font-weight: 700; color: #000; }
+.cal-arrow { background: none; border: none; color: #888; font-size: 18px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .cal-arrow:hover { color: #000; }
-.cal-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7,1fr);
-  margin-bottom: 6px;
-}
-.cal-weekdays span {
-  text-align: center;
-  font-size: 11px; font-weight: 600; color: #aaa;
-}
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7,1fr);
-  gap: 4px;
-}
-.cal-cell {
-  aspect-ratio: 1;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  border-radius: 10px;
-  cursor: pointer;
-  gap: 1px;
-  transition: background 0.15s;
-}
+.cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 4px; }
+.cal-weekdays span { text-align: center; font-size: 11px; font-weight: 600; color: #aaa; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+.cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; gap: 1px; transition: background 0.15s; }
 .cal-cell.empty { cursor: default; }
-.cal-cell:not(.empty):active { background: #f5f5f5; }
+.cal-cell:not(.empty):hover { background: #f5f5f5; }
 .cal-cell.selected { background: #000; }
 .cal-cell.selected .cal-num { color: #fff; }
-.cal-cell.today:not(.selected) .cal-num { color: #000; font-weight: 800; }
-.cal-emoji { font-size: 13px; line-height: 1; }
+.cal-cell.today:not(.selected) .cal-num { font-weight: 800; color: #000; }
+.cal-emoji { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+.cal-emoji :deep(svg) { width: 18px; height: 18px; display: block; }
 .cal-num { font-size: 10px; color: #555; line-height: 1; }
 
-/* ── AI 분석 카드 ── */
-.analysis-card {
-  border: 1px solid #e5e5e5;
-  border-radius: 14px;
-  padding: 18px;
+/* ══════════════════════════════
+   마이로그 공통
+══════════════════════════════ */
+.mylog-day-header {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  padding: 12px 16px 8px;
 }
-.analysis-header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+.mylog-day-title { font-size: 14px; font-weight: 700; color: #000; }
+
+.mylog-filter-bar { display: flex; gap: 6px; }
+.mylog-filter-btn {
+  padding: 5px 12px; border-radius: 20px;
+  background: #f0f0f0; border: none;
+  font-size: 12px; font-weight: 600; color: #888;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.ai-badge {
-  background: #000; color: #fff;
-  font-size: 10px; font-weight: 700;
-  padding: 3px 8px; border-radius: 20px;
+.mylog-filter-btn.active { background: #000; color: #fff; }
+
+
+.mylog-empty {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 20px; color: #aaa; font-size: 14px;
+  min-height: 200px;
 }
-.analysis-day { flex: 1; font-size: 14px; font-weight: 700; color: #000; }
-.analysis-emoji { font-size: 26px; }
-.analysis-main { font-size: 14px; font-weight: 600; color: #000; margin: 0 0 6px 0; }
-.analysis-sub { font-size: 12px; color: #888; margin: 0 0 16px 0; line-height: 1.5; }
-.stats-row { display: flex; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
-.stat { flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid #e5e5e5; }
-.stat:last-child { border-right: none; }
-.stat-val { font-size: 15px; font-weight: 700; color: #000; }
-.stat-lbl { font-size: 10px; color: #888; margin-top: 2px; }
+
+/* ── 영상 카드 공통 ── */
+.mylog-card {
+  position: relative; overflow: hidden;
+  border-radius: 12px;
+}
+.mylog-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mylog-center-desc {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 20px);
+  font-size: 15px; font-weight: 700; color: #fff;
+  text-align: center; pointer-events: none;
+  line-height: 1.4; word-break: keep-all;
+}
+.mylog-vid-bottom { position: absolute; bottom: 8px; left: 8px; }
+.mylog-vid-tag {
+  background: rgba(0,0,0,0.48); border-radius: 6px;
+  padding: 3px 8px; font-size: 11px; font-weight: 700; color: #fff;
+}
+
+/* ── 모바일 리스트 ── */
+.mylog-list-mobile { display: flex; flex-direction: column; }
+.mylog-list-mobile .mylog-card { aspect-ratio: 16/9; border-radius: 0; }
+.mylog-list-mobile .mylog-center-desc { font-size: 16px; }
+
+/* ── 태블릿 분할 ── */
+.tablet-split {
+  flex: 1; display: flex; overflow: hidden;
+}
+.tablet-cal-panel {
+  width: 280px; min-width: 240px; flex-shrink: 0;
+  overflow-y: auto; background: #fff;
+  border-right: 1px solid #e5e5e5; padding: 16px;
+}
+.tablet-video-panel {
+  flex: 1; overflow-y: auto;
+  background: #f7f7f7; padding: 0 0 24px;
+}
+.mylog-grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; padding: 0 16px; }
+.mylog-grid-2 .mylog-card { aspect-ratio: 1; }
+
+/* ── 와이드 데스크탑 분할 ── */
+.wide-split {
+  flex: 1; display: flex; overflow: hidden;
+}
+.wide-cal-panel {
+  width: 33%; max-width: 360px; min-width: 260px; flex-shrink: 0;
+  overflow-y: auto; background: #fff;
+  border-right: 1px solid #e5e5e5; padding: 16px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.wide-video-panel { flex: 1; overflow-y: auto; background: #f7f7f7; padding: 0 0 24px; }
+.mylog-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; padding: 0 16px; }
+.mylog-grid-3 .mylog-card { aspect-ratio: 1; }
+
+/* 월간 통계 */
+.month-stats { background: #f7f7f7; border-radius: 12px; padding: 14px; }
+.month-stats-title { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.month-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mstat { background: #fff; border-radius: 10px; padding: 10px 8px; text-align: center; }
+.mstat-val { font-size: 20px; font-weight: 800; color: #000; }
+.mstat-lbl { font-size: 10px; color: #888; margin-top: 2px; }
 
 /* ── 모달 ── */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000;
-}
-.modal-box {
-  background: #fff; padding: 24px;
-  border-radius: 12px; width: 100%; max-width: 360px;
-}
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-box { background: #fff; padding: 24px; border-radius: 12px; width: 100%; max-width: 360px; }
 .modal-title { margin: 0 0 20px 0; font-size: 16px; font-weight: 700; }
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .form-group label { font-size: 12px; color: #666; font-weight: 600; }
-.form-input {
-  width: 100%; padding: 10px 12px;
-  border: 1px solid #ccc; border-radius: 8px;
-  font-size: 14px; outline: none; box-sizing: border-box;
-}
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
 .form-input:focus { border-color: #000; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
 .btn-cancel { padding: 8px 14px; background: #eee; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .btn-submit { padding: 8px 14px; background: #000; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
 
-/* ── 트랜지션 ── */
 .form-fade { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
