@@ -81,49 +81,66 @@
 
       <!-- 피드 (모바일) -->
       <template v-else>
-        <div class="feed-date-label">
-          <button class="date-nav-btn" @click="prevDay"><i class="ti ti-chevron-left"></i></button>
-          <span>{{ feedDate }} 식단 기록</span>
-          <button class="date-nav-btn" @click="nextDay"><i class="ti ti-chevron-right"></i></button>
-        </div>
-        <div v-if="loading" class="loading-msg">불러오는 중...</div>
-        <template v-else>
+        <div class="feed-wrap">
+        <div class="feed-controls-bar">
+          <div class="feed-date-compact">
+            <button class="date-nav-btn" @click="prevDay"><i class="ti ti-chevron-left"></i></button>
+            <span>{{ feedDate }}</span>
+            <button class="date-nav-btn" @click="nextDay"><i class="ti ti-chevron-right"></i></button>
+          </div>
           <div class="meal-tab-bar">
             <button v-for="(mt, i) in mealTypes" :key="mt.key"
               class="meal-tab" :class="{ active: activeMealIdx === i }"
               @click="activeMealIdx = i">{{ mt.label }}</button>
           </div>
+        </div>
+        <div v-if="loading" class="loading-msg">불러오는 중...</div>
+        <template v-else>
           <section class="feed-mobile"
             @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd"
             @mousedown="onMouseDown" @mouseup="onMouseUp" @mouseleave="isDragging = false">
             <div v-for="member in teamMembers" :key="member.id" class="member-log-mobile">
-              <div class="member-row">
-                <div class="member-avatar" :class="{ mine: isMe(member.id) }">
-                  <img :src="member.profileImg || '/default_avatar.svg'" :alt="member.nickName" class="avatar-img"
-                    @error="(e) => e.target.src='/default_avatar.svg'" />
-                </div>
-                <div class="member-name">{{ member.nickName }}</div>
-                <div v-if="isMe(member.id)" class="mine-badge">나</div>
-              </div>
               <div v-if="getVideo(member.id, mealTypes[activeMealIdx].key)" class="video-wrap-full">
                 <video class="meal-video-full"
                   :src="getVideo(member.id, mealTypes[activeMealIdx].key).videoUrl"
                   autoplay loop muted playsinline></video>
+                <div class="vid-member-top">
+                  <div class="member-avatar" :class="{ mine: isMe(member.id) }">
+                    <img :src="member.profileImg || '/default_avatar.svg'" :alt="member.nickName" class="avatar-img"
+                      @error="(e) => e.target.src='/default_avatar.svg'" />
+                  </div>
+                  <div class="member-name">{{ member.nickName }}</div>
+                  <div v-if="isMe(member.id)" class="mine-badge">나</div>
+                </div>
                 <span v-if="getVideo(member.id, mealTypes[activeMealIdx].key).description" class="vid-center-desc">{{ getVideo(member.id, mealTypes[activeMealIdx].key).description }}</span>
                 <div class="vid-bottom">
                   <span class="vid-tag">{{ mealTypes[activeMealIdx].label }} · {{ videoTime(getVideo(member.id, mealTypes[activeMealIdx].key)) }}</span>
                 </div>
               </div>
               <div v-else-if="isMe(member.id)" class="video-wrap-full upload-full" @click="openUpload(mealTypes[activeMealIdx].key)">
+                <div class="vid-member-top">
+                  <div class="member-avatar mine">
+                    <img src="/default_avatar.svg" class="avatar-img" />
+                  </div>
+                  <div class="member-name-dark">나</div>
+                </div>
                 <i class="ti ti-upload"></i><span>{{ mealTypes[activeMealIdx].label }} 업로드</span>
               </div>
               <div v-else class="video-wrap-full empty-full">
+                <div class="vid-member-top">
+                  <div class="member-avatar">
+                    <img :src="member.profileImg || '/default_avatar.svg'" class="avatar-img"
+                      @error="(e) => e.target.src='/default_avatar.svg'" />
+                  </div>
+                  <div class="member-name-dark">{{ member.nickName }}</div>
+                </div>
                 <i class="ti ti-minus"></i><span>미기록</span>
               </div>
             </div>
             <div v-if="teamMembers.length === 0" class="empty-feed">멤버 정보를 불러올 수 없습니다.</div>
           </section>
         </template>
+        </div>
       </template>
     </main>
 
@@ -658,10 +675,10 @@ function onMouseUp(e) {
   display: flex; align-items: center; gap: 8px;
   background: #fff; flex-shrink: 0;
 }
-.group-title-wrap { flex: 1; display: flex; align-items: center; gap: 8px; }
+.group-title-wrap { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .group-header-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.group-title { font-size: 16px; font-weight: 700; color: #000; }
-.header-actions { display: flex; gap: 4px; }
+.group-title { font-size: 16px; font-weight: 700; color: #000; line-height: 1; }
+.header-actions { display: flex; align-items: center; gap: 4px; }
 .icon-btn {
   width: 36px; height: 36px; border-radius: 50%;
   background: transparent; border: none;
@@ -672,11 +689,22 @@ function onMouseUp(e) {
 }
 .icon-btn:active { background: #f5f5f5; }
 
+@media (max-width: 767px) {
+  .header { height: 48px; padding: 0 12px; gap: 6px; }
+  .group-title-wrap { gap: 6px; }
+  .group-header-img { width: 26px; height: 26px; }
+  .group-title { font-size: 15px; }
+  .header-actions { gap: 2px; }
+  .icon-btn { width: 32px; height: 32px; font-size: 18px; }
+}
+
 /* ── MOBILE 스크롤 본문 ── */
 .scroll-body {
   flex: 1; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 12px;
-  padding-bottom: 24px;
+  display: flex; flex-direction: column;
+}
+.feed-wrap {
+  flex: 1; display: flex; flex-direction: column;
 }
 
 /* ── DESKTOP 분할 레이아웃 ── */
@@ -710,12 +738,23 @@ function onMouseUp(e) {
 .chat-btn-desk:hover { opacity: 0.85; }
 
 /* ── 날짜 네비게이션 ── */
+.feed-controls-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px; gap: 8px;
+}
+.feed-date-compact {
+  display: flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 700; color: #555; white-space: nowrap;
+}
+/* 데스크탑용 (기존 유지) */
 .feed-date-label {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 14px; font-weight: 700; color: #555;
   padding: 10px 16px 0;
 }
-/* 데스크탑: 가운데 정렬 */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .feed-date-label { padding: 10px 16px; }
+}
 .feed-date-label.desk-date {
   justify-content: center;
   gap: 12px;
@@ -794,37 +833,62 @@ function onMouseUp(e) {
 .video-thumb.upload-slot:hover { background: #ebebeb; }
 
 /* ── 모바일 탭 바 ── */
-.meal-tab-bar { display: flex; padding: 8px 16px 0; gap: 6px; }
+.meal-tab-bar { display: flex; gap: 4px; }
 .meal-tab {
-  flex: 1; padding: 7px 0;
+  padding: 5px 12px;
   border-radius: 20px; background: #f0f0f0;
-  border: none; font-size: 13px; font-weight: 600; color: #888;
+  border: none; font-size: 12px; font-weight: 600; color: #888;
   cursor: pointer; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
-.meal-tab.active { background: #000; color: #fff; }
+.meal-tab.active { background: #E8909E; color: #fff; }
 
 /* ── 모바일 피드 ── */
 .feed-mobile {
-  display: flex; flex-direction: column; gap: 10px;
-  padding: 8px 12px; user-select: none;
+  display: grid; grid-template-columns: 1fr 1fr;
+  user-select: none;
 }
-.member-log-mobile {
-  background: #fff; border-radius: 16px; padding: 14px;
-  border: 1px solid #e5e5e5;
-}
+.member-log-mobile { width: 100%; }
 .video-wrap-full {
-  width: 100%; aspect-ratio: 16/9;
-  border-radius: 12px; overflow: hidden; position: relative;
-  margin-top: 4px;
+  width: 100%; aspect-ratio: 1;
+  overflow: hidden; position: relative;
 }
 .meal-video-full { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* 영상 내부 상단 프로필 오버레이 */
+.vid-member-top {
+  position: absolute; top: 10px; left: 10px; right: 10px;
+  display: flex; align-items: center; gap: 8px;
+  z-index: 2;
+}
+.vid-member-top .member-avatar {
+  width: 30px; height: 30px; border-radius: 50%; overflow: hidden;
+  flex-shrink: 0; background: #F0F4FF;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.8);
+}
+.vid-member-top .member-avatar.mine {
+  box-shadow: 0 0 0 2px #fff;
+}
+.vid-member-top .member-name {
+  flex: 1; font-size: 13px; font-weight: 700; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.vid-member-top .mine-badge {
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.4);
+  padding: 2px 7px; border-radius: 20px;
+}
+.member-name-dark {
+  flex: 1; font-size: 13px; font-weight: 700; color: #555;
+}
+
 .upload-full, .empty-full {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; font-size: 13px; font-weight: 600;
 }
-.upload-full { background: #f5f5f5; border: 1.5px dashed #000; color: #000; cursor: pointer; }
+.upload-full { background: #FFF5F7; border-top: 1px dashed #F4B8C4; color: #E8909E; cursor: pointer; }
 .upload-full i, .empty-full i { font-size: 22px; }
-.empty-full { background: #f5f5f5; border: 1.5px dashed #ddd; color: #bbb; }
+.empty-full { background: #f0f0f0; border-top: 1px solid #e5e5e5; color: #bbb; }
 
 /* ── 달력 (공통) ── */
 .calendar-panel {
@@ -840,7 +904,7 @@ function onMouseUp(e) {
 .cal-cell { min-height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; gap:2px; transition:background 0.15s; }
 .cal-cell.empty { cursor:default; }
 .cal-cell:not(.empty):active { background:#f5f5f5; }
-.cal-cell.selected { background:#000; }
+.cal-cell.selected { background:#E8909E; }
 .cal-cell.selected .cal-num { color:#fff; }
 .cal-num { font-size:11px; color:#333; line-height:1; }
 .cal-expr { width:18px; height:18px; display:flex; align-items:center; justify-content:center; }
@@ -852,8 +916,8 @@ function onMouseUp(e) {
 .bar-row { display:flex; align-items:center; gap:8px; }
 .bar-label { font-size:11px; color:#888; width:36px; flex-shrink:0; }
 .bar-track { flex:1; height:6px; background:#e5e5e5; border-radius:99px; overflow:hidden; }
-.bar-fill { height:100%; background:#000; border-radius:99px; transition:width 0.4s; }
-.bar-fill.protein { background:#34c759; }
+.bar-fill { height:100%; background:#E8909E; border-radius:99px; transition:width 0.4s; }
+.bar-fill.protein { background:#7EC8A0; }
 .bar-val { font-size:10px; color:#888; width:80px; text-align:right; flex-shrink:0; }
 .day-ai { font-size:12px; color:#666; line-height:1.6; display:flex; align-items:flex-start; gap:6px; }
 .ai-chip { font-size:10px; font-weight:700; background:#000; color:#fff; padding:2px 6px; border-radius:20px; flex-shrink:0; margin-top:1px; }

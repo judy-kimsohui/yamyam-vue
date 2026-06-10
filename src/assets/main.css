@@ -5,15 +5,22 @@
 }
 
 :root {
-  --accent: #FF6B6B;
-  --accent-light: #FFF5F5;
-  --accent-border: #FFCDD2;
+  --accent: #E8909E;
+  --accent-light: #FFF0F3;
+  --accent-border: #F4B8C4;
+  --accent-mint: #7EC8A0;
+  --accent-blue: #A0C4FF;
+  --accent-orange: #FFD6A5;
   --text-primary: #1a1a1a;
   --text-secondary: #888;
   --bg-primary: #ffffff;
   --bg-secondary: #f6f6f6;
   --border-light: #f0f0f0;
   --border-medium: #e5e5e5;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-blue) !important;
 }
 
 html, body {

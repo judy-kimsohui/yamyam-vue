@@ -23,14 +23,22 @@
       <div class="right-auth">
         <div class="auth-inner">
           <!-- 상태 2: 이미 로그인 상태일 때 (꼬임 방지 뷰) -->
-          <div v-if="auth.isLoggedIn.value" class="form-unit">
-            <h2 class="auth-title">Welcome Back</h2>
-            <p class="status-msg">현재 로그인 상태입니다.</p>
-            <button @click="navigation.goTo('calendar')" class="btn-continue">
-              Go to Dashboard
-            </button>
-            <button @click="auth.logout()" class="btn-dev-logout">
-              Sign out
+          <div v-if="auth.isLoggedIn.value" class="form-unit logged-in-unit">
+            <h1 class="mobile-slogan">
+              Eat,<br />
+              Record,<br />
+              and Share.
+            </h1>
+            <p class="mobile-desc">맛있는 로그를 함께 공유하세요!</p>
+            <button @click="navigation.goTo('calendar')" class="btn-continue"
+              :class="{ pressed: btnPressed }"
+              @mousedown="btnPressed = true"
+              @touchstart.passive="btnPressed = true"
+              @mouseup="btnPressed = false"
+              @touchend="btnPressed = false"
+              @mouseleave="btnPressed = false">
+              <span class="btn-label default-label">Let's Eat!</span>
+              <span class="btn-label eat-label">Let's Eat!</span>
             </button>
           </div>
 
@@ -54,8 +62,15 @@
                 />
               </div>
 
-              <button @click="handleLogin" class="btn-continue">
-                Continue
+              <button @click="handleLogin" class="btn-continue"
+                :class="{ pressed: btnPressed }"
+                @mousedown="btnPressed = true"
+                @touchstart.passive="btnPressed = true"
+                @mouseup="btnPressed = false"
+                @touchend="btnPressed = false"
+                @mouseleave="btnPressed = false">
+                <span class="btn-label default-label">Continue</span>
+                <span class="btn-label eat-label">Let's Eat!</span>
               </button>
 
               <!-- ⚡ 개발용 하이패스 원클릭 버튼 -->
@@ -148,6 +163,7 @@ const navigation = inject("navigation");
 const auth = inject("auth");
 
 const authMode = ref("login");
+const btnPressed = ref(false);
 
 const loginForm = ref({ userId: "", password: "" });
 
@@ -391,9 +407,58 @@ const handleSignup = async () => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-label {
+  display: block;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.2s ease;
+}
+.default-label {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.btn-continue:hover .default-label,
+.btn-continue.pressed .default-label {
+  transform: translateY(-120%) scale(0.6);
+  opacity: 0;
+}
+
+.eat-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(120%) scale(0.5);
+  opacity: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.btn-continue:hover .eat-label,
+.btn-continue.pressed .eat-label {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  animation: spring-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 .btn-continue:hover {
-  opacity: 0.85;
+  background-color: #E8909E;
+}
+.btn-continue.pressed {
+  transform: scale(0.96);
+  background-color: #E8909E;
+}
+
+@keyframes spring-pop {
+  0%   { transform: translateY(30%) scale(0.5); opacity: 0; }
+  50%  { transform: translateY(-8%) scale(1.12); opacity: 1; }
+  75%  { transform: translateY(3%) scale(0.96); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 /* ⚡ 개발용 하이패스 점선 버튼 스타일 */
@@ -414,11 +479,19 @@ const handleSignup = async () => {
 }
 
 /* 로그인 상태 유저 보조 스타일 */
-.status-msg {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 30px;
-  text-align: left;
+.logged-in-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.logged-in-unit .btn-continue {
+  margin-top: 24px;
+}
+.mobile-slogan {
+  display: none;
+}
+.mobile-desc {
+  display: none;
 }
 .btn-dev-logout {
   width: 100%;
@@ -458,6 +531,29 @@ const handleSignup = async () => {
   .right-auth {
     padding: 40px;
     justify-content: center;
+  }
+  .mobile-slogan {
+    display: block;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    background: linear-gradient(
+      135deg,
+      #ffb6c1 0%,
+      #ffd6a5 30%,
+      #caffbf 60%,
+      #a0c4ff 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .mobile-desc {
+    display: block;
+    font-size: 16px;
+    color: #888888;
+    margin-top: -16px;
   }
 }
 

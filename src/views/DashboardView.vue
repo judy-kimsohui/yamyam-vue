@@ -6,7 +6,7 @@
         <button v-if="subView !== 'groups'" class="logo-back" @click="subView = 'groups'">
           <i class="ti ti-arrow-left"></i>
         </button>
-        <span v-if="subView === 'groups'" class="dash-logo">YamYam</span>
+        <span v-if="subView === 'groups'" class="dash-logo clickable" @click="goTo('home')">YamYam</span>
       </div>
       <nav v-if="subView === 'groups'" class="dash-nav">
         <button class="nav-pill" @click="subView = 'mylog'">마이로그</button>
@@ -30,9 +30,9 @@
           <div v-for="mt in [{key:'BREAKFAST',label:'아침'},{key:'LUNCH',label:'점심'},{key:'DINNER',label:'저녁'}]"
             :key="mt.key" class="meal-upload-slot" @click="openUploadForMeal(mt.key)">
             <div class="meal-slot-placeholder">
-              <i class="ti ti-video-plus"></i>
+              <i class="ti ti-upload"></i>
+              <span class="meal-slot-lbl">{{ mt.label }}</span>
             </div>
-            <span class="meal-slot-lbl">{{ mt.label }}</span>
           </div>
         </div>
       </div>
@@ -489,8 +489,8 @@ onMounted(async () => {
   font-size: 13px; font-weight: 500; color: #555;
   cursor: pointer; transition: all 0.15s;
 }
-.nav-pill:hover { border-color: #000; color: #000; }
-.nav-pill.active { background: #000; color: #fff; border-color: #000; }
+.nav-pill:hover { border-color: #E8909E; color: #E8909E; }
+.nav-pill.active { background: #E8909E; color: #fff; border-color: #E8909E; }
 /* ── 공통 바디 ── */
 .dash-body {
   flex: 1; overflow-y: auto;
@@ -515,16 +515,16 @@ onMounted(async () => {
 /* ── 광고 배너 ── */
 .ad-banner {
   display: flex; align-items: center; gap: 10px;
-  background: #f7f3ee; border-radius: 10px;
+  background: #edf7f1; border-radius: 10px;
   padding: 10px 14px; margin-bottom: 14px;
-  border: 1px solid #ede5da;
+  border: 1px solid #c8e6d4;
 }
 .ad-label {
-  font-size: 10px; font-weight: 700; color: #bbb;
-  padding: 1px 5px; border: 1px solid #ddd; border-radius: 3px;
+  font-size: 10px; font-weight: 700; color: #7EC8A0;
+  padding: 1px 5px; border: 1px solid #a8d8bc; border-radius: 3px;
   flex-shrink: 0;
 }
-.ad-text { font-size: 13px; color: #999; }
+.ad-text { font-size: 13px; color: #7aaa8e; }
 
 /* ── 오늘 식단 업로드 슬롯 ── */
 .today-meals-section { margin-bottom: 24px; }
@@ -535,16 +535,17 @@ onMounted(async () => {
 }
 .meal-slot-placeholder {
   width: 100%; aspect-ratio: 1;
-  border: 1.5px dashed #d8ccbf; border-radius: 12px;
-  background: #fdf8f3;
-  display: flex; align-items: center; justify-content: center;
-  color: #c8b49a; font-size: 24px;
-  transition: border-color 0.15s, background 0.15s;
+  border: 1.5px dashed #ddd; border-radius: 12px;
+  background: #f8f8f8;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px;
+  color: #ccc; font-size: 20px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .meal-upload-slot:hover .meal-slot-placeholder {
-  border-color: #c0a882; background: #f5ede0;
+  border-color: #bbb; background: #f0f0f0; color: #999;
 }
-.meal-slot-lbl { font-size: 12px; font-weight: 600; color: #bbb; }
+.meal-slot-lbl { font-size: 11px; font-weight: 600; color: #ccc; }
 
 /* ── 토스트 ── */
 .toast-popup {
@@ -564,7 +565,7 @@ onMounted(async () => {
 .section-title { font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
 .icon-btn-round {
   width: 30px; height: 30px; border-radius: 50%;
-  background: #000; color: #fff; border: none; padding: 0;
+  background: #E8909E; color: #fff; border: none; padding: 0;
   font-size: 16px; display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
@@ -582,7 +583,7 @@ onMounted(async () => {
 .share-btn { padding: 6px 12px; border-radius: 8px; background: #f5f5f5; border: 1px solid #e5e5e5; font-size: 12px; font-weight: 600; color: #555; cursor: pointer; }
 .share-btn:hover { background: #ebebeb; }
 .empty-groups { text-align: center; padding: 40px 0; color: #888; }
-.btn-outline { margin-top: 12px; padding: 10px 20px; border: 1px solid #000; border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-outline { margin-top: 12px; padding: 10px 20px; border: 1px solid #E8909E; border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; color: #E8909E; cursor: pointer; }
 .sub-title { font-size: 20px; font-weight: 700; margin: 0 0 20px 0; color: #000; }
 
 /* ══════════════════════════════
@@ -599,9 +600,9 @@ onMounted(async () => {
 .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; gap: 1px; transition: background 0.15s; }
 .cal-cell.empty { cursor: default; }
 .cal-cell:not(.empty):hover { background: #f5f5f5; }
-.cal-cell.selected { background: #000; }
+.cal-cell.selected { background: #E8909E; }
 .cal-cell.selected .cal-num { color: #fff; }
-.cal-cell.today:not(.selected) .cal-num { font-weight: 800; color: #000; }
+.cal-cell.today:not(.selected) .cal-num { font-weight: 800; color: #E8909E; }
 .cal-emoji { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
 .cal-emoji :deep(svg) { width: 18px; height: 18px; display: block; }
 .cal-num { font-size: 10px; color: #555; line-height: 1; }
@@ -622,7 +623,7 @@ onMounted(async () => {
   font-size: 12px; font-weight: 600; color: #888;
   cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.mylog-filter-btn.active { background: #000; color: #fff; }
+.mylog-filter-btn.active { background: #E8909E; color: #fff; }
 
 
 .mylog-empty {
