@@ -1,0 +1,50 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [ publish ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy to EC2
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+
+          # 프론트 디렉토리 생성
+          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@$HOST \
+            'mkdir -p /home/ubuntu/frontend'
+
+          # dist 파일 전송
+          rsync -avz --delete \
+            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+            dist/ ubuntu@$HOST:/home/ubuntu/frontend/
+
+          echo "✅ Frontend deployed at $(date)"
+          rm -f key.pem
