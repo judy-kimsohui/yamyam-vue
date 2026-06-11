@@ -100,7 +100,8 @@
             @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd"
             @mousedown="onMouseDown" @mouseup="onMouseUp" @mouseleave="isDragging = false">
             <div v-for="member in teamMembers" :key="member.id" class="member-log-mobile">
-              <div v-if="getVideo(member.id, mealTypes[activeMealIdx].key)" class="video-wrap-full">
+              <div v-if="getVideo(member.id, mealTypes[activeMealIdx].key)" class="video-wrap-full"
+                @click="openDetail(getVideo(member.id, mealTypes[activeMealIdx].key))">
                 <video class="meal-video-full"
                   :src="getVideo(member.id, mealTypes[activeMealIdx].key).videoUrl"
                   autoplay loop muted playsinline></video>
@@ -221,7 +222,8 @@
             </div>
             <div class="meal-slots">
               <div v-for="mt in mealTypes" :key="mt.key" class="meal-slot">
-                <div v-if="getVideo(member.id, mt.key)" class="video-wrap">
+                <div v-if="getVideo(member.id, mt.key)" class="video-wrap"
+                  style="cursor:pointer" @click="openDetail(getVideo(member.id, mt.key))">
                   <video class="meal-video" :src="getVideo(member.id, mt.key).videoUrl" autoplay loop muted playsinline></video>
                   <span v-if="getVideo(member.id, mt.key).description" class="vid-center-desc">{{ getVideo(member.id, mt.key).description }}</span>
                   <div class="vid-bottom">
@@ -321,7 +323,8 @@
             </div>
             <div class="meal-slots">
               <div v-for="mt in mealTypes" :key="mt.key" class="meal-slot">
-                <div v-if="getVideo(member.id, mt.key)" class="video-wrap">
+                <div v-if="getVideo(member.id, mt.key)" class="video-wrap"
+                  style="cursor:pointer" @click="openDetail(getVideo(member.id, mt.key))">
                   <video class="meal-video" :src="getVideo(member.id, mt.key).videoUrl" autoplay loop muted playsinline></video>
                   <span v-if="getVideo(member.id, mt.key).description" class="vid-center-desc">{{ getVideo(member.id, mt.key).description }}</span>
                   <div class="vid-bottom">
@@ -384,6 +387,16 @@
         </form>
       </div>
     </div>
+
+    <!-- 비디오 상세 모달 -->
+    <VideoDetailModal
+      v-if="detailModal.open && detailModal.video"
+      :video="detailModal.video"
+      :myUserId="auth?.loginUser?.value?.id ?? auth?.loginUser?.id"
+      @close="detailModal.open = false"
+      @deleted="onVideoDeleted"
+      @reupload="onReupload"
+    />
   </div>
 </template>
 
@@ -392,6 +405,7 @@ import { ref, computed, watch, inject, onMounted, onUnmounted, nextTick } from '
 import axios from 'axios'
 import { calendarData, emojis, groupDayRecords, groupMembers } from '../data/mockData.js'
 import { useStore } from '../composables/useStore.js'
+import VideoDetailModal from '../components/VideoDetailModal.vue'
 
 const { goTo, goBack } = inject('navigation')
 const auth = inject('auth')
@@ -482,6 +496,20 @@ onMounted(async () => {
 })
 
 const uploadModal = ref({ open: false, mealType: '', description: '', file: null })
+
+// 비디오 상세 모달
+const detailModal = ref({ open: false, video: null })
+function openDetail(video) { detailModal.value = { open: true, video } }
+function onVideoDeleted(videoId) {
+  // videoMap에서 해당 영상 제거
+  const key = Object.keys(videoMap.value).find(k => videoMap.value[k]?.id === videoId)
+  if (key) delete videoMap.value[key]
+  videoMap.value = { ...videoMap.value }
+}
+function onReupload({ videoId, teamId, mealType, mealDate }) {
+  onVideoDeleted(videoId)
+  openUpload(mealType)
+}
 const uploadFileInput = ref(null)
 const videoPreviewUrl = ref(null)
 const memoTextRef = ref(null)
