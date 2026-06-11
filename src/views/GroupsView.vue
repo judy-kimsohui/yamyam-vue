@@ -8,16 +8,26 @@ const { goTo } = inject("navigation");
 const { selectedGroup } = useStore();
 
 const groups = ref([]); // 서버에서 받아온 실제 그룹 데이터 저장
+const loading = ref(false);
+const showJoin = ref(false);
+const inviteInput = ref("");
 
-onMounted(async () => {
+async function fetchMyTeams() {
   try {
+    loading.value = true;
     const response = await axios.get("/api/teams/my");
-    groups.value = response.data; // 서버가 준 TeamDto 리스트 바인딩
+    groups.value = response.data;
   } catch (error) {
     console.error("팀 목록을 가져오는데 실패했습니다:", error);
     alert("그룹 정보를 불러오지 못했습니다. 다시 로그인해 주세요.");
-    goTo("home"); // 실패 시 로그인 화면이나 메인으로 튕기기
+    goTo("home");
+  } finally {
+    loading.value = false;
   }
+}
+
+onMounted(async () => {
+  await fetchMyTeams();
 });
 
 function openGroup(group) {
@@ -29,17 +39,75 @@ const showCreate = ref(false);
 const newGroupName = ref("");
 const newMemberCount = ref("");
 
-function createGroup() {
+function copyInviteCode(group) {
+  const inviteCode = group?.inviteCode;
+  if (!inviteCode) {
+    alert("초대코드를 찾을 수 없습니다.");
+    return;
+  }
+
+  const code = `yamyam://invite/${inviteCode}`;
+  navigator.clipboard?.writeText(code).catch(() => {});
+  alert("초대 링크를 복사했습니다.");
+}
+
+function parseInviteCode(input) {
+  if (!input) return "";
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  const deepLinkMatch = trimmed.match(/yamyam:\/\/invite\/([^\/?#]+)/i);
+  if (deepLinkMatch) return decodeURIComponent(deepLinkMatch[1]);
+
+  const urlPathMatch = trimmed.match(/\/invite\/([^\/?#]+)/i);
+  if (urlPathMatch) return decodeURIComponent(urlPathMatch[1]);
+
+  try {
+    const parsedUrl = new URL(trimmed);
+    const queryCode =
+      parsedUrl.searchParams.get("invite") ||
+      parsedUrl.searchParams.get("inviteCode");
+    if (queryCode) return queryCode.trim();
+  } catch {
+    // URL 형식이 아니면 코드 입력으로 처리
+  }
+
+  return trimmed;
+}
+
+async function createGroup() {
   const name = newGroupName.value.trim();
   if (!name) return;
-  groups.value.push({
-    id: Date.now(),
-    name,
-    members: parseInt(newMemberCount.value) || 2,
-  });
-  newGroupName.value = "";
-  newMemberCount.value = "";
-  showCreate.value = false;
+  try {
+    await axios.post("/api/teams", {
+      teamName: name,
+      capacity: parseInt(newMemberCount.value) || 10,
+    });
+    await fetchMyTeams();
+    newGroupName.value = "";
+    newMemberCount.value = "";
+    showCreate.value = false;
+  } catch (e) {
+    alert("그룹 생성 오류: " + (e.response?.data || "서버 오류"));
+  }
+}
+
+async function joinByInvite() {
+  const inviteCode = parseInviteCode(inviteInput.value);
+  if (!inviteCode) {
+    alert("초대 링크 또는 코드를 입력해 주세요.");
+    return;
+  }
+
+  try {
+    await axios.post("/api/teams/join", { inviteCode });
+    await fetchMyTeams();
+    inviteInput.value = "";
+    showJoin.value = false;
+    alert("그룹 참여 완료!");
+  } catch (e) {
+    alert("참여 실패: " + (e.response?.data || "서버 오류"));
+  }
 }
 </script>
 
@@ -50,6 +118,15 @@ function createGroup() {
       <header class="header">
         <div class="title">그룹</div>
         <button
+          type="button"
+          class="join-link-btn"
+          @click="showJoin = true"
+          aria-label="초대 링크로 참여"
+        >
+          링크 참여
+        </button>
+        <button
+          type="button"
           class="add-btn"
           @click="showCreate = true"
           aria-label="그룹 만들기"
@@ -59,6 +136,7 @@ function createGroup() {
       </header>
 
       <main class="content">
+        <div v-if="loading" class="loading">불러오는 중...</div>
         <div class="section-label">참여 중인 그룹</div>
         <div class="group-list">
           <div
@@ -72,7 +150,9 @@ function createGroup() {
               <div class="group-name">{{ group.name }}</div>
               <div class="group-members">{{ group.members }}명 참여중</div>
             </div>
-            <button class="share-btn" @click.stop>공유하기</button>
+            <button class="share-btn" @click.stop="copyInviteCode(group)">
+              공유하기
+            </button>
           </div>
         </div>
       </main>
@@ -121,6 +201,25 @@ function createGroup() {
         </div>
       </main>
     </template>
+
+    <div v-if="showJoin" class="join-overlay" @click.self="showJoin = false">
+      <div class="join-modal">
+        <h3>초대 링크로 참여</h3>
+        <input
+          v-model="inviteInput"
+          class="form-input"
+          placeholder="yamyam://invite/XXXXXXXXXX"
+        />
+        <div class="join-actions">
+          <button type="button" class="ghost-btn" @click="showJoin = false">
+            취소
+          </button>
+          <button type="button" class="create-btn" @click="joinByInvite">
+            참여하기
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -162,6 +261,18 @@ function createGroup() {
   transition: opacity 0.15s;
 }
 
+.join-link-btn {
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 12px;
+  margin-right: 8px;
+}
+
 .add-btn:active {
   opacity: 0.85;
 }
@@ -186,6 +297,12 @@ function createGroup() {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+}
+
+.loading {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
 }
 
 .section-label {
@@ -320,5 +437,45 @@ function createGroup() {
 
 .create-btn:active {
   opacity: 0.9;
+}
+
+.join-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 2000;
+}
+
+.join-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.join-modal h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.join-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ghost-btn {
+  border: 1px solid var(--border-medium);
+  background: #fff;
+  color: var(--text-secondary);
+  border-radius: 10px;
+  padding: 10px 14px;
 }
 </style>
