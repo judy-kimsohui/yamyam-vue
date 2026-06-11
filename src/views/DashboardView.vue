@@ -819,7 +819,7 @@ const onVideoUploadSubmit = async ({
     alert("업로드 실패: " + (e.response?.data || "서버 오류"));
   }
 };
-function copyInviteCode(group) {
+async function copyInviteCode(group) {
   const inviteCode = group?.inviteCode;
   if (!inviteCode) {
     showToast("초대코드를 찾을 수 없습니다.");
@@ -827,8 +827,26 @@ function copyInviteCode(group) {
   }
 
   const code = `yamyam://invite/${inviteCode}`;
-  navigator.clipboard?.writeText(code).catch(() => {});
-  showToast("링크 복사 완료!");
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(code);
+    } else {
+      // HTTP 환경 또는 clipboard API 미지원 fallback
+      const el = document.createElement("textarea");
+      el.value = code;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    showToast("링크 복사 완료!");
+  } catch (e) {
+    console.error("복사 실패:", e);
+    showToast("복사 실패: 수동으로 복사해 주세요.");
+  }
 }
 function openGroup(group) {
   selectedGroup.value = group;
