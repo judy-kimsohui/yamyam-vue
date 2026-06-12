@@ -54,237 +54,185 @@ function onReupload() {
   })
   emit('close')
 }
-
-function nutriPercent(val, max) {
-  if (!val || !max) return 0
-  return Math.min(100, Math.round((val / max) * 100))
-}
 </script>
 
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-sheet">
-      <!-- 상단 핸들 + 닫기 -->
-      <div class="sheet-handle-row">
-        <div class="sheet-handle"></div>
-        <button class="close-btn" @click="$emit('close')"><i class="ti ti-x"></i></button>
-      </div>
+  <div class="overlay" @click.self="$emit('close')">
+    <div class="sheet">
+      <div class="handle"></div>
 
       <div v-if="loading" class="loading-box">
         <i class="ti ti-loader-2 spin"></i>
       </div>
 
       <template v-else-if="detail">
-        <!-- 비디오 플레이어 -->
-        <div class="video-box">
-          <video :src="detail.videoUrl" controls playsinline class="modal-video"></video>
-        </div>
-
-        <!-- 업로더 정보 -->
-        <div class="info-row">
-          <span class="meal-badge">{{ mealLabel }}</span>
-          <span class="uploader">{{ detail.uploaderNickName }}</span>
-          <span class="date">{{ detail.mealDate }}</span>
-          <span v-if="isMyVideo" class="mine-tag">나</span>
-        </div>
-
-        <!-- 설명 -->
-        <p v-if="detail.description" class="description">{{ detail.description }}</p>
-
-        <!-- AI 영양 분석 -->
-        <div class="analysis-box">
-          <div class="analysis-title"><span class="ai-badge">AI</span> 식단 분석</div>
-          <div v-if="!hasAnalysis" class="no-analysis">
-            <i class="ti ti-brain"></i> 분석 정보 없음 (설명을 입력하면 AI가 분석합니다)
+        <!-- 비디오 -->
+        <div class="video-wrap">
+          <video :src="detail.videoUrl" autoplay loop muted playsinline class="video"></video>
+          <button class="close-btn" @click="$emit('close')"><i class="ti ti-x"></i></button>
+          <div v-if="isMyVideo" class="video-actions">
+            <button class="vbtn" @click="onReupload"><i class="ti ti-refresh"></i></button>
+            <button class="vbtn" @click="onDelete" :disabled="deleting"><i class="ti ti-trash"></i></button>
           </div>
-          <template v-else>
-            <div class="kcal-row">
-              <span class="kcal-num">{{ Math.round(detail.calories) }}</span>
-              <span class="kcal-unit">kcal</span>
-            </div>
-            <div class="nutrient-list">
-              <div class="nutrient-item">
-                <div class="nutrient-header">
-                  <span class="n-label carb">탄수화물</span>
-                  <span class="n-val">{{ detail.carbs }}g</span>
-                </div>
-                <div class="n-bar"><div class="n-fill carb" :style="{ width: nutriPercent(detail.carbs, 300) + '%' }"></div></div>
-              </div>
-              <div class="nutrient-item">
-                <div class="nutrient-header">
-                  <span class="n-label prot">단백질</span>
-                  <span class="n-val">{{ detail.protein }}g</span>
-                </div>
-                <div class="n-bar"><div class="n-fill prot" :style="{ width: nutriPercent(detail.protein, 100) + '%' }"></div></div>
-              </div>
-              <div class="nutrient-item">
-                <div class="nutrient-header">
-                  <span class="n-label fat">지방</span>
-                  <span class="n-val">{{ detail.fat }}g</span>
-                </div>
-                <div class="n-bar"><div class="n-fill fat" :style="{ width: nutriPercent(detail.fat, 80) + '%' }"></div></div>
-              </div>
-            </div>
-            <div v-if="detail.aiComment" class="ai-comment">
-              <i class="ti ti-sparkles"></i> {{ detail.aiComment }}
-            </div>
-          </template>
+          <div class="video-footer">
+            <span class="meal-pill">{{ mealLabel }}</span>
+            <span class="meal-date">{{ detail.mealDate }}</span>
+          </div>
         </div>
 
-        <!-- 내 영상 액션 -->
-        <div v-if="isMyVideo" class="my-actions">
-          <button class="reupload-btn" @click="onReupload">
-            <i class="ti ti-refresh"></i> 재업로드
-          </button>
-          <button class="delete-btn" @click="onDelete" :disabled="deleting">
-            <i class="ti ti-trash"></i> {{ deleting ? '삭제 중...' : '삭제' }}
-          </button>
+        <!-- 업로더 + 설명 + 영양 태그 -->
+        <div class="info">
+          <span class="name">{{ detail.uploaderNickName }}</span>
+          <span v-if="isMyVideo" class="mine">나</span>
+          <p v-if="detail.description" class="desc">{{ detail.description }}</p>
+          <div class="nutri-tags">
+            <span class="ntag carb">탄 {{ hasAnalysis ? detail.carbs + 'g' : '--' }}</span>
+            <span class="ntag prot">단 {{ hasAnalysis ? detail.protein + 'g' : '--' }}</span>
+            <span class="ntag fat">지 {{ hasAnalysis ? detail.fat + 'g' : '--' }}</span>
+            <span class="ntag kal">Kal {{ hasAnalysis ? Math.round(detail.calories) : '--' }}</span>
+          </div>
         </div>
+
+        <!-- AI 코멘트 -->
+        <div class="ai-card">
+          <div class="ai-card-header">
+            <span class="ai-tag">AI</span>
+            <span class="ai-title">식단 분석</span>
+          </div>
+          <div v-if="hasAnalysis && detail.aiComment" class="ai-comment">
+            <i class="ti ti-sparkles"></i> {{ detail.aiComment }}
+          </div>
+          <p v-else class="ai-hint">설명을 입력하면 AI가 분석해줘요 ✨</p>
+        </div>
+
       </template>
     </div>
   </div>
 </template>
 
 <style scoped>
-.modal-overlay {
+.overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.55);
   z-index: 1000;
-  display: flex; align-items: flex-end;
-}
-.modal-sheet {
-  background: var(--bg-primary, #fff);
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-height: 92vh;
-  overflow-y: auto;
-  padding: 0 0 32px;
-  animation: slideUp 0.28s ease;
-}
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-.sheet-handle-row {
   display: flex; align-items: center; justify-content: center;
-  padding: 12px 16px 4px;
-  position: relative;
+  padding: 20px;
 }
-.sheet-handle {
-  width: 36px; height: 4px;
-  background: var(--border-light, #e0e0e0);
-  border-radius: 2px;
+.sheet {
+  width: 100%;
+  max-width: 360px;
+  max-height: 85vh;
+  background: var(--bg-primary);
+  border-radius: 22px;
+  overflow-y: auto;
+  padding-bottom: 20px;
+  animation: popIn .22s cubic-bezier(.32,1,.4,1);
 }
-.close-btn {
-  position: absolute; right: 12px; top: 8px;
-  background: none; border: none;
-  font-size: 20px; color: var(--text-secondary, #888);
-  cursor: pointer; padding: 4px;
+@keyframes popIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
 }
+.handle { display: none; }
 .loading-box {
   display: flex; justify-content: center; align-items: center;
-  height: 120px; color: var(--text-secondary, #888);
+  height: 180px; font-size: 24px; color: var(--text-secondary);
 }
-.spin { animation: spin 1s linear infinite; }
+.spin { animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.video-box { padding: 0 16px 12px; }
-.modal-video {
-  width: 100%; border-radius: 12px;
-  max-height: 52vw; object-fit: cover;
-  background: #000;
+/* 비디오 */
+.video-wrap {
+  position: relative;
+  width: 100%; aspect-ratio: 4/3;
+  background: #000; overflow: hidden;
 }
-.info-row {
-  padding: 4px 16px 8px;
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+.video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.close-btn {
+  position: absolute; top: 10px; right: 10px;
+  width: 28px; height: 28px;
+  background: rgba(0,0,0,0.4); color: #fff;
+  border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer;
 }
-.meal-badge {
-  background: var(--accent-light, #fff3e0);
-  color: var(--accent, #ff8c42);
-  font-size: 12px; font-weight: 600;
+.video-actions {
+  position: absolute; top: 10px; left: 10px;
+  display: flex; gap: 6px;
+}
+.vbtn {
+  background: rgba(255,255,255,0.22);
+  backdrop-filter: blur(6px);
+  color: rgba(255,255,255,0.9);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 13px; cursor: pointer;
+  display: flex; align-items: center;
+}
+.vbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.video-footer {
+  position: absolute; bottom: 10px; left: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.meal-pill {
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px);
+  color: #fff; font-size: 11px; font-weight: 700;
   padding: 3px 10px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.35);
 }
-.uploader { font-weight: 600; font-size: 14px; color: var(--text-primary, #111); }
-.date { font-size: 12px; color: var(--text-secondary, #888); }
-.mine-tag {
-  background: var(--accent, #ff8c42); color: #fff;
+.meal-date { color: rgba(255,255,255,0.75); font-size: 11px; }
+
+/* 업로더 */
+.info {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 12px 16px 6px;
+}
+.name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.mine {
+  background: var(--accent); color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+}
+.desc {
+  width: 100%; margin: 2px 0 0;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+}
+
+/* 영양 태그 */
+.nutri-tags {
+  display: flex; gap: 5px; flex-wrap: wrap;
+  margin-top: 7px; width: 100%;
+}
+.ntag {
   font-size: 11px; font-weight: 700;
-  padding: 2px 7px; border-radius: 20px;
+  padding: 3px 9px; border-radius: 20px;
 }
-.description {
-  margin: 0 16px 12px;
-  font-size: 13px; color: var(--text-secondary, #555);
-  line-height: 1.5;
-}
-.analysis-box {
-  margin: 0 16px 16px;
-  background: var(--bg-secondary, #f8f8f8);
+.ntag.carb { background: #e8f4ff; color: #3a8fe8; }
+.ntag.prot { background: #fff0f0; color: #e05050; }
+.ntag.fat  { background: #fffde7; color: #c0860a; }
+.ntag.kal  { background: var(--accent-light); color: var(--accent); }
+
+/* AI 카드 */
+.ai-card {
+  margin: 4px 14px 12px;
+  background: var(--bg-secondary);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
-.analysis-title {
-  font-size: 13px; font-weight: 600;
-  color: var(--text-primary, #111);
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 6px;
+.ai-card-header {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
 }
-.ai-badge {
-  background: var(--accent, #ff8c42); color: #fff;
-  font-size: 11px; font-weight: 700;
-  padding: 2px 7px; border-radius: 20px;
+.ai-tag {
+  background: var(--accent); color: #fff;
+  font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 20px;
 }
-.no-analysis {
-  font-size: 13px; color: var(--text-secondary, #888);
-  display: flex; align-items: center; gap: 6px;
-}
-.kcal-row {
-  display: flex; align-items: baseline; gap: 4px; margin-bottom: 12px;
-}
-.kcal-num { font-size: 28px; font-weight: 700; color: var(--accent, #ff8c42); }
-.kcal-unit { font-size: 14px; color: var(--text-secondary, #888); }
-.nutrient-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.nutrient-item {}
-.nutrient-header {
-  display: flex; justify-content: space-between;
-  font-size: 12px; margin-bottom: 3px;
-}
-.n-label { font-weight: 600; }
-.n-label.carb { color: #4a9eff; }
-.n-label.prot { color: #ff6b6b; }
-.n-label.fat  { color: #ffd43b; }
-.n-val { color: var(--text-secondary, #888); }
-.n-bar {
-  height: 6px; background: var(--border-light, #e8e8e8);
-  border-radius: 3px; overflow: hidden;
-}
-.n-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-.n-fill.carb { background: #4a9eff; }
-.n-fill.prot { background: #ff6b6b; }
-.n-fill.fat  { background: #ffd43b; }
+.ai-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .ai-comment {
-  font-size: 13px; color: var(--text-secondary, #555);
-  background: var(--bg-primary, #fff);
-  border-radius: 10px; padding: 10px 12px;
-  display: flex; align-items: flex-start; gap: 6px;
-  line-height: 1.5;
+  font-size: 12px; color: var(--text-secondary);
+  display: flex; gap: 5px; align-items: flex-start; line-height: 1.6;
 }
-.my-actions {
-  margin: 0 16px;
-  display: flex; gap: 10px;
-}
-.reupload-btn, .delete-btn {
-  flex: 1; padding: 13px;
-  border-radius: 12px; border: none;
-  font-size: 14px; font-weight: 600;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.reupload-btn {
-  background: var(--accent-light, #fff3e0);
-  color: var(--accent, #ff8c42);
-}
-.delete-btn {
-  background: #fff0f0; color: #e05050;
-}
-.delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ai-hint { font-size: 12px; color: #bbb; margin: 0; }
+
 </style>

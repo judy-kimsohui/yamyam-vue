@@ -101,7 +101,7 @@
             @mousedown="onMouseDown" @mouseup="onMouseUp" @mouseleave="isDragging = false">
             <div v-for="member in teamMembers" :key="member.id" class="member-log-mobile">
               <div v-if="getVideo(member.id, mealTypes[activeMealIdx].key)" class="video-wrap-full"
-                @click="openDetail(getVideo(member.id, mealTypes[activeMealIdx].key))">
+                @click="handleVideoClick($event, getVideo(member.id, mealTypes[activeMealIdx].key))">
                 <video class="meal-video-full"
                   :src="getVideo(member.id, mealTypes[activeMealIdx].key).videoUrl"
                   autoplay loop muted playsinline></video>
@@ -500,6 +500,16 @@ const uploadModal = ref({ open: false, mealType: '', description: '', file: null
 // 비디오 상세 모달
 const detailModal = ref({ open: false, video: null })
 function openDetail(video) { detailModal.value = { open: true, video } }
+function handleVideoClick(e, video) {
+  const w = window.innerWidth
+  if (e.clientX < w * 0.12) {
+    if (activeMealIdx.value > 0) activeMealIdx.value--
+  } else if (e.clientX > w * 0.88) {
+    if (activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
+  } else {
+    openDetail(video)
+  }
+}
 function onVideoDeleted(videoId) {
   // videoMap에서 해당 영상 제거
   const key = Object.keys(videoMap.value).find(k => videoMap.value[k]?.id === videoId)
@@ -651,15 +661,18 @@ onUnmounted(() => {
 const activeMealIdx = ref(0)
 let touchStartX = 0
 let touchStartY = 0
+let swipeEnabled = false
 
 function onTouchStart(e) {
+  swipeEnabled = true
   touchStartX = e.touches[0].clientX
   touchStartY = e.touches[0].clientY
 }
 function onTouchEnd(e) {
+  if (!swipeEnabled) return
   const dx = e.changedTouches[0].clientX - touchStartX
   const dy = e.changedTouches[0].clientY - touchStartY
-  if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return
+  if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx)) return
   if (dx < 0 && activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
   else if (dx > 0 && activeMealIdx.value > 0) activeMealIdx.value--
 }
@@ -679,10 +692,12 @@ function onMouseUp(e) {
     if (dx < 0 && activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
     else if (dx > 0 && activeMealIdx.value > 0) activeMealIdx.value--
   } else {
+    // 가장자리 20% 클릭 시에만 이동
     const rect = e.currentTarget.getBoundingClientRect()
     const relX = e.clientX - rect.left
-    if (relX < rect.width / 2) { if (activeMealIdx.value > 0) activeMealIdx.value-- }
-    else { if (activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++ }
+    const edge = rect.width * 0.12
+    if (relX < edge && activeMealIdx.value > 0) activeMealIdx.value--
+    else if (relX > rect.width - edge && activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
   }
 }
 </script>
