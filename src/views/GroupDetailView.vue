@@ -116,6 +116,9 @@
                 <span v-if="getVideo(member.id, mealTypes[activeMealIdx].key).description" class="vid-center-desc">{{ getVideo(member.id, mealTypes[activeMealIdx].key).description }}</span>
                 <div class="vid-bottom">
                   <span class="vid-tag">{{ mealTypes[activeMealIdx].label }} · {{ videoTime(getVideo(member.id, mealTypes[activeMealIdx].key)) }}</span>
+                  <button class="like-btn" :class="{ liked: getVideo(member.id, mealTypes[activeMealIdx].key).liked }" @click.stop="toggleLike(getVideo(member.id, mealTypes[activeMealIdx].key), $event)">
+                    <span class="heart-icon">♥</span>
+                  </button>
                 </div>
               </div>
               <div v-else-if="isMe(member.id)" class="video-wrap-full upload-full" @click="openUpload(mealTypes[activeMealIdx].key)">
@@ -228,6 +231,9 @@
                   <span v-if="getVideo(member.id, mt.key).description" class="vid-center-desc">{{ getVideo(member.id, mt.key).description }}</span>
                   <div class="vid-bottom">
                     <span class="vid-tag">{{ mt.label }} · {{ videoTime(getVideo(member.id, mt.key)) }}</span>
+                    <button class="like-btn" :class="{ liked: getVideo(member.id, mt.key).liked }" @click.stop="toggleLike(getVideo(member.id, mt.key), $event)">
+                      <span class="heart-icon">♥</span>
+                    </button>
                   </div>
                 </div>
                 <div v-else-if="isMe(member.id)" class="video-thumb upload-slot" @click="openUpload(mt.key)">
@@ -329,6 +335,9 @@
                   <span v-if="getVideo(member.id, mt.key).description" class="vid-center-desc">{{ getVideo(member.id, mt.key).description }}</span>
                   <div class="vid-bottom">
                     <span class="vid-tag">{{ mt.label }} · {{ videoTime(getVideo(member.id, mt.key)) }}</span>
+                    <button class="like-btn" :class="{ liked: getVideo(member.id, mt.key).liked }" @click.stop="toggleLike(getVideo(member.id, mt.key), $event)">
+                      <span class="heart-icon">♥</span>
+                    </button>
                   </div>
                 </div>
                 <div v-else-if="isMe(member.id)" class="video-thumb upload-slot" @click="openUpload(mt.key)">
@@ -416,6 +425,30 @@ const videoMap = ref({})
 const loading = ref(false)
 const showCalendar = ref(false)
 
+function spawnHearts(e) {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  for (let i = 0; i < 6; i++) {
+    const el = document.createElement('span')
+    el.textContent = '♥'
+    Object.assign(el.style, {
+      position: 'fixed', left: cx + 'px', top: cy + 'px',
+      fontSize: '18px', color: '#ff2d55',
+      pointerEvents: 'none', zIndex: '9999',
+      transform: 'translateX(-50%)', userSelect: 'none'
+    })
+    document.body.appendChild(el)
+    const dx = (Math.random() - 0.5) * 70
+    const dy = -(60 + Math.random() * 50)
+    el.animate([
+      { opacity: 1, transform: `translateX(-50%) translateY(0px) scale(0.5)` },
+      { opacity: 1, transform: `translateX(calc(-50% + ${dx * 0.4}px)) translateY(${dy * 0.5}px) scale(1.3)`, offset: 0.35 },
+      { opacity: 0, transform: `translateX(calc(-50% + ${dx}px)) translateY(${dy}px) scale(0.8)` }
+    ], { duration: 850, easing: 'ease-out' }).onfinish = () => el.remove()
+  }
+}
+
 watch(showCalendar, (val) => { if (val || isWide.value) selectDay(selectedDay.value) })
 
 const mealTypes = [
@@ -472,18 +505,7 @@ const loadVideos = async () => {
     res.data.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
     videoMap.value = map
   } catch (e) {
-    const map = {}
-    groupMembers.forEach(m => {
-      Object.entries(m.meals).forEach(([mt, meal]) => {
-        if (meal.uploaded) {
-          map[`${m.id}_${mt.toUpperCase()}`] = {
-            userId: m.id, mealType: mt.toUpperCase(),
-            videoUrl: meal.video, description: meal.title
-          }
-        }
-      })
-    })
-    videoMap.value = map
+    videoMap.value = {}
   }
 }
 
@@ -501,14 +523,8 @@ const uploadModal = ref({ open: false, mealType: '', description: '', file: null
 const detailModal = ref({ open: false, video: null })
 function openDetail(video) { detailModal.value = { open: true, video } }
 function handleVideoClick(e, video) {
-  const w = window.innerWidth
-  if (e.clientX < w * 0.12) {
-    if (activeMealIdx.value > 0) activeMealIdx.value--
-  } else if (e.clientX > w * 0.88) {
-    if (activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
-  } else {
-    openDetail(video)
-  }
+  if (e.target.closest('.like-btn')) return
+  openDetail(video)
 }
 function onVideoDeleted(videoId) {
   // videoMap에서 해당 영상 제거
@@ -519,6 +535,21 @@ function onVideoDeleted(videoId) {
 function onReupload({ videoId, teamId, mealType, mealDate }) {
   onVideoDeleted(videoId)
   openUpload(mealType)
+}
+
+async function toggleLike(video, e) {
+  if (!video?.id) return
+  try {
+    const res = await axios.post(`/api/videos/${video.id}/like`)
+    const key = Object.keys(videoMap.value).find(k => videoMap.value[k]?.id === video.id)
+    if (key) {
+      videoMap.value = {
+        ...videoMap.value,
+        [key]: { ...videoMap.value[key], liked: res.data.liked, likeCount: res.data.count }
+      }
+    }
+    if (res.data.liked && e) spawnHearts(e)
+  } catch {}
 }
 const uploadFileInput = ref(null)
 const videoPreviewUrl = ref(null)
@@ -664,6 +695,7 @@ let touchStartY = 0
 let swipeEnabled = false
 
 function onTouchStart(e) {
+  if (e.target.closest('.like-btn')) { swipeEnabled = false; return }
   swipeEnabled = true
   touchStartX = e.touches[0].clientX
   touchStartY = e.touches[0].clientY
@@ -691,13 +723,6 @@ function onMouseUp(e) {
   if (Math.abs(dx) >= 40) {
     if (dx < 0 && activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
     else if (dx > 0 && activeMealIdx.value > 0) activeMealIdx.value--
-  } else {
-    // 가장자리 20% 클릭 시에만 이동
-    const rect = e.currentTarget.getBoundingClientRect()
-    const relX = e.clientX - rect.left
-    const edge = rect.width * 0.12
-    if (relX < edge && activeMealIdx.value > 0) activeMealIdx.value--
-    else if (relX > rect.width - edge && activeMealIdx.value < mealTypes.length - 1) activeMealIdx.value++
   }
 }
 </script>
@@ -848,7 +873,33 @@ function onMouseUp(e) {
 .vid-bottom {
   position: absolute; bottom: 8px; left: 8px; right: 8px;
   display: flex; align-items: center; gap: 6px;
+  z-index: 2;
 }
+.like-btn {
+  margin-left: auto;
+  background: none; border: none;
+  padding: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s;
+}
+.like-btn:active { transform: scale(1.3); }
+.heart-icon {
+  font-size: 24px;
+  color: rgba(255,255,255,0.25);
+  -webkit-text-stroke: 1.8px #fff;
+  transition: color 0.15s, -webkit-text-stroke 0.15s;
+  line-height: 1;
+}
+.like-btn.liked .heart-icon {
+  color: #ff2d55;
+  -webkit-text-stroke: 1.8px #fff;
+}
+.like-count {
+  font-size: 12px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  line-height: 1;
+}
+
 .vid-tag {
   background: rgba(0,0,0,0.48);
   border-radius: 6px; padding: 4px 9px;

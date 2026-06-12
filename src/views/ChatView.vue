@@ -17,8 +17,34 @@
       </div>
     </header>
 
+    <!-- 비디오 상세 모달 -->
+    <VideoDetailModal
+      v-if="detailModal.open && detailModal.video"
+      :video="detailModal.video"
+      :myUserId="auth?.loginUser?.value?.id"
+      @close="detailModal.open = false"
+      @deleted="onVideoDeleted"
+    />
+
     <!-- 메시지 목록 -->
     <main class="messages" ref="messagesEl">
+
+      <!-- 오늘의 식단 스트립 (채팅 내부 상단) -->
+      <div v-if="todayVideos.length" class="video-strip-inline">
+        <div class="strip-label">오늘의 식단</div>
+        <div class="strip-scroll">
+          <div v-for="v in todayVideos" :key="v.id" class="strip-card" @click="openDetailModal(v)">
+            <div class="strip-video-wrap">
+              <video :src="v.videoUrl" class="strip-video" autoplay loop muted playsinline></video>
+              <button class="strip-like" :class="{ liked: v.liked }" @click.stop="toggleLike(v, $event)">
+                <span class="heart-icon">♥</span>
+              </button>
+            </div>
+            <div class="strip-name">{{ v.uploaderNickName }}</div>
+          </div>
+        </div>
+      </div>
+
       <template v-for="(item, i) in messageItems" :key="i">
         <div v-if="item.type === 'divider'" class="date-divider">
           <span>{{ item.label }}</span>
@@ -67,6 +93,7 @@ import axios from 'axios'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { useStore } from '../composables/useStore.js'
+import VideoDetailModal from '../components/VideoDetailModal.vue'
 
 const { goBack } = inject('navigation')
 const auth = inject('auth')
@@ -77,6 +104,56 @@ const inputText = ref('')
 const loading = ref(false)
 const isConnected = ref(false)
 const messagesEl = ref(null)
+
+const todayVideos = ref([])
+const detailModal = ref({ open: false, video: null })
+
+function spawnHearts(e) {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  for (let i = 0; i < 6; i++) {
+    const el = document.createElement('span')
+    el.textContent = '♥'
+    Object.assign(el.style, {
+      position: 'fixed', left: cx + 'px', top: cy + 'px',
+      fontSize: '18px', color: '#ff2d55',
+      pointerEvents: 'none', zIndex: '9999',
+      transform: 'translateX(-50%)', userSelect: 'none'
+    })
+    document.body.appendChild(el)
+    const dx = (Math.random() - 0.5) * 70
+    const dy = -(60 + Math.random() * 50)
+    el.animate([
+      { opacity: 1, transform: `translateX(-50%) translateY(0px) scale(0.5)` },
+      { opacity: 1, transform: `translateX(calc(-50% + ${dx * 0.4}px)) translateY(${dy * 0.5}px) scale(1.3)`, offset: 0.35 },
+      { opacity: 0, transform: `translateX(calc(-50% + ${dx}px)) translateY(${dy}px) scale(0.8)` }
+    ], { duration: 850, easing: 'ease-out' }).onfinish = () => el.remove()
+  }
+}
+
+function openDetailModal(video) { detailModal.value = { open: true, video } }
+function onVideoDeleted(videoId) { todayVideos.value = todayVideos.value.filter(v => v.id !== videoId) }
+
+async function toggleLike(video, e) {
+  if (!video?.id) return
+  try {
+    const res = await axios.post(`/api/videos/${video.id}/like`)
+    video.liked = res.data.liked
+    video.likeCount = res.data.count
+    todayVideos.value = [...todayVideos.value]
+    if (res.data.liked && e) spawnHearts(e)
+  } catch {}
+}
+
+async function loadTodayVideos() {
+  if (!selectedGroup.value?.id) return
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const res = await axios.get(`/api/videos/team/${selectedGroup.value.id}?date=${today}`)
+    todayVideos.value = res.data
+  } catch {}
+}
 
 let stompClient = null
 
@@ -128,7 +205,6 @@ async function loadHistory() {
 
 function connect() {
   if (!selectedGroup.value?.id) return
-
   stompClient = new Client({
     webSocketFactory: () => new SockJS('/ws'),
     reconnectDelay: 3000,
@@ -163,6 +239,7 @@ function handleKeydown(e) {
 onMounted(async () => {
   await loadHistory()
   connect()
+  loadTodayVideos()
 })
 
 onUnmounted(() => { stompClient?.deactivate() })
@@ -194,6 +271,61 @@ onUnmounted(() => { stompClient?.deactivate() })
 .group-sub { font-size: 11px; color: #888; display: flex; align-items: center; gap: 4px; }
 .online-dot { width: 6px; height: 6px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
 .online-dot.connected { background: #22c55e; }
+
+/* 오늘의 식단 (채팅 내부) */
+.video-strip-inline {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 14px 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-bottom: 4px;
+}
+.strip-label {
+  font-size: 12px; font-weight: 700; color: #888;
+  margin-bottom: 10px; letter-spacing: 0.3px;
+}
+.strip-scroll {
+  display: flex; gap: 10px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.strip-scroll::-webkit-scrollbar { display: none; }
+.strip-card {
+  flex-shrink: 0; width: 80px; cursor: pointer;
+}
+.strip-video-wrap {
+  position: relative; width: 80px; height: 80px;
+}
+.strip-video {
+  width: 80px; height: 80px;
+  object-fit: cover; border-radius: 12px;
+  background: #111; display: block;
+}
+.strip-like {
+  position: absolute; bottom: 4px; right: 4px;
+  background: none; border: none;
+  display: flex; align-items: center;
+  padding: 4px; cursor: pointer;
+  font-size: 18px;
+  transition: transform 0.15s;
+}
+.strip-like:active { transform: scale(1.3); }
+.strip-like .heart-icon {
+  font-size: 16px; line-height: 1;
+  color: rgba(255,255,255,0.25);
+  -webkit-text-stroke: 1.5px #fff;
+  transition: color 0.15s;
+}
+.strip-like.liked .heart-icon {
+  color: #ff2d55;
+  -webkit-text-stroke: 1.5px #fff;
+}
+.like-count { font-size: 10px; font-weight: 700; }
+.strip-name {
+  font-size: 10px; color: #888; margin-top: 5px;
+  text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .messages {
   flex: 1; overflow-y: auto;

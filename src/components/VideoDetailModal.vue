@@ -45,6 +45,17 @@ async function onDelete() {
   }
 }
 
+async function onLike() {
+  try {
+    const res = await axios.post(`/api/videos/${props.video.id}/like`)
+    detail.value.liked = res.data.liked
+    detail.value.likeCount = res.data.count
+    // 부모에게도 알림
+    props.video.liked = res.data.liked
+    props.video.likeCount = res.data.count
+  } catch {}
+}
+
 function onReupload() {
   emit('reupload', {
     videoId: props.video.id,
@@ -84,6 +95,9 @@ function onReupload() {
         <div class="info">
           <span class="name">{{ detail.uploaderNickName }}</span>
           <span v-if="isMyVideo" class="mine">나</span>
+          <button class="like-btn" :class="{ liked: detail.liked }" @click="onLike">
+            <span class="heart-icon">♥</span>
+          </button>
           <p v-if="detail.description" class="desc">{{ detail.description }}</p>
           <div class="nutri-tags">
             <span class="ntag carb">탄 {{ hasAnalysis ? detail.carbs + 'g' : '--' }}</span>
@@ -193,6 +207,25 @@ function onReupload() {
   background: var(--accent); color: #fff;
   font-size: 10px; font-weight: 700;
   padding: 2px 8px; border-radius: 20px;
+}
+.like-btn {
+  margin-left: auto;
+  background: none; border: none;
+  padding: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  transition: transform 0.15s;
+}
+.like-btn:active { transform: scale(1.25); }
+.heart-icon {
+  color: rgba(0,0,0,0.15);
+  -webkit-text-stroke: 1.8px #ccc;
+  transition: color 0.15s, -webkit-text-stroke 0.15s;
+  line-height: 1;
+}
+.like-btn.liked .heart-icon {
+  color: #ff2d55;
+  -webkit-text-stroke: 1.8px #ff2d55;
 }
 .desc {
   width: 100%; margin: 2px 0 0;
