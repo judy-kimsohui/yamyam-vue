@@ -376,15 +376,27 @@
             ></textarea>
             <span class="memo-counter">{{ uploadModal.description.length }}/30</span>
 
-            <button type="button" class="btn-change-file" @click="uploadFileInput.click()">
-              <i class="ti ti-refresh"></i>
-            </button>
+            <div class="change-btns">
+              <button type="button" class="btn-change-file" @click="uploadFileInput.click()" title="파일 선택">
+                <i class="ti ti-folder-open"></i>
+              </button>
+              <button type="button" class="btn-change-file" @click="openGroupCamera" title="카메라 재촬영">
+                <i class="ti ti-camera"></i>
+              </button>
+            </div>
           </div>
 
           <!-- 파일 선택 전: 드롭존 -->
-          <div v-else class="file-drop" @click="uploadFileInput.click()">
-            <i class="ti ti-video-plus" style="font-size:28px"></i>
-            <span>클릭하여 영상 선택</span>
+          <div v-else class="file-drop-area">
+            <button type="button" class="drop-btn" @click="uploadFileInput.click()">
+              <i class="ti ti-folder-open" style="font-size:24px"></i>
+              <span>파일 선택</span>
+            </button>
+            <span class="drop-or">또는</span>
+            <button type="button" class="drop-btn camera-btn" @click="openGroupCamera">
+              <i class="ti ti-camera" style="font-size:24px"></i>
+              <span>카메라 촬영</span>
+            </button>
           </div>
 
           <input ref="uploadFileInput" type="file" accept="video/*" @change="onUploadFileChange" style="display:none" />
@@ -396,6 +408,30 @@
         </form>
       </div>
     </div>
+
+    <!-- 카메라 촬영 오버레이 -->
+    <Teleport to="body">
+      <div v-if="showGroupCamera" class="camera-overlay">
+        <video ref="groupCameraVideoEl" class="camera-feed" autoplay playsinline muted></video>
+        <div class="camera-ui">
+          <button v-if="!groupIsRecording" type="button" class="btn-close-camera" @click="stopGroupCamera">✕</button>
+          <div class="camera-tip" v-if="!groupIsRecording">음식을 화면에 맞추고 촬영 버튼을 누르세요</div>
+          <div class="camera-bottom">
+            <div v-if="groupIsRecording" class="record-progress-wrap">
+              <div class="record-label">
+                <span class="rec-dot"></span> 촬영 중...
+              </div>
+              <div class="record-progress-bar">
+                <div class="record-fill" :style="{ width: groupRecordProgress + '%' }"></div>
+              </div>
+            </div>
+            <button v-if="!groupIsRecording" type="button" class="btn-shutter" @click="startGroupRecording">
+              <span class="shutter-inner"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- 비디오 상세 모달 -->
     <VideoDetailModal
@@ -500,9 +536,18 @@ const loadTeamDetail = async () => {
 const loadVideos = async () => {
   if (!selectedGroup.value?.id) return
   try {
-    const res = await axios.get(`/api/videos/team/${selectedGroup.value.id}?date=${feedDate.value}`)
+    const res = await axios.post('/graphql', {
+      query: `query GetTeamVideos($teamId: ID, $date: String!) {
+        videos(teamId: $teamId, date: $date) {
+          id userId uploaderNickName teamId mealType mealDate videoUrl
+          description calories carbs protein fat aiComment likeCount liked createdAt
+        }
+      }`,
+      variables: { teamId: String(selectedGroup.value.id), date: feedDate.value }
+    })
     const map = {}
-    res.data.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
+    const list = res.data?.data?.videos ?? []
+    list.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
     videoMap.value = map
   } catch (e) {
     videoMap.value = {}
@@ -555,6 +600,16 @@ const uploadFileInput = ref(null)
 const videoPreviewUrl = ref(null)
 const memoTextRef = ref(null)
 
+// 카메라 관련 state
+const showGroupCamera = ref(false)
+const groupCameraVideoEl = ref(null)
+const groupCameraStream = ref(null)
+const groupIsRecording = ref(false)
+const groupRecordProgress = ref(0)
+let groupMediaRecorder = null
+let groupRecordedChunks = []
+let groupProgressTimer = null
+
 watch(videoPreviewUrl, async (url) => {
   if (url) {
     await nextTick()
@@ -567,6 +622,7 @@ function openUpload(mealType) {
   videoPreviewUrl.value = null
 }
 function closeUpload() {
+  stopGroupCamera()
   if (videoPreviewUrl.value) { URL.revokeObjectURL(videoPreviewUrl.value); videoPreviewUrl.value = null }
   uploadModal.value.open = false
 }
@@ -576,6 +632,68 @@ function onUploadFileChange(e) {
   uploadModal.value.file = file
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
   videoPreviewUrl.value = URL.createObjectURL(file)
+}
+
+async function openGroupCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    })
+    groupCameraStream.value = stream
+    showGroupCamera.value = true
+    await nextTick()
+    if (groupCameraVideoEl.value) groupCameraVideoEl.value.srcObject = stream
+  } catch {
+    alert('카메라를 열 수 없습니다. 카메라 권한을 허용해 주세요.')
+  }
+}
+
+function startGroupRecording() {
+  if (!groupCameraStream.value || groupIsRecording.value) return
+  groupRecordedChunks = []
+  groupRecordProgress.value = 0
+  groupIsRecording.value = true
+
+  const mimeType = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm']
+    .find(t => MediaRecorder.isTypeSupported(t)) || ''
+  groupMediaRecorder = new MediaRecorder(groupCameraStream.value, mimeType ? { mimeType } : {})
+
+  groupMediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) groupRecordedChunks.push(e.data)
+  }
+  groupMediaRecorder.onstop = () => {
+    const blob = new Blob(groupRecordedChunks, { type: mimeType || 'video/webm' })
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+    const file = new File([blob], `meal_${Date.now()}.${ext}`, { type: blob.type })
+    uploadModal.value.file = file
+    if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
+    videoPreviewUrl.value = URL.createObjectURL(blob)
+    stopGroupCamera()
+  }
+
+  groupMediaRecorder.start()
+  const startTime = Date.now()
+  groupProgressTimer = setInterval(() => {
+    groupRecordProgress.value = Math.min(100, ((Date.now() - startTime) / 2000) * 100)
+  }, 30)
+
+  setTimeout(() => {
+    clearInterval(groupProgressTimer)
+    groupRecordProgress.value = 100
+    if (groupMediaRecorder?.state === 'recording') groupMediaRecorder.stop()
+    groupIsRecording.value = false
+  }, 2000)
+}
+
+function stopGroupCamera() {
+  clearInterval(groupProgressTimer)
+  if (groupCameraStream.value) {
+    groupCameraStream.value.getTracks().forEach(t => t.stop())
+    groupCameraStream.value = null
+  }
+  showGroupCamera.value = false
+  groupIsRecording.value = false
 }
 
 const submitUpload = async () => {
@@ -647,9 +765,18 @@ async function selectDay(d) {
   loadVideos()
   if (!selectedGroup.value?.id) return
   try {
-    const res = await axios.get(`/api/videos/team/${selectedGroup.value.id}?date=${calDateStr(d)}`)
+    const res = await axios.post('/graphql', {
+      query: `query GetTeamVideos($teamId: ID, $date: String!) {
+        videos(teamId: $teamId, date: $date) {
+          id userId uploaderNickName teamId mealType mealDate videoUrl
+          description calories carbs protein fat aiComment likeCount liked createdAt
+        }
+      }`,
+      variables: { teamId: String(selectedGroup.value.id), date: calDateStr(d) }
+    })
     const map = {}
-    res.data.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
+    const list = res.data?.data?.videos ?? []
+    list.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
     calendarVideoMap.value = map
   } catch (e) { console.error('달력 영상 로드 실패:', e) }
 }
@@ -685,6 +812,7 @@ const onResize = () => {
 window.addEventListener('resize', onResize)
 onUnmounted(() => {
   window.removeEventListener('resize', onResize)
+  stopGroupCamera()
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
 })
 
@@ -1079,26 +1207,100 @@ function onMouseUp(e) {
   z-index: 2; pointer-events: none;
 }
 
-/* 파일 변경 버튼 */
-.btn-change-file {
+/* 파일 변경 버튼들 */
+.change-btns {
   position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 6px; z-index: 3;
+}
+.btn-change-file {
   width: 32px; height: 32px; border-radius: 50%;
   background: rgba(0,0,0,0.45); border: none;
-  color: #fff; font-size: 16px; cursor: pointer;
+  color: #fff; font-size: 15px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
+.btn-change-file:hover { background: rgba(0,0,0,0.65); }
 
-.file-drop {
-  display:flex; flex-direction: column; align-items:center; justify-content: center;
+/* 파일 선택 전 드롭 영역 */
+.file-drop-area {
+  display: flex; align-items: center; justify-content: center;
   gap: 10px;
-  border:1.5px dashed #ccc; border-radius:14px; padding:32px 14px;
-  cursor:pointer; font-size:13px; color:#888; transition:border-color 0.15s;
+  border: 1.5px dashed #ccc; border-radius: 14px; padding: 20px 14px;
   margin-bottom: 14px;
 }
-.file-drop:hover { border-color:#000; color:#333; }
+.drop-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 18px 0;
+  background: #f7f7f7; border: none; border-radius: 12px;
+  font-size: 12px; color: #555; cursor: pointer; transition: background 0.15s;
+  flex: 1;
+}
+.drop-btn:hover { background: #eee; color: #000; }
+.camera-btn { background: #fff5f7; color: #e8909e; }
+.camera-btn:hover { background: #ffe0e8; color: #c0607a; }
+.drop-or { font-size: 12px; color: #ccc; white-space: nowrap; }
 
 .modal-actions { display:flex; justify-content:flex-end; gap:8px; }
 .btn-cancel { padding:10px 18px; background:#f5f5f5; border:none; border-radius:10px; cursor:pointer; font-size:14px; }
 .btn-submit { padding:10px 18px; background:#000; color:#fff; border:none; border-radius:10px; cursor:pointer; font-size:14px; font-weight:700; }
 .btn-submit:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* 카메라 오버레이 */
+.camera-overlay {
+  position: fixed; inset: 0;
+  background: #000; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-feed { width: 100%; height: 100%; object-fit: cover; }
+.camera-ui {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 20px 40px;
+}
+.btn-close-camera {
+  align-self: flex-end;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); border: none; color: #fff;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-tip {
+  text-align: center; color: rgba(255,255,255,0.75);
+  font-size: 13px; font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  margin-top: 8px;
+}
+.camera-bottom {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.record-progress-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;
+}
+.record-label {
+  color: #fff; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.rec-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #ff3030;
+  animation: blink 0.6s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.record-progress-bar {
+  width: 70%; height: 5px;
+  background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;
+}
+.record-fill {
+  height: 100%; background: #ff3030; border-radius: 3px;
+  transition: width 0.03s linear;
+}
+.btn-shutter {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); border: 3px solid #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s;
+}
+.btn-shutter:active { transform: scale(0.92); }
+.shutter-inner {
+  width: 54px; height: 54px; border-radius: 50%; background: #fff;
+}
 </style>

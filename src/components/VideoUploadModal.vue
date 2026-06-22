@@ -24,9 +24,16 @@
         <!-- 영상 선택 → 미리보기 + 인라인 메모 -->
         <div class="form-group">
           <!-- 파일 선택 전 -->
-          <div v-if="!videoPreviewUrl" class="file-drop" @click="fileInput.click()">
-            <i class="ti ti-video-plus" style="font-size:26px"></i>
-            <span>클릭하여 영상 선택</span>
+          <div v-if="!videoPreviewUrl" class="file-drop-area">
+            <button type="button" class="drop-btn" @click="fileInput.click()">
+              <i class="ti ti-folder-open" style="font-size:24px"></i>
+              <span>파일 선택</span>
+            </button>
+            <span class="drop-or">또는</span>
+            <button type="button" class="drop-btn camera-btn" @click="openCamera">
+              <i class="ti ti-camera" style="font-size:24px"></i>
+              <span>카메라 촬영</span>
+            </button>
           </div>
 
           <!-- 미리보기 + 인라인 메모 -->
@@ -44,10 +51,15 @@
             ></textarea>
             <span class="memo-counter">{{ description.length }}/30</span>
 
-            <!-- 파일 변경 버튼 -->
-            <button type="button" class="btn-change-file" @click="fileInput.click()">
-              <i class="ti ti-refresh"></i>
-            </button>
+            <!-- 파일 변경 / 카메라 재촬영 -->
+            <div class="change-btns">
+              <button type="button" class="btn-change-file" @click="fileInput.click()" title="파일 선택">
+                <i class="ti ti-folder-open"></i>
+              </button>
+              <button type="button" class="btn-change-file" @click="openCamera" title="카메라 재촬영">
+                <i class="ti ti-camera"></i>
+              </button>
+            </div>
           </div>
 
           <input ref="fileInput" type="file" accept="video/*" @change="onFileChange" style="display:none" />
@@ -62,6 +74,30 @@
       </form>
     </div>
   </div>
+
+  <!-- 카메라 촬영 오버레이 -->
+  <Teleport to="body">
+    <div v-if="showCamera" class="camera-overlay">
+      <video ref="cameraVideoEl" class="camera-feed" autoplay playsinline muted></video>
+      <div class="camera-ui">
+        <button v-if="!isRecording" type="button" class="btn-close-camera" @click="stopCamera">✕</button>
+        <div class="camera-tip" v-if="!isRecording">음식을 화면에 맞추고 촬영 버튼을 누르세요</div>
+        <div class="camera-bottom">
+          <div v-if="isRecording" class="record-progress-wrap">
+            <div class="record-label">
+              <span class="rec-dot"></span> 촬영 중...
+            </div>
+            <div class="record-progress-bar">
+              <div class="record-fill" :style="{ width: recordProgress + '%' }"></div>
+            </div>
+          </div>
+          <button v-if="!isRecording" type="button" class="btn-shutter" @click="startRecording">
+            <span class="shutter-inner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -77,6 +113,16 @@ const videoFile = ref(null)
 const videoPreviewUrl = ref(null)
 const fileInput = ref(null)
 const memoRef = ref(null)
+
+// 카메라 관련 state
+const showCamera = ref(false)
+const cameraVideoEl = ref(null)
+const cameraStream = ref(null)
+const isRecording = ref(false)
+const recordProgress = ref(0)
+let mediaRecorder = null
+let recordedChunks = []
+let progressTimer = null
 
 function localDateStr() {
   const d = new Date()
@@ -111,7 +157,6 @@ function onFileChange(e) {
   videoPreviewUrl.value = URL.createObjectURL(file)
 }
 
-// 미리보기 나타나면 자동 포커스 → 커서 깜빡임
 watch(videoPreviewUrl, async (url) => {
   if (url) {
     await nextTick()
@@ -119,7 +164,70 @@ watch(videoPreviewUrl, async (url) => {
   }
 })
 
+async function openCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    })
+    cameraStream.value = stream
+    showCamera.value = true
+    await nextTick()
+    if (cameraVideoEl.value) cameraVideoEl.value.srcObject = stream
+  } catch {
+    alert('카메라를 열 수 없습니다. 카메라 권한을 허용해 주세요.')
+  }
+}
+
+function startRecording() {
+  if (!cameraStream.value || isRecording.value) return
+  recordedChunks = []
+  recordProgress.value = 0
+  isRecording.value = true
+
+  const mimeType = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm']
+    .find(t => MediaRecorder.isTypeSupported(t)) || ''
+  mediaRecorder = new MediaRecorder(cameraStream.value, mimeType ? { mimeType } : {})
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) recordedChunks.push(e.data)
+  }
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: mimeType || 'video/webm' })
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+    const file = new File([blob], `meal_${Date.now()}.${ext}`, { type: blob.type })
+    videoFile.value = file
+    if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
+    videoPreviewUrl.value = URL.createObjectURL(blob)
+    stopCamera()
+  }
+
+  mediaRecorder.start()
+  const startTime = Date.now()
+  progressTimer = setInterval(() => {
+    recordProgress.value = Math.min(100, ((Date.now() - startTime) / 2000) * 100)
+  }, 30)
+
+  setTimeout(() => {
+    clearInterval(progressTimer)
+    recordProgress.value = 100
+    if (mediaRecorder?.state === 'recording') mediaRecorder.stop()
+    isRecording.value = false
+  }, 2000)
+}
+
+function stopCamera() {
+  clearInterval(progressTimer)
+  if (cameraStream.value) {
+    cameraStream.value.getTracks().forEach(t => t.stop())
+    cameraStream.value = null
+  }
+  showCamera.value = false
+  isRecording.value = false
+}
+
 function handleClose() {
+  stopCamera()
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
   emit('close')
 }
@@ -137,6 +245,7 @@ function handleUpload() {
 }
 
 onUnmounted(() => {
+  stopCamera()
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
 })
 </script>
@@ -162,10 +271,8 @@ onUnmounted(() => {
 .form-group label { font-size: 12px; font-weight: 600; color: #555; display: flex; align-items: center; gap: 6px; }
 .required { color: #e53e3e; }
 .hint { font-size: 11px; color: #aaa; font-weight: 400; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .team-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.type-chips  { display: flex; gap: 8px; }
 .chip {
   display: flex; align-items: center; gap: 5px;
   padding: 8px 14px; border-radius: 999px;
@@ -177,26 +284,25 @@ onUnmounted(() => {
 }
 .chip:hover { border-color: #000; color: #000; }
 .chip.selected { background: #000; color: #fff; border-color: #000; }
-.chip.small { padding: 6px 12px; font-size: 12px; }
 .chip-check { font-size: 11px; }
 
-.form-input {
-  width: 100%; padding: 10px 12px;
-  border: 1px solid #ddd; border-radius: 8px;
-  font-size: 14px; outline: none; box-sizing: border-box;
-  transition: border-color 0.15s;
-}
-.form-input:focus { border-color: #000; }
-
-/* 파일 선택 전 드롭존 */
-.file-drop {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+/* 파일 선택 전 영역 */
+.file-drop-area {
+  display: flex; align-items: center; justify-content: center;
   gap: 10px;
-  border: 1.5px dashed #ccc; border-radius: 14px; padding: 32px 14px;
-  cursor: pointer; font-size: 13px; color: #888;
-  transition: border-color 0.15s;
+  border: 1.5px dashed #ccc; border-radius: 14px; padding: 20px 14px;
 }
-.file-drop:hover { border-color: #000; color: #333; }
+.drop-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 18px 0;
+  background: #f7f7f7; border: none; border-radius: 12px;
+  font-size: 12px; color: #555; cursor: pointer; transition: background 0.15s;
+  flex: 1;
+}
+.drop-btn:hover { background: #eee; color: #000; }
+.camera-btn { background: #fff5f7; color: #e8909e; }
+.camera-btn:hover { background: #ffe0e8; color: #c0607a; }
+.drop-or { font-size: 12px; color: #ccc; white-space: nowrap; }
 
 /* 영상 미리보기 */
 .preview-wrap {
@@ -208,7 +314,6 @@ onUnmounted(() => {
 }
 .preview-video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* 영상 위 직접 타이핑 */
 .memo-direct {
   position: absolute;
   top: 50%; left: 50%;
@@ -231,14 +336,15 @@ onUnmounted(() => {
   z-index: 2; pointer-events: none;
 }
 
-/* 파일 변경 버튼 */
-.btn-change-file {
+.change-btns {
   position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 6px; z-index: 3;
+}
+.btn-change-file {
   width: 32px; height: 32px; border-radius: 50%;
   background: rgba(0,0,0,0.45); border: none;
-  color: #fff; font-size: 16px; cursor: pointer;
+  color: #fff; font-size: 15px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  z-index: 3;
 }
 .btn-change-file:hover { background: rgba(0,0,0,0.65); }
 
@@ -252,4 +358,66 @@ onUnmounted(() => {
 }
 .btn-submit:hover:not(:disabled) { opacity: 0.85; }
 .btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* 카메라 오버레이 */
+.camera-overlay {
+  position: fixed; inset: 0;
+  background: #000; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-feed {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.camera-ui {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 20px 40px;
+}
+.btn-close-camera {
+  align-self: flex-end;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); border: none; color: #fff;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-tip {
+  text-align: center; color: rgba(255,255,255,0.75);
+  font-size: 13px; font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  margin-top: 8px;
+}
+.camera-bottom {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.record-progress-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;
+}
+.record-label {
+  color: #fff; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.rec-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #ff3030;
+  animation: blink 0.6s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.record-progress-bar {
+  width: 70%; height: 5px;
+  background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;
+}
+.record-fill {
+  height: 100%; background: #ff3030; border-radius: 3px;
+  transition: width 0.03s linear;
+}
+.btn-shutter {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); border: 3px solid #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s;
+}
+.btn-shutter:active { transform: scale(0.92); }
+.shutter-inner {
+  width: 54px; height: 54px; border-radius: 50%; background: #fff;
+}
 </style>

@@ -43,10 +43,21 @@
               { key: 'DINNER', label: '저녁' },
             ]"
             :key="mt.key"
-            class="meal-upload-slot"
-            @click="openUploadForMeal(mt.key)"
+            :class="todayVideoByMeal(mt.key) ? 'meal-done-slot' : 'meal-upload-slot'"
+            @click="!todayVideoByMeal(mt.key) && openUploadForMeal(mt.key)"
           >
-            <div class="meal-slot-placeholder">
+            <template v-if="todayVideoByMeal(mt.key)">
+              <video
+                :src="todayVideoByMeal(mt.key).videoUrl"
+                autoplay loop muted playsinline
+                class="meal-slot-video"
+              ></video>
+              <div class="meal-slot-done-label">
+                <i class="ti ti-check"></i>
+                <span>{{ mt.label }}</span>
+              </div>
+            </template>
+            <div v-else class="meal-slot-placeholder">
               <i class="ti ti-upload"></i>
               <span class="meal-slot-lbl">{{ mt.label }}</span>
             </div>
@@ -329,7 +340,7 @@
             <div class="month-stats-title">이번 달 기록</div>
             <div class="month-stats-grid">
               <div class="mstat">
-                <div class="mstat-val">{{ allMyVideos.length }}</div>
+                <div class="mstat-val">{{ dayVideos.length }}</div>
                 <div class="mstat-lbl">총 영상</div>
               </div>
               <div class="mstat">
@@ -542,7 +553,6 @@ const mealFilters = [
 ];
 const activeFilter = ref("all");
 const dayVideos = ref([]); // 선택된 날짜의 영상
-const allMyVideos = ref([]); // 이번 달 전체 (통계용)
 const loadingDayVideos = ref(false);
 
 function toDateStr(d, y, m) {
@@ -557,8 +567,16 @@ async function selectDay(d) {
   loadingDayVideos.value = true;
   const dateStr = toDateStr(d, currentYear.value, currentMonth.value);
   try {
-    const res = await axios.get(`/api/videos/my?date=${dateStr}`);
-    dayVideos.value = res.data;
+    const res = await axios.post('/graphql', {
+      query: `query GetMyVideos($userId: ID, $date: String!) {
+        videos(userId: $userId, date: $date) {
+          id userId uploaderNickName teamId mealType mealDate videoUrl
+          description calories carbs protein fat aiComment likeCount liked createdAt
+        }
+      }`,
+      variables: { userId: String(auth.loginUser.value?.id), date: dateStr }
+    });
+    dayVideos.value = res.data?.data?.videos ?? [];
   } catch {
     dayVideos.value = [];
   } finally {
@@ -576,7 +594,10 @@ function mealLabel(key) {
   return { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" }[key] ?? key;
 }
 function countByMeal(key) {
-  return allMyVideos.value.filter((v) => v.mealType === key).length;
+  return dayVideos.value.filter((v) => v.mealType === key).length;
+}
+function todayVideoByMeal(key) {
+  return dayVideos.value.find((v) => v.mealType === key) ?? null;
 }
 
 // ── 달력 ──
@@ -866,13 +887,6 @@ onMounted(async () => {
     }
   }
 
-  // 이번 달 전체 영상 (통계용)
-  try {
-    const res = await axios.get("/api/videos/my");
-    allMyVideos.value = res.data;
-  } catch {
-    allMyVideos.value = [];
-  }
   // 오늘 영상 로드
   await selectDay(today.getDate());
 });
@@ -1067,6 +1081,34 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 600;
   color: #ccc;
+}
+.meal-done-slot {
+  flex: 1;
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: default;
+}
+.meal-slot-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.meal-slot-done-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.55));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 8px 5px;
 }
 
 /* ── 토스트 ── */

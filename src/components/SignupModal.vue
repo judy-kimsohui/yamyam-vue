@@ -48,16 +48,18 @@
           />
 
           <div class="file-input">
-            <label for="profile-pic">프로필 이미지</label>
-            <input
-              id="profile-pic"
-              type="file"
-              @change="onFileChange"
-              accept="image/*"
-            />
-            <span v-if="signupForm.profileImgFile" class="file-name">{{
-              signupForm.profileImgFile.name
-            }}</span>
+            <span class="file-input-label">프로필 이미지</span>
+            <div class="file-input-btns">
+              <label for="profile-pic" class="file-btn">
+                <i class="ti ti-folder-open"></i> 갤러리
+              </label>
+              <label for="profile-pic-camera" class="file-btn camera-btn">
+                <i class="ti ti-camera"></i> 카메라
+              </label>
+            </div>
+            <input id="profile-pic" type="file" accept="image/*" @change="onFileChange" style="display:none" />
+            <input id="profile-pic-camera" type="file" accept="image/*" capture="user" @change="onFileChange" style="display:none" />
+            <span v-if="signupForm.profileImgFile" class="file-name">{{ signupForm.profileImgFile.name }}</span>
           </div>
         </div>
         <button @click="handleSignup" class="submit-btn">가입 완료</button>
@@ -158,16 +160,37 @@ const handleSignup = async () => {
 .file-input {
   margin: 10px 0;
   font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.file-input label {
+.file-input-label {
+  color: #555;
+  font-size: 12px;
+}
+.file-input-btns {
+  display: flex;
+  gap: 8px;
+}
+.file-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   background: #f0f0f0;
-  padding: 5px 10px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 12px;
+  color: #444;
+  transition: background 0.15s;
 }
+.file-btn:hover { background: #e0e0e0; }
+.file-btn.camera-btn { background: #fff5f7; color: #e8909e; }
+.file-btn.camera-btn:hover { background: #ffe0e8; }
 .file-name {
-  margin-left: 5px;
   color: #666;
+  font-size: 11px;
+  word-break: break-all;
 }
 .submit-btn {
   width: 100%;

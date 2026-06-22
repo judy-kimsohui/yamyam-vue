@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide, onMounted } from "vue"; // 💡 onMounted 추가
+import { ref, computed, provide } from "vue";
 import axios from "axios";
 import HomeView from "./views/HomeView.vue";
 import DashboardView from "./views/DashboardView.vue";
@@ -27,14 +27,25 @@ provide("navigation", { currentScreen, goTo, goBack });
 const isLoggedIn = ref(false);
 const loginUser = ref(null);
 
+// setup() 실행 시점에 localStorage 복구 (자식 onMounted보다 먼저 실행됨)
+;(() => {
+  const savedUser = localStorage.getItem("yamyam_user");
+  const savedToken = localStorage.getItem("yamyam_token");
+  if (savedUser && savedToken) {
+    isLoggedIn.value = true;
+    loginUser.value = JSON.parse(savedUser);
+    axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
+    if (history.value[history.value.length - 1] === "home") {
+      history.value.push("calendar");
+    }
+  }
+})();
+
 const loginSuccess = (userData, token) => {
   isLoggedIn.value = true;
   loginUser.value = userData;
-
-  // 로컬 스토리지에 유저 정보와 토큰을 각각 저장
   localStorage.setItem("yamyam_user", JSON.stringify(userData));
   localStorage.setItem("yamyam_token", token);
-
   axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 };
 
@@ -42,30 +53,13 @@ const logout = () => {
   isLoggedIn.value = false;
   loginUser.value = null;
   localStorage.removeItem("yamyam_user");
-  localStorage.removeItem("yamyam_token"); // 💡 토큰 삭제
-
-  // 💡 로그아웃 시 공통 헤더에서 토큰 제거
+  localStorage.removeItem("yamyam_token");
   delete axios.defaults.headers.common["Authorization"];
   goTo("home");
 };
 
 provide("auth", { isLoggedIn, loginUser, loginSuccess, logout });
 // loginUser 구조: { id: Long, nickName: String, userId: String }
-
-// 앱 시작 시 로컬 스토리지에서 로그인 상태 복구
-onMounted(() => {
-  const savedUser = localStorage.getItem("yamyam_user");
-  const savedToken = localStorage.getItem("yamyam_token");
-  if (savedUser && savedToken) {
-    isLoggedIn.value = true;
-    loginUser.value = JSON.parse(savedUser); // { id, nickName, userId }
-    axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
-
-    if (currentScreen.value === "home") {
-      goTo("calendar");
-    }
-  }
-});
 </script>
 
 <template>
