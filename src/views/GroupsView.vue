@@ -6,6 +6,7 @@ import { useStore } from "../composables/useStore.js";
 
 const { goTo } = inject("navigation");
 const { selectedGroup } = useStore();
+const pendingInviteCode = inject("inviteCode");
 
 const groups = ref([]); // 서버에서 받아온 실제 그룹 데이터 저장
 const loading = ref(false);
@@ -27,6 +28,20 @@ async function fetchMyTeams() {
 }
 
 onMounted(async () => {
+  // 초대 링크로 접근한 경우 자동 참여 처리
+  if (pendingInviteCode?.value) {
+    try {
+      await axios.post("/api/teams/join", { inviteCode: pendingInviteCode.value });
+      alert("그룹 참여 완료!");
+    } catch (e) {
+      const msg = e.response?.data;
+      if (msg && msg !== "이미 참여 중인 팀입니다.") {
+        alert("초대 링크 참여 실패: " + msg);
+      }
+    } finally {
+      pendingInviteCode.value = null;
+    }
+  }
   await fetchMyTeams();
 });
 
@@ -46,8 +61,8 @@ function copyInviteCode(group) {
     return;
   }
 
-  const code = `yamyam://invite/${inviteCode}`;
-  navigator.clipboard?.writeText(code).catch(() => {});
+  const link = `${window.location.origin}?invite=${inviteCode}`;
+  navigator.clipboard?.writeText(link).catch(() => {});
   alert("초대 링크를 복사했습니다.");
 }
 
@@ -208,7 +223,7 @@ async function joinByInvite() {
         <input
           v-model="inviteInput"
           class="form-input"
-          placeholder="yamyam://invite/XXXXXXXXXX"
+          placeholder="https://yamyamlog.site?invite=XXXXXXXXXX"
         />
         <div class="join-actions">
           <button type="button" class="ghost-btn" @click="showJoin = false">

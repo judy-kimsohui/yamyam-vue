@@ -161,6 +161,7 @@ import axios from "axios";
 
 const navigation = inject("navigation");
 const auth = inject("auth");
+const pendingInviteCode = inject("inviteCode");
 
 const authMode = ref("login");
 const btnPressed = ref(false);
@@ -204,7 +205,8 @@ const handleLogin = async () => {
       token,
     );
 
-    navigation.goTo("calendar");
+    // 초대 링크로 접근한 경우 그룹 페이지로 이동 (GroupsView에서 자동 참여 처리)
+    navigation.goTo(pendingInviteCode?.value ? "groups" : "calendar");
   } catch (error) {
     alert(error.response?.data || "Login failed");
   }
@@ -235,13 +237,12 @@ const handleDevLogin = async () => {
     );
   } catch (error) {
     console.warn("백엔드 통신 패스, 가짜 토큰 발급");
-    // 백엔드가 꺼져있을 때를 대비한 안전장치
     auth.loginSuccess(
       { id: 1, nickName: "DevUser", userId: "test" },
       "dummy_token",
     );
   }
-  navigation.goTo("calendar");
+  navigation.goTo(pendingInviteCode?.value ? "groups" : "calendar");
 };
 
 // 💡 FormData 멀티파트 포맷을 이용한 오리지널 회원가입 절차 완전 정상화

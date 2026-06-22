@@ -27,6 +27,19 @@ provide("navigation", { currentScreen, goTo, goBack });
 const isLoggedIn = ref(false);
 const loginUser = ref(null);
 
+// URL에서 초대 코드 추출 (setup 최초 실행 시점)
+const pendingInviteCode = ref(null);
+;(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteParam = urlParams.get("invite");
+  if (inviteParam) {
+    pendingInviteCode.value = inviteParam;
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("invite");
+    window.history.replaceState({}, "", cleanUrl.toString());
+  }
+})();
+
 // setup() 실행 시점에 localStorage 복구 (자식 onMounted보다 먼저 실행됨)
 ;(() => {
   const savedUser = localStorage.getItem("yamyam_user");
@@ -36,7 +49,8 @@ const loginUser = ref(null);
     loginUser.value = JSON.parse(savedUser);
     axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
     if (history.value[history.value.length - 1] === "home") {
-      history.value.push("calendar");
+      // 초대 링크로 접근한 경우 그룹 페이지로, 아니면 캘린더로
+      history.value.push(pendingInviteCode.value ? "groups" : "calendar");
     }
   }
 })();
@@ -59,6 +73,7 @@ const logout = () => {
 };
 
 provide("auth", { isLoggedIn, loginUser, loginSuccess, logout });
+provide("inviteCode", pendingInviteCode);
 // loginUser 구조: { id: Long, nickName: String, userId: String }
 </script>
 
