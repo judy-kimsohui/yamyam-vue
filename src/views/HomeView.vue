@@ -73,7 +73,7 @@
                 <span class="btn-label eat-label">Let's Eat!</span>
               </button>
 
-              <!-- ⚡ 개발용 하이패스 원클릭 버튼 -->
+              <!--  개발용 하이패스 원클릭 버튼 -->
               <button @click="handleDevLogin" class="btn-dev-bypass">
                 ⚡ Dev Login (test/test)
               </button>
@@ -88,7 +88,7 @@
             <div v-else-if="authMode === 'signup'" class="form-unit">
               <h2 class="auth-title">Create account</h2>
 
-              <!-- 💡 스크롤 구역 내부에 복구된 오리지널 데이터 입력 필드들 -->
+              <!--  스크롤 구역 내부에 복구된 오리지널 데이터 입력 필드들 -->
               <div class="setlog-form signup-scroll">
                 <input
                   v-model="signupForm.userId"
@@ -245,7 +245,7 @@ const handleDevLogin = async () => {
   navigation.goTo(pendingInviteCode?.value ? "groups" : "calendar");
 };
 
-// 💡 FormData 멀티파트 포맷을 이용한 오리지널 회원가입 절차 완전 정상화
+//  FormData 멀티파트 포맷을 이용한 오리지널 회원가입 절차 완전 정상화
 const handleSignup = async () => {
   try {
     const formData = new FormData();
@@ -387,7 +387,7 @@ const handleSignup = async () => {
   cursor: pointer;
 }
 
-/* 💡 회원가입 입력 항목이 많아졌으므로 우측 폼 내부에서 부드럽게 세로 스크롤 작동 */
+/*  회원가입 입력 항목이 많아졌으므로 우측 폼 내부에서 부드럽게 세로 스크롤 작동 */
 .signup-scroll {
   max-height: 290px;
   overflow-y: auto;
@@ -462,7 +462,7 @@ const handleSignup = async () => {
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* ⚡ 개발용 하이패스 점선 버튼 스타일 */
+/*  개발용 하이패스 점선 버튼 스타일 */
 .btn-dev-bypass {
   width: 100%;
   margin-top: 10px;

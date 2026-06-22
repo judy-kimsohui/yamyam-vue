@@ -8,10 +8,13 @@ const { goTo } = inject("navigation");
 const { selectedGroup } = useStore();
 const pendingInviteCode = inject("inviteCode");
 
-const groups = ref([]); // 서버에서 받아온 실제 그룹 데이터 저장
+const groups = ref([]);
 const loading = ref(false);
 const showJoin = ref(false);
 const inviteInput = ref("");
+
+// 초대 수락 모달 상태
+const inviteModal = ref({ show: false, teamName: "", memberCount: 0, capacity: 0, inviteCode: "", joining: false });
 
 async function fetchMyTeams() {
   try {
@@ -28,22 +31,50 @@ async function fetchMyTeams() {
 }
 
 onMounted(async () => {
-  // 초대 링크로 접근한 경우 자동 참여 처리
+  await fetchMyTeams();
+  // 초대 링크로 접근한 경우 팀 정보 조회 후 수락 모달 표시
   if (pendingInviteCode?.value) {
     try {
-      await axios.post("/api/teams/join", { inviteCode: pendingInviteCode.value });
-      alert("그룹 참여 완료!");
+      const res = await axios.get(`/api/teams/invite/${pendingInviteCode.value}`);
+      inviteModal.value = {
+        show: true,
+        teamName: res.data.teamName,
+        memberCount: res.data.memberCount,
+        capacity: res.data.capacity,
+        inviteCode: pendingInviteCode.value,
+        joining: false,
+      };
     } catch (e) {
       const msg = e.response?.data;
-      if (msg && msg !== "이미 참여 중인 팀입니다.") {
-        alert("초대 링크 참여 실패: " + msg);
-      }
-    } finally {
+      if (msg) alert("초대 링크 오류: " + msg);
       pendingInviteCode.value = null;
     }
   }
-  await fetchMyTeams();
 });
+
+async function acceptInvite() {
+  inviteModal.value.joining = true;
+  try {
+    await axios.post("/api/teams/join", { inviteCode: inviteModal.value.inviteCode });
+    inviteModal.value.show = false;
+    pendingInviteCode.value = null;
+    await fetchMyTeams();
+  } catch (e) {
+    const msg = e.response?.data;
+    if (msg === "이미 참여 중인 팀입니다.") {
+      inviteModal.value.show = false;
+      pendingInviteCode.value = null;
+    } else {
+      alert("참여 실패: " + (msg || "서버 오류"));
+      inviteModal.value.joining = false;
+    }
+  }
+}
+
+function dismissInvite() {
+  inviteModal.value.show = false;
+  pendingInviteCode.value = null;
+}
 
 function openGroup(group) {
   selectedGroup.value = group;
@@ -71,12 +102,6 @@ function parseInviteCode(input) {
   const trimmed = input.trim();
   if (!trimmed) return "";
 
-  const deepLinkMatch = trimmed.match(/yamyam:\/\/invite\/([^\/?#]+)/i);
-  if (deepLinkMatch) return decodeURIComponent(deepLinkMatch[1]);
-
-  const urlPathMatch = trimmed.match(/\/invite\/([^\/?#]+)/i);
-  if (urlPathMatch) return decodeURIComponent(urlPathMatch[1]);
-
   try {
     const parsedUrl = new URL(trimmed);
     const queryCode =
@@ -84,7 +109,7 @@ function parseInviteCode(input) {
       parsedUrl.searchParams.get("inviteCode");
     if (queryCode) return queryCode.trim();
   } catch {
-    // URL 형식이 아니면 코드 입력으로 처리
+    // URL 형식이 아니면 코드 직접 입력으로 처리
   }
 
   return trimmed;
@@ -231,6 +256,22 @@ async function joinByInvite() {
           </button>
           <button type="button" class="create-btn" @click="joinByInvite">
             참여하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 초대 수락 모달 -->
+    <div v-if="inviteModal.show" class="invite-overlay">
+      <div class="invite-card">
+        <div class="invite-icon">👥</div>
+        <div class="invite-label">그룹 초대</div>
+        <div class="invite-team-name">{{ inviteModal.teamName }}</div>
+        <div class="invite-meta">현재 {{ inviteModal.memberCount }}명 / 최대 {{ inviteModal.capacity }}명</div>
+        <div class="invite-actions">
+          <button class="ghost-btn" @click="dismissInvite">거절</button>
+          <button class="create-btn invite-accept-btn" @click="acceptInvite" :disabled="inviteModal.joining">
+            {{ inviteModal.joining ? "참여 중..." : "초대 수락하기" }}
           </button>
         </div>
       </div>
@@ -492,5 +533,68 @@ async function joinByInvite() {
   color: var(--text-secondary);
   border-radius: 10px;
   padding: 10px 14px;
+}
+
+/* 초대 수락 모달 */
+.invite-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 2000;
+}
+.invite-card {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.invite-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.invite-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #e8909e);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.invite-team-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #000;
+  margin-top: 2px;
+}
+.invite-meta {
+  font-size: 13px;
+  color: var(--text-secondary, #888);
+  margin-bottom: 8px;
+}
+.invite-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+.invite-actions .ghost-btn {
+  flex: 1;
+}
+.invite-accept-btn {
+  flex: 2;
+}
+.invite-accept-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

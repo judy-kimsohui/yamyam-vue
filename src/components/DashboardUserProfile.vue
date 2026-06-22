@@ -173,15 +173,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import axios from "axios"; // 💡 직접 API 연동을 위해 추가
+import axios from "axios"; //  직접 API 연동을 위해 추가
 
-// 💡 단독 컴포넌트이므로 props와 emit은 과감히 삭제!
+//  단독 컴포넌트이므로 props와 emit은 과감히 삭제!
 const profile = ref(null);
 const isLoading = ref(true);
 const isEditMode = ref(false);
 const todayWeight = ref("");
 
-// 💡 수정 입력 폼 데이터 보관소
+//  수정 입력 폼 데이터 보관소
 const editForm = ref({
   nickName: "",
   age: 0,
@@ -226,7 +226,7 @@ const cancelEdit = () => {
   isEditMode.value = false;
 };
 
-// 3. 💡 백엔드로 다이렉트 수정 요청 날리기 (JWT 인증)
+// 3.  백엔드로 다이렉트 수정 요청 날리기 (JWT 인증)
 const saveEdit = async () => {
   if (!editForm.value.nickName.trim()) {
     alert("닉네임을 입력해 주세요.");

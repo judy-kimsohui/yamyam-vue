@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard">
-    <!-- ── 헤더 ── -->
+    <!-- -- 헤더 -- -->
     <header class="dash-header">
       <div class="dash-logo-area">
         <button
@@ -23,7 +23,7 @@
       </nav>
     </header>
 
-    <!-- ══════════════ 그룹 메인 뷰 ══════════════ -->
+    <!-- ============== 그룹 메인 뷰 ============== -->
     <main v-if="subView === 'groups'" class="dash-body form-fade">
       <!-- 광고 배너 -->
       <div class="ad-banner">
@@ -110,7 +110,7 @@
       </div>
     </main>
 
-    <!-- ══════════════ 마이페이지 ══════════════ -->
+    <!-- ============== 마이페이지 ============== -->
     <main
       v-else-if="subView === 'mypage'"
       class="dash-body form-fade mypage-body"
@@ -123,7 +123,7 @@
       <button class="mypage-logout" @click="auth.logout()">로그아웃</button>
     </main>
 
-    <!-- ══════════════ 마이로그 ══════════════ -->
+    <!-- ============== 마이로그 ============== -->
     <template v-else-if="subView === 'mylog'">
       <!-- MOBILE (< 768px): 세로 스택 -->
       <main v-if="isMobile" class="scroll-body form-fade">
@@ -467,7 +467,7 @@
           <label>초대 링크 또는 코드</label>
           <input
             v-model="joinInviteInput"
-            placeholder="yamyam://invite/XXXXXXXXXX"
+            placeholder="https://yamyamlog.site?invite=XXXXXXXXXX"
             class="form-input"
           />
         </div>
@@ -534,7 +534,7 @@ function openUploadForMeal(mealType) {
   isUploadModalOpen.value = true;
 }
 
-// ── 반응형 ──
+// -- 반응형 --
 const isMobile = ref(window.innerWidth < 768);
 const isWide = ref(window.innerWidth >= 1200);
 const onResize = () => {
@@ -544,7 +544,7 @@ const onResize = () => {
 window.addEventListener("resize", onResize);
 onUnmounted(() => window.removeEventListener("resize", onResize));
 
-// ── 마이로그 ──
+// -- 마이로그 --
 const mealFilters = [
   { key: "all", label: "전체" },
   { key: "BREAKFAST", label: "아침" },
@@ -600,7 +600,7 @@ function todayVideoByMeal(key) {
   return dayVideos.value.find((v) => v.mealType === key) ?? null;
 }
 
-// ── 달력 ──
+// -- 달력 --
 const today = new Date();
 const todayDate = today.getDate();
 const todayMonth = today.getMonth();
@@ -655,7 +655,7 @@ function getDayEmoji(day) {
   return mood ? emojis[mood] : "";
 }
 
-// ── 마이페이지 ──
+// -- 마이페이지 --
 const userProfileData = ref({
   id: null,
   user_id: "",
@@ -695,12 +695,6 @@ function parseInviteCode(input) {
   const trimmed = input.trim();
   if (!trimmed) return "";
 
-  const deepLinkMatch = trimmed.match(/yamyam:\/\/invite\/([^\/?#]+)/i);
-  if (deepLinkMatch) return decodeURIComponent(deepLinkMatch[1]);
-
-  const urlPathMatch = trimmed.match(/\/invite\/([^\/?#]+)/i);
-  if (urlPathMatch) return decodeURIComponent(urlPathMatch[1]);
-
   try {
     const parsedUrl = new URL(trimmed);
     const queryCode =
@@ -708,7 +702,7 @@ function parseInviteCode(input) {
       parsedUrl.searchParams.get("inviteCode");
     if (queryCode) return queryCode.trim();
   } catch {
-    // URL 형식이 아니면 코드 입력으로 처리
+    // URL 형식이 아니면 코드 직접 입력으로 처리
   }
 
   return trimmed;
@@ -732,9 +726,6 @@ function extractInviteCodeFromCurrentUrl() {
   } catch {
     // 파싱 실패 시 원본 문자열에서 딥링크 패턴만 확인
   }
-
-  const deepLinkMatch = href.match(/yamyam:\/\/invite\/([^\/?#]+)/i);
-  if (deepLinkMatch) return decodeURIComponent(deepLinkMatch[1]);
 
   return "";
 }
@@ -847,7 +838,7 @@ async function copyInviteCode(group) {
     return;
   }
 
-  const code = `yamyam://invite/${inviteCode}`;
+  const code = `${window.location.origin}?invite=${inviteCode}`;
 
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -906,7 +897,7 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* ── 헤더 ── */
+/* -- 헤더 -- */
 .dash-header {
   display: flex;
   align-items: center;
@@ -975,7 +966,7 @@ onMounted(async () => {
   color: #fff;
   border-color: #e8909e;
 }
-/* ── 공통 바디 ── */
+/* -- 공통 바디 -- */
 .dash-body {
   flex: 1;
   overflow-y: auto;
@@ -1012,7 +1003,7 @@ onMounted(async () => {
   padding-bottom: 32px;
 }
 
-/* ── 광고 배너 ── */
+/* -- 광고 배너 -- */
 .ad-banner {
   display: flex;
   align-items: center;
@@ -1037,7 +1028,7 @@ onMounted(async () => {
   color: #7aaa8e;
 }
 
-/* ── 오늘 식단 업로드 슬롯 ── */
+/* -- 오늘 식단 업로드 슬롯 -- */
 .today-meals-section {
   margin-bottom: 24px;
 }
@@ -1111,7 +1102,7 @@ onMounted(async () => {
   padding: 6px 8px 5px;
 }
 
-/* ── 토스트 ── */
+/* -- 토스트 -- */
 .toast-popup {
   position: fixed;
   bottom: 80px;
@@ -1143,7 +1134,7 @@ onMounted(async () => {
   opacity: 0;
 }
 
-/* ── 섹션 헤더 ── */
+/* -- 섹션 헤더 -- */
 .section-row {
   display: flex;
   align-items: center;
@@ -1264,7 +1255,7 @@ onMounted(async () => {
   color: #000;
 }
 
-/* ══════════════════════════════
+/* ==============================
    달력 (공통)
 ══════════════════════════════ */
 .mylog-cal-wrap {
@@ -1358,7 +1349,7 @@ onMounted(async () => {
   line-height: 1;
 }
 
-/* ══════════════════════════════
+/* ==============================
    마이로그 공통
 ══════════════════════════════ */
 .mylog-day-header {
@@ -1410,7 +1401,7 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-/* ── 영상 카드 공통 ── */
+/* -- 영상 카드 공통 -- */
 .mylog-card {
   position: relative;
   overflow: hidden;
@@ -1450,7 +1441,7 @@ onMounted(async () => {
   color: #fff;
 }
 
-/* ── 모바일 리스트 ── */
+/* -- 모바일 리스트 -- */
 .mylog-list-mobile {
   display: flex;
   flex-direction: column;
@@ -1463,7 +1454,7 @@ onMounted(async () => {
   font-size: 16px;
 }
 
-/* ── 태블릿 분할 ── */
+/* -- 태블릿 분할 -- */
 .tablet-split {
   flex: 1;
   display: flex;
@@ -1494,7 +1485,7 @@ onMounted(async () => {
   aspect-ratio: 1;
 }
 
-/* ── 와이드 데스크탑 분할 ── */
+/* -- 와이드 데스크탑 분할 -- */
 .wide-split {
   flex: 1;
   display: flex;
@@ -1565,7 +1556,7 @@ onMounted(async () => {
   margin-top: 2px;
 }
 
-/* ── 모달 ── */
+/* -- 모달 -- */
 .modal-overlay {
   position: fixed;
   inset: 0;

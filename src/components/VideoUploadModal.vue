@@ -21,7 +21,7 @@
           </div>
         </div>
 
-        <!-- 영상 선택 → 미리보기 + 인라인 메모 -->
+        <!-- 영상 선택 -> 미리보기 + 인라인 메모 -->
         <div class="form-group">
           <!-- 파일 선택 전 -->
           <div v-if="!videoPreviewUrl" class="file-drop-area">

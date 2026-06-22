@@ -1,6 +1,6 @@
 <template>
   <div class="screen">
-    <!-- ── 헤더 ── -->
+    <!-- -- 헤더 -- -->
     <header class="header">
       <button
         class="icon-btn"
@@ -31,7 +31,7 @@
       <div v-else style="width: 36px"></div>
     </header>
 
-    <!-- ══════════════ MOBILE (< 768px) ══════════════ -->
+    <!-- ============== MOBILE (< 768px) ============== -->
     <main v-if="isMobile" class="scroll-body">
       <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
@@ -209,7 +209,7 @@
                     )
                   "
                 >
-                  <!-- 🌟 [모바일] 영상 상위에 레이아웃을 얹기 위해 video-thumb-wrap 구조 적용 -->
+                  <!--  [모바일] 영상 상위에 레이아웃을 얹기 위해 video-thumb-wrap 구조 적용 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video-full"
@@ -223,7 +223,7 @@
                       playsinline
                     ></video>
 
-                    <!-- 🕒 AI 분석 중 배지 -->
+                    <!--  AI 분석 중 배지 -->
                     <div
                       v-if="
                         getVideo(
@@ -237,7 +237,7 @@
                       <span>AI 분석 중...</span>
                     </div>
 
-                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
+                    <!--  우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-else-if="
                         getVideo(
@@ -374,7 +374,7 @@
       </template>
     </main>
 
-    <!-- ══════════════ TABLET / iPad (768–1199px): 3열 그리드 ══════════════ -->
+    <!-- ============== TABLET / iPad (768–1199px): 3열 그리드 ============== -->
     <main v-else-if="!isWide" class="scroll-body">
       <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
@@ -540,7 +540,7 @@
                   style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
-                  <!-- 🌟 [태블릿] 영상 상위 래퍼 구조 결합 -->
+                  <!--  [태블릿] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video"
@@ -551,7 +551,7 @@
                       playsinline
                     ></video>
 
-                    <!-- 🕒 AI 분석 중 배지 -->
+                    <!--  AI 분석 중 배지 -->
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -563,7 +563,7 @@
                       <span>AI 분석 중...</span>
                     </div>
 
-                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
+                    <!--  우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-else-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -638,7 +638,7 @@
       </template>
     </main>
 
-    <!-- ══════════════ WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 피드 ══════════════ -->
+    <!-- ============== WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 피드 ============== -->
     <div v-else class="desktop-split">
       <!-- 좌측 1/3: 달력 + 채팅 버튼 -->
       <aside class="left-panel">
@@ -807,7 +807,7 @@
                   style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
-                  <!-- 🌟 [데스크톱] 영상 상위 래퍼 구조 결합 -->
+                  <!--  [데스크톱] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video"
@@ -818,7 +818,7 @@
                       playsinline
                     ></video>
 
-                    <!-- 🕒 AI 분석 중 배지 -->
+                    <!--  AI 분석 중 배지 -->
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -830,7 +830,7 @@
                       <span>AI 분석 중...</span>
                     </div>
 
-                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
+                    <!--  우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-else-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -1359,7 +1359,7 @@ const submitUpload = async () => {
   }
 };
 
-// ── 달력 ──
+// -- 달력 --
 const today = new Date();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth());
@@ -1473,7 +1473,7 @@ const dayRecord = computed(
   () => groupDayRecords[selectedDay.value] ?? groupDayRecords.default,
 );
 
-// ── 반응형 ──
+// -- 반응형 --
 const isMobile = ref(window.innerWidth < 768);
 const isWide = ref(window.innerWidth >= 1200);
 const onResize = () => {
@@ -1487,7 +1487,7 @@ onUnmounted(() => {
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
 })
 
-// ── 모바일 스와이프 + 마우스 드래그 ──
+// -- 모바일 스와이프 + 마우스 드래그 --
 const activeMealIdx = ref(0);
 let touchStartX = 0;
 let touchStartY = 0;
@@ -1543,7 +1543,7 @@ function onMouseUp(e) {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ── 헤더 ── */
+/* -- 헤더 -- */
 .header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-light, #e5e5e5);
@@ -1623,7 +1623,7 @@ function onMouseUp(e) {
   }
 }
 
-/* ── MOBILE 스크롤 본문 ── */
+/* -- MOBILE 스크롤 본문 -- */
 .scroll-body {
   flex: 1;
   overflow-y: auto;
@@ -1636,7 +1636,7 @@ function onMouseUp(e) {
   flex-direction: column;
 }
 
-/* ── DESKTOP 분할 레이아웃 ── */
+/* -- DESKTOP 분할 레이아웃 -- */
 .desktop-split {
   flex: 1;
   display: flex;
@@ -1683,7 +1683,7 @@ function onMouseUp(e) {
   opacity: 0.85;
 }
 
-/* ── 날짜 네비게이션 ── */
+/* -- 날짜 네비게이션 -- */
 .feed-controls-bar {
   display: flex;
   align-items: center;
@@ -1747,7 +1747,7 @@ function onMouseUp(e) {
   font-size: 14px;
 }
 
-/* ── 데스크탑 피드 ── */
+/* -- 데스크탑 피드 -- */
 .feed {
   display: flex;
   flex-direction: column;
@@ -1824,7 +1824,7 @@ function onMouseUp(e) {
   display: block;
 }
 
-/* ── 영상 내 오버레이 (공통) ── */
+/* -- 영상 내 오버레이 (공통) -- */
 .vid-bottom {
   position: absolute;
   bottom: 8px;
@@ -1907,7 +1907,7 @@ function onMouseUp(e) {
   background: #ebebeb;
 }
 
-/* ── 모바일 탭 바 ── */
+/* -- 모바일 탭 바 -- */
 .meal-tab-bar {
   display: flex;
   gap: 4px;
@@ -1931,7 +1931,7 @@ function onMouseUp(e) {
   color: #fff;
 }
 
-/* ── 모바일 피드 ── */
+/* -- 모바일 피드 -- */
 .feed-mobile {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2024,7 +2024,7 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* ── 달력 (공통) ── */
+/* -- 달력 (공통) -- */
 .calendar-panel {
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
@@ -2251,7 +2251,7 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* ── 영상 중앙 설명 텍스트 ── */
+/* -- 영상 중앙 설명 텍스트 -- */
 .vid-center-desc {
   position: absolute;
   top: 50%;
@@ -2268,7 +2268,7 @@ function onMouseUp(e) {
   z-index: 2;
 }
 
-/* ── 업로드 모달 ── */
+/* -- 업로드 모달 -- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2485,14 +2485,14 @@ function onMouseUp(e) {
   cursor: not-allowed;
 }
 
-/* ── 🌟 오버레이 배지 전용 정밀 스타일 지정 ── */
+/* --  오버레이 배지 전용 정밀 스타일 지정 -- */
 .video-thumb-wrap {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-/* 🕒 1. 좌측 상단 AI 분석 중 배지 */
+/*  1. 좌측 상단 AI 분석 중 배지 */
 .ai-analyzing-badge {
   position: absolute;
   top: 8px;
@@ -2521,7 +2521,7 @@ function onMouseUp(e) {
   }
 }
 
-/* 🍕 2. 우측 하단 탄단지 칼로리 실시간 컴팩트 바 */
+/*  2. 우측 하단 탄단지 칼로리 실시간 컴팩트 바 */
 .mini-nutri-preview {
   position: absolute;
   bottom: 8px;

@@ -46,7 +46,7 @@ const handleLogin = async () => {
     auth.loginSuccess({ nickName: loginForm.value.userId });
     emit("close");
   } catch (error) {
-    // 💡 에러가 났을 때 어떤 메시지가 오는지 구체적으로 보기 위해 alert 보완
+    //  에러가 났을 때 어떤 메시지가 오는지 구체적으로 보기 위해 alert 보완
     console.error(error);
     alert(error.response?.data || "로그인 실패 (서버 연결 에러)");
   }
