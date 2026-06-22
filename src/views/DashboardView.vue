@@ -835,7 +835,7 @@ const onVideoUploadSubmit = async ({
       }),
     );
     isUploadModalOpen.value = false;
-    alert("얌얌 로그가 업로드되었습니다!");
+    alert("냠냠 로그가 업로드되었습니다!");
   } catch (e) {
     alert("업로드 실패: " + (e.response?.data || "서버 오류"));
   }

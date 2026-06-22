@@ -2362,16 +2362,13 @@ function onMouseUp(e) {
 }
 
 .btn-change-file {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   border: none;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2379,24 +2376,85 @@ function onMouseUp(e) {
 }
 .btn-change-file:hover { background: rgba(0,0,0,0.65); }
 
-.file-drop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+/* 파일 선택 전 드롭존 */
+.file-drop-area {
+  display: flex; align-items: center; justify-content: center;
   gap: 10px;
-  border: 1.5px dashed #ccc;
-  border-radius: 14px;
-  padding: 32px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #888;
-  transition: border-color 0.15s;
+  border: 1.5px dashed #ccc; border-radius: 14px; padding: 20px 14px;
   margin-bottom: 14px;
 }
-.file-drop:hover {
-  border-color: #000;
-  color: #333;
+.drop-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 18px 0;
+  background: #f7f7f7; border: none; border-radius: 12px;
+  font-size: 12px; color: #555; cursor: pointer; transition: background 0.15s;
+  flex: 1;
+}
+.drop-btn:hover { background: #eee; color: #000; }
+.camera-btn { background: #fff5f7; color: #e8909e; }
+.camera-btn:hover { background: #ffe0e8; color: #c0607a; }
+.drop-or { font-size: 12px; color: #ccc; white-space: nowrap; }
+
+/* 카메라 오버레이 */
+.camera-overlay {
+  position: fixed; inset: 0;
+  background: #000; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-feed {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.camera-ui {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 20px 40px;
+}
+.btn-close-camera {
+  align-self: flex-end;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); border: none; color: #fff;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.camera-tip {
+  text-align: center; color: rgba(255,255,255,0.75);
+  font-size: 13px; font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  margin-top: 8px;
+}
+.camera-bottom {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.record-progress-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;
+}
+.record-label {
+  color: #fff; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.rec-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #ff3030;
+  animation: blink 0.6s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.record-progress-bar {
+  width: 70%; height: 5px;
+  background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;
+}
+.record-fill {
+  height: 100%; background: #ff3030; border-radius: 3px;
+  transition: width 0.03s linear;
+}
+.btn-shutter {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); border: 3px solid #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s;
+}
+.btn-shutter:active { transform: scale(0.92); }
+.shutter-inner {
+  width: 54px; height: 54px; border-radius: 50%; background: #fff;
 }
 
 .modal-actions {
