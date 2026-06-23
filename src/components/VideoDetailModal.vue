@@ -12,6 +12,13 @@ const detail = ref(null);
 const loading = ref(true);
 const deleting = ref(false);
 
+const analysisStatus = ref(props.video.status || null);
+const retrying = ref(false);
+const retryMessage = ref(null);
+
+const isPending = computed(() => String(analysisStatus.value || '').toUpperCase() === 'PENDING');
+const isFailed = computed(() => String(analysisStatus.value || '').toUpperCase() === 'FAILED');
+
 //ai 코멘트 작성 칸
 const foodList = ref([]);
 
@@ -43,14 +50,14 @@ onMounted(async () => {
   try {
     const res = await axios.get(`/api/videos/${props.video.id}`);
     detail.value = res.data;
+    analysisStatus.value = detail.value.status || null;
 
     if (detail.value && detail.value.aiComment) {
       try {
         const parsed = JSON.parse(detail.value.aiComment);
-        // 각 음식 객체에 사용자가 조절할 'quantity(인분)' 필드를 기본 1로 주입
         foodList.value = (parsed.foods || []).map((food) => ({
           ...food,
-          quantity: food.quantity || 1, // 만약 DB에 기존 저장된 값이 있다면 그것을 쓰고 없으면 1
+          quantity: food.quantity || 1,
         }));
       } catch (e) {
         console.error("AI 코멘트 JSON 파싱 실패:", e);
@@ -117,6 +124,28 @@ function onReupload() {
     mealDate: props.video.mealDate,
   });
   emit("close");
+}
+
+async function onRetryAnalysis() {
+  retrying.value = true;
+  retryMessage.value = null;
+  try {
+    const res = await axios.post(`/api/videos/${props.video.id}/analyze`);
+    if (res.status === 202) {
+      analysisStatus.value = 'PENDING';
+      retryMessage.value = '분석 요청됨. 잠시 후 새로고침해주세요.';
+    } else {
+      retryMessage.value = '이미 완료된 분석이에요.';
+    }
+  } catch (e) {
+    if (e.response?.status === 429) {
+      retryMessage.value = '최대 재시도 횟수(3회)를 초과했어요.';
+    } else {
+      retryMessage.value = '요청 실패. 잠시 후 다시 시도해주세요.';
+    }
+  } finally {
+    retrying.value = false;
+  }
 }
 </script>
 
@@ -204,7 +233,14 @@ function onReupload() {
             <span class="ai-title">인식된 식단 목록 (양 조절)</span>
           </div>
 
-          <div v-if="hasAnalysis" class="food-slider-list">
+          <!-- AI 분석 중 -->
+          <div v-if="isPending" class="ai-pending">
+            <i class="ti ti-loader-2 spin"></i>
+            <span>AI 분석 중... 서버에서 처리하고 있어요</span>
+          </div>
+
+          <!-- 분석 완료: 음식 목록 -->
+          <div v-else-if="hasAnalysis" class="food-slider-list">
             <div
               v-for="(food, index) in foodList"
               :key="index"
@@ -237,7 +273,24 @@ function onReupload() {
               조절한 양으로 최종 저장하기
             </button>
           </div>
-          <p v-else class="ai-hint">설명을 입력하면 AI가 분석해줘요 ✨</p>
+
+          <!-- 미분석 / 실패 -->
+          <p v-else class="ai-hint">
+            {{ isFailed ? 'AI 분석에 실패했어요 😢' : '설명을 입력하면 AI가 분석해줘요 ✨' }}
+          </p>
+
+          <!-- 재분석 버튼 (완료가 아닐 때) -->
+          <div v-if="!hasAnalysis" class="retry-area">
+            <button
+              class="retry-btn"
+              :disabled="retrying"
+              @click="onRetryAnalysis"
+            >
+              <i :class="retrying ? 'ti ti-loader-2 spin' : 'ti ti-refresh'"></i>
+              {{ retrying ? '요청 중...' : 'AI 재분석 요청' }}
+            </button>
+            <p v-if="retryMessage" class="retry-msg">{{ retryMessage }}</p>
+          </div>
         </div>
       </template>
     </div>
@@ -308,6 +361,7 @@ function onReupload() {
   height: 100%;
   object-fit: cover;
   display: block;
+  background: #000;
 }
 .close-btn {
   position: absolute;
@@ -556,5 +610,50 @@ function onReupload() {
 }
 .save-nutri-btn:hover {
   background: var(--accent-dark);
+}
+
+/* AI 분석 중 */
+.ai-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 재분석 버튼 영역 */
+.retry-area {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-primary);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.retry-btn:hover:not(:disabled) {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.retry-msg {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
 }
 </style>

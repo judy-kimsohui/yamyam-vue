@@ -223,18 +223,9 @@
                       playsinline
                     ></video>
 
-                    <!-- 🕒 AI 분석 중 배지 -->
-                    <div
-                      v-if="getVideo(member.id, mealTypes[activeMealIdx].key) && String(getVideo(member.id, mealTypes[activeMealIdx].key).status).toUpperCase() === 'PENDING'"
-                      class="ai-analyzing-badge"
-                    >
-                      <i class="ti ti-loader-2 spin"></i>
-                      <span>AI 분석 중...</span>
-                    </div>
-
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
-                      v-else-if="
+                      v-if="
                         getVideo(
                           member.id,
                           mealTypes[activeMealIdx].key,
@@ -546,21 +537,9 @@
                       playsinline
                     ></video>
 
-                    <!-- 🕒 AI 분석 중 배지 -->
-                    <div
-                      v-if="
-                        getVideo(member.id, mt.key).status?.toUpperCase() ===
-                        'PENDING'
-                      "
-                      class="ai-analyzing-badge"
-                    >
-                      <i class="ti ti-loader-2 spin"></i>
-                      <span>AI 분석 중...</span>
-                    </div>
-
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
-                      v-else-if="
+                      v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
                         'DONE'
                       "
@@ -813,21 +792,9 @@
                       playsinline
                     ></video>
 
-                    <!-- 🕒 AI 분석 중 배지 -->
-                    <div
-                      v-if="
-                        getVideo(member.id, mt.key).status?.toUpperCase() ===
-                        'PENDING'
-                      "
-                      class="ai-analyzing-badge"
-                    >
-                      <i class="ti ti-loader-2 spin"></i>
-                      <span>AI 분석 중...</span>
-                    </div>
-
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
-                      v-else-if="
+                      v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
                         'DONE'
                       "
@@ -1470,39 +1437,6 @@ const dayRecord = computed(
   () => groupDayRecords[selectedDay.value] ?? groupDayRecords.default,
 );
 
-// 🌟 [수정 완료]: 실시간 분석 상태 동기화를 위한 폴링 인터벌 레퍼런스
-const pollingTimer = ref(null);
-
-// 🌟 [수정 완료]: 대소문자 에러 방어 보정 및 undefined 예외 가드 결합
-const pendingVideoIds = computed(() => {
-  const pended = [];
-  Object.values(videoMap.value).forEach(v => {
-    // 백엔드에서 내려오는 status 문자열이 대문자든 소문자든 상관없이 안전하게 매칭되도록 보정
-    if (v && v.status && String(v.status).toUpperCase() === 'PENDING' && v.id) {
-      pended.push(v.id);
-    }
-  });
-  return pended;
-});
-
-// 🌟 [수정 완료]: 자바스크립트 크래시 유발자(log.info -> console.log) 완전 정비
-watch(pendingVideoIds, (newIds) => {
-  if (newIds.length > 0 && !pollingTimer.value) {
-    console.log(`[Polling] 분석 중인 영상 감지 (개수: ${newIds.length}개). 폴링 엔진 가동.`);
-    pollingTimer.value = setInterval(async () => {
-      await loadVideos();
-      
-      if (showCalendar.value || isWide.value) {
-        await selectDay(selectedDay.value);
-      }
-    }, 3000); 
-  } 
-  else if (newIds.length === 0 && pollingTimer.value) {
-    console.log("[Polling] 모든 영상의 AI 분석이 완료되었습니다. 폴링 엔진 정지.");
-    clearInterval(pollingTimer.value);
-    pollingTimer.value = null;
-  }
-}, { deep: true, immediate: true });
 
 // ── 반응형 ──
 const isMobile = ref(window.innerWidth < 768);
@@ -1518,12 +1452,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', onResize);
   stopGroupCamera();
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
-  
-  // 🌟 [추가] 타이머 제거로 가비지 컬렉션 유도
-  if (pollingTimer.value) {
-    clearInterval(pollingTimer.value);
-    pollingTimer.value = null;
-  }
 });
 
 // ── 모바일 스와이프 + 마우스 드래그 ──
@@ -2471,6 +2399,7 @@ function onMouseUp(e) {
   position: relative;
   width: 100%;
   height: 100%;
+  background: #000;
 }
 
 /* 🕒 1. 좌측 상단 AI 분석 중 배지 */
