@@ -11,8 +11,10 @@
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.7.2",
+    "chart.js": "^4.5.1",
     "sockjs-client": "^1.6.1",
-    "vue": "^3.5.32"
+    "vue": "^3.5.32",
+    "vue-chart-3": "^4.0.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.6",
