@@ -1,6 +1,6 @@
 <template>
   <div class="screen">
-    <!-- -- 헤더 -- -->
+    <!-- ── 헤더 ── -->
     <header class="header">
       <button
         class="icon-btn"
@@ -31,7 +31,7 @@
       <div v-else style="width: 36px"></div>
     </header>
 
-    <!-- ============== MOBILE (< 768px) ============== -->
+    <!-- ══════════════ MOBILE (< 768px) ══════════════ -->
     <main v-if="isMobile" class="scroll-body">
       <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
@@ -209,7 +209,7 @@
                     )
                   "
                 >
-                  <!--  [모바일] 영상 상위에 레이아웃을 얹기 위해 video-thumb-wrap 구조 적용 -->
+                  <!-- 🌟 [모바일] 영상 상위에 레이아웃을 얹기 위해 video-thumb-wrap 구조 적용 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video-full"
@@ -223,21 +223,16 @@
                       playsinline
                     ></video>
 
-                    <!--  AI 분석 중 배지 -->
+                    <!-- 🕒 AI 분석 중 배지 -->
                     <div
-                      v-if="
-                        getVideo(
-                          member.id,
-                          mealTypes[activeMealIdx].key,
-                        ).status?.toUpperCase() === 'PENDING'
-                      "
+                      v-if="getVideo(member.id, mealTypes[activeMealIdx].key) && String(getVideo(member.id, mealTypes[activeMealIdx].key).status).toUpperCase() === 'PENDING'"
                       class="ai-analyzing-badge"
                     >
                       <i class="ti ti-loader-2 spin"></i>
                       <span>AI 분석 중...</span>
                     </div>
 
-                    <!--  우측 하단 탄단지 미니 미리보기 -->
+                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-else-if="
                         getVideo(
@@ -374,7 +369,7 @@
       </template>
     </main>
 
-    <!-- ============== TABLET / iPad (768–1199px): 3열 그리드 ============== -->
+    <!-- ══════════════ TABLET / iPad (768–1199px): 3열 그리드 ══════════════ -->
     <main v-else-if="!isWide" class="scroll-body">
       <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
@@ -540,7 +535,7 @@
                   style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
-                  <!--  [태블릿] 영상 상위 래퍼 구조 결합 -->
+                  <!-- 🌟 [태블릿] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video"
@@ -551,7 +546,7 @@
                       playsinline
                     ></video>
 
-                    <!--  AI 분석 중 배지 -->
+                    <!-- 🕒 AI 분석 중 배지 -->
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -563,7 +558,7 @@
                       <span>AI 분석 중...</span>
                     </div>
 
-                    <!--  우측 하단 탄단지 미니 미리보기 -->
+                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-else-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -638,7 +633,7 @@
       </template>
     </main>
 
-    <!-- ============== WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 피드 ============== -->
+    <!-- ══════════════ WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 피드 ══════════════ -->
     <div v-else class="desktop-split">
       <!-- 좌측 1/3: 달력 + 채팅 버튼 -->
       <aside class="left-panel">
@@ -807,7 +802,7 @@
                   style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
-                  <!--  [데스크톱] 영상 상위 래퍼 구조 결합 -->
+                  <!-- 🌟 [데스크톱] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video"
@@ -818,7 +813,7 @@
                       playsinline
                     ></video>
 
-                    <!--  AI 분석 중 배지 -->
+                    <!-- 🕒 AI 분석 중 배지 -->
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -830,7 +825,7 @@
                       <span>AI 분석 중...</span>
                     </div>
 
-                    <!--  우측 하단 탄단지 미니 미리보기 -->
+                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-else-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -1170,6 +1165,7 @@ const loadVideos = async () => {
         videos(teamId: $teamId, date: $date) {
           id userId uploaderNickName teamId mealType mealDate videoUrl
           description calories carbs protein fat aiComment likeCount liked createdAt
+          status # 🌟 [여기 추가!] 백엔드로부터 PENDING/DONE 상태 문자열을 명시적으로 받아옵니다.
         }
       }`,
       variables: { teamId: String(selectedGroup.value.id), date: feedDate.value }
@@ -1359,7 +1355,7 @@ const submitUpload = async () => {
   }
 };
 
-// -- 달력 --
+// ── 달력 ──
 const today = new Date();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth());
@@ -1434,6 +1430,7 @@ async function selectDay(d) {
         videos(teamId: $teamId, date: $date) {
           id userId uploaderNickName teamId mealType mealDate videoUrl
           description calories carbs protein fat aiComment likeCount liked createdAt
+          status # 🌟 [여기 추가!] 달력에서 날짜를 찍었을 때도 상태가 누락되지 않게 채워줍니다.
         }
       }`,
       variables: { teamId: String(selectedGroup.value.id), date: calDateStr(d) }
@@ -1473,7 +1470,41 @@ const dayRecord = computed(
   () => groupDayRecords[selectedDay.value] ?? groupDayRecords.default,
 );
 
-// -- 반응형 --
+// 🌟 [수정 완료]: 실시간 분석 상태 동기화를 위한 폴링 인터벌 레퍼런스
+const pollingTimer = ref(null);
+
+// 🌟 [수정 완료]: 대소문자 에러 방어 보정 및 undefined 예외 가드 결합
+const pendingVideoIds = computed(() => {
+  const pended = [];
+  Object.values(videoMap.value).forEach(v => {
+    // 백엔드에서 내려오는 status 문자열이 대문자든 소문자든 상관없이 안전하게 매칭되도록 보정
+    if (v && v.status && String(v.status).toUpperCase() === 'PENDING' && v.id) {
+      pended.push(v.id);
+    }
+  });
+  return pended;
+});
+
+// 🌟 [수정 완료]: 자바스크립트 크래시 유발자(log.info -> console.log) 완전 정비
+watch(pendingVideoIds, (newIds) => {
+  if (newIds.length > 0 && !pollingTimer.value) {
+    console.log(`[Polling] 분석 중인 영상 감지 (개수: ${newIds.length}개). 폴링 엔진 가동.`);
+    pollingTimer.value = setInterval(async () => {
+      await loadVideos();
+      
+      if (showCalendar.value || isWide.value) {
+        await selectDay(selectedDay.value);
+      }
+    }, 3000); 
+  } 
+  else if (newIds.length === 0 && pollingTimer.value) {
+    console.log("[Polling] 모든 영상의 AI 분석이 완료되었습니다. 폴링 엔진 정지.");
+    clearInterval(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+}, { deep: true, immediate: true });
+
+// ── 반응형 ──
 const isMobile = ref(window.innerWidth < 768);
 const isWide = ref(window.innerWidth >= 1200);
 const onResize = () => {
@@ -1481,13 +1512,21 @@ const onResize = () => {
   isWide.value = window.innerWidth >= 1200;
 };
 window.addEventListener("resize", onResize);
-onUnmounted(() => {
-  window.removeEventListener('resize', onResize)
-  stopGroupCamera()
-  if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
-})
 
-// -- 모바일 스와이프 + 마우스 드래그 --
+// 컴포넌트 소거 시 백그라운드 누수 방지를 위해 해제 추가
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize);
+  stopGroupCamera();
+  if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
+  
+  // 🌟 [추가] 타이머 제거로 가비지 컬렉션 유도
+  if (pollingTimer.value) {
+    clearInterval(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+});
+
+// ── 모바일 스와이프 + 마우스 드래그 ──
 const activeMealIdx = ref(0);
 let touchStartX = 0;
 let touchStartY = 0;
@@ -1543,7 +1582,7 @@ function onMouseUp(e) {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* -- 헤더 -- */
+/* ── 헤더 ── */
 .header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-light, #e5e5e5);
@@ -1623,7 +1662,7 @@ function onMouseUp(e) {
   }
 }
 
-/* -- MOBILE 스크롤 본문 -- */
+/* ── MOBILE 스크롤 본문 ── */
 .scroll-body {
   flex: 1;
   overflow-y: auto;
@@ -1636,7 +1675,7 @@ function onMouseUp(e) {
   flex-direction: column;
 }
 
-/* -- DESKTOP 분할 레이아웃 -- */
+/* ── DESKTOP 분할 레이아웃 ── */
 .desktop-split {
   flex: 1;
   display: flex;
@@ -1683,7 +1722,7 @@ function onMouseUp(e) {
   opacity: 0.85;
 }
 
-/* -- 날짜 네비게이션 -- */
+/* ── 날짜 네비게이션 ── */
 .feed-controls-bar {
   display: flex;
   align-items: center;
@@ -1747,7 +1786,7 @@ function onMouseUp(e) {
   font-size: 14px;
 }
 
-/* -- 데스크탑 피드 -- */
+/* ── 데스크탑 피드 ── */
 .feed {
   display: flex;
   flex-direction: column;
@@ -1824,7 +1863,7 @@ function onMouseUp(e) {
   display: block;
 }
 
-/* -- 영상 내 오버레이 (공통) -- */
+/* ── 영상 내 오버레이 (공통) ── */
 .vid-bottom {
   position: absolute;
   bottom: 8px;
@@ -1907,7 +1946,7 @@ function onMouseUp(e) {
   background: #ebebeb;
 }
 
-/* -- 모바일 탭 바 -- */
+/* ── 모바일 탭 바 ── */
 .meal-tab-bar {
   display: flex;
   gap: 4px;
@@ -1931,7 +1970,7 @@ function onMouseUp(e) {
   color: #fff;
 }
 
-/* -- 모바일 피드 -- */
+/* ── 모바일 피드 ── */
 .feed-mobile {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2024,7 +2063,7 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* -- 달력 (공통) -- */
+/* ── 달력 (공통) ── */
 .calendar-panel {
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
@@ -2251,7 +2290,7 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* -- 영상 중앙 설명 텍스트 -- */
+/* ── 영상 중앙 설명 텍스트 ── */
 .vid-center-desc {
   position: absolute;
   top: 50%;
@@ -2268,7 +2307,7 @@ function onMouseUp(e) {
   z-index: 2;
 }
 
-/* -- 업로드 모달 -- */
+/* ── 업로드 모달 ── */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2362,13 +2401,16 @@ function onMouseUp(e) {
 }
 
 .btn-change-file {
+  position: absolute;
+  top: 10px;
+  right: 10px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   border: none;
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2376,85 +2418,24 @@ function onMouseUp(e) {
 }
 .btn-change-file:hover { background: rgba(0,0,0,0.65); }
 
-/* 파일 선택 전 드롭존 */
-.file-drop-area {
-  display: flex; align-items: center; justify-content: center;
+.file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
-  border: 1.5px dashed #ccc; border-radius: 14px; padding: 20px 14px;
+  border: 1.5px dashed #ccc;
+  border-radius: 14px;
+  padding: 32px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #888;
+  transition: border-color 0.15s;
   margin-bottom: 14px;
 }
-.drop-btn {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; padding: 18px 0;
-  background: #f7f7f7; border: none; border-radius: 12px;
-  font-size: 12px; color: #555; cursor: pointer; transition: background 0.15s;
-  flex: 1;
-}
-.drop-btn:hover { background: #eee; color: #000; }
-.camera-btn { background: #fff5f7; color: #e8909e; }
-.camera-btn:hover { background: #ffe0e8; color: #c0607a; }
-.drop-or { font-size: 12px; color: #ccc; white-space: nowrap; }
-
-/* 카메라 오버레이 */
-.camera-overlay {
-  position: fixed; inset: 0;
-  background: #000; z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
-}
-.camera-feed {
-  width: 100%; height: 100%; object-fit: cover;
-}
-.camera-ui {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  justify-content: space-between;
-  padding: 20px 20px 40px;
-}
-.btn-close-camera {
-  align-self: flex-end;
-  width: 38px; height: 38px; border-radius: 50%;
-  background: rgba(0,0,0,0.55); border: none; color: #fff;
-  font-size: 16px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.camera-tip {
-  text-align: center; color: rgba(255,255,255,0.75);
-  font-size: 13px; font-weight: 500;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-  margin-top: 8px;
-}
-.camera-bottom {
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-}
-.record-progress-wrap {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;
-}
-.record-label {
-  color: #fff; font-size: 14px; font-weight: 600;
-  display: flex; align-items: center; gap: 6px;
-}
-.rec-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: #ff3030;
-  animation: blink 0.6s step-end infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-.record-progress-bar {
-  width: 70%; height: 5px;
-  background: rgba(255,255,255,0.3); border-radius: 3px; overflow: hidden;
-}
-.record-fill {
-  height: 100%; background: #ff3030; border-radius: 3px;
-  transition: width 0.03s linear;
-}
-.btn-shutter {
-  width: 72px; height: 72px; border-radius: 50%;
-  background: rgba(255,255,255,0.2); border: 3px solid #fff;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: transform 0.1s;
-}
-.btn-shutter:active { transform: scale(0.92); }
-.shutter-inner {
-  width: 54px; height: 54px; border-radius: 50%; background: #fff;
+.file-drop:hover {
+  border-color: #000;
+  color: #333;
 }
 
 .modal-actions {
@@ -2485,14 +2466,14 @@ function onMouseUp(e) {
   cursor: not-allowed;
 }
 
-/* --  오버레이 배지 전용 정밀 스타일 지정 -- */
+/* ── 🌟 오버레이 배지 전용 정밀 스타일 지정 ── */
 .video-thumb-wrap {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-/*  1. 좌측 상단 AI 분석 중 배지 */
+/* 🕒 1. 좌측 상단 AI 분석 중 배지 */
 .ai-analyzing-badge {
   position: absolute;
   top: 8px;
@@ -2521,23 +2502,6 @@ function onMouseUp(e) {
   }
 }
 
-/*  2. 우측 하단 탄단지 칼로리 실시간 컴팩트 바 */
-.mini-nutri-preview {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 3px 6px;
-  border-radius: 10px;
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 2;
-}
 
 .m-tag {
   font-size: 10px;
@@ -2562,4 +2526,51 @@ function onMouseUp(e) {
   color: #fff;
   margin-left: 2px;
 }
+
+/* 🕒 1. [수정] 우측 상단 AI 분석 중 배지 정밀 배치 및 애니메이션 */
+.ai-analyzing-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px; /* 🌟 좌측(left)에서 우측(right) 배치로 변경 */
+  background: rgba(217, 83, 79, 0.9); /* 은은한 다홍빛 빨간색으로 AI 상태 강조 */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10; /* 레이어 우선순위를 높여 다른 요소 위에 명확히 노출 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: pulse 1.8s infinite ease-in-out; /* 반짝이는 맥박 효과 */
+}
+
+/* 🍕 2. [수정] 우측 상단 탄단지 칼로리 미니 미리보기 바 (분석 완료 시 노출) */
+.mini-nutri-preview {
+  position: absolute;
+  top: 8px; /* 🌟 우측 하단에서 우측 상단(top) 배치로 변경 */
+  right: 8px; /* 🌟 우측 정렬 유지 */
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 6px;
+  border-radius: 10px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 9;
+}
+
+/* 맥박 애니메이션 속성 보존 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(0.97); }
+}
+
 </style>
