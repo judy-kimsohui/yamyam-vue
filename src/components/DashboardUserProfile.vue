@@ -397,7 +397,7 @@ const achievementRate = computed(() => {
   color: #000000;
 }
 .spec-item .value.target {
-  color: #7EC8A0;
+  color: #7ec8a0;
 }
 .spec-item .value small {
   font-size: 11px;
@@ -417,7 +417,7 @@ const achievementRate = computed(() => {
   margin-bottom: 6px;
 }
 .progress-percentage {
-  color: #7EC8A0;
+  color: #7ec8a0;
 }
 .progress-track {
   width: 100%;
@@ -428,7 +428,7 @@ const achievementRate = computed(() => {
 }
 .progress-bar {
   height: 100%;
-  background: #7EC8A0;
+  background: #7ec8a0;
   border-radius: 3px;
   transition: width 0.4s ease;
 }
@@ -453,7 +453,7 @@ const achievementRate = computed(() => {
   transition: border-color 0.2s;
 }
 .input-wrapper:focus-within {
-  border-color: #A0C4FF;
+  border-color: #a0c4ff;
 }
 .weight-input {
   width: 100%;
@@ -465,7 +465,7 @@ const achievementRate = computed(() => {
 }
 .btn-record {
   padding: 0 16px;
-  background: #E8909E;
+  background: #e8909e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -487,7 +487,7 @@ const achievementRate = computed(() => {
   padding: 2px 4px;
 }
 .inline-input:focus {
-  border-bottom: 1px solid #A0C4FF;
+  border-bottom: 1px solid #a0c4ff;
 }
 .nick-input {
   font-size: 16px;
@@ -520,7 +520,7 @@ const achievementRate = computed(() => {
   outline: none;
 }
 .spec-input:focus {
-  border-bottom: 1px solid #A0C4FF;
+  border-bottom: 1px solid #a0c4ff;
 }
 .profile-action-box {
   margin-top: 16px;
@@ -547,7 +547,7 @@ const achievementRate = computed(() => {
 .btn-profile-save {
   flex: 2;
   padding: 10px;
-  background: #E8909E;
+  background: #e8909e;
   color: #fff;
   border: none;
   border-radius: 6px;

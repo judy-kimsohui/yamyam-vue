@@ -39,13 +39,18 @@
               { key: 'DINNER', label: '저녁' },
             ]"
             :key="mt.key"
-            :class="todayVideoByMeal(mt.key) ? 'meal-done-slot' : 'meal-upload-slot'"
+            :class="
+              todayVideoByMeal(mt.key) ? 'meal-done-slot' : 'meal-upload-slot'
+            "
             @click="!todayVideoByMeal(mt.key) && openUploadForMeal(mt.key)"
           >
             <template v-if="todayVideoByMeal(mt.key)">
               <video
                 :src="todayVideoByMeal(mt.key).videoUrl"
-                autoplay loop muted playsinline
+                autoplay
+                loop
+                muted
+                playsinline
                 class="meal-slot-video"
               ></video>
               <div class="meal-slot-done-label">
@@ -164,20 +169,25 @@
           </div>
         </div>
 
-        <div class="mylog-components-zone" style="padding: 0 16px; margin-bottom: 16px;">
-          <NutrientSummary 
-            v-if="dashboardReport && dashboardReport.goal && dashboardReport.summary" 
-            :goal="dashboardReport.goal" 
-            :summary="dashboardReport.summary" 
+        <div
+          class="mylog-components-zone"
+          style="padding: 0 16px; margin-bottom: 16px"
+        >
+          <NutrientSummary
+            v-if="
+              dashboardReport && dashboardReport.goal && dashboardReport.summary
+            "
+            :goal="dashboardReport.goal"
+            :summary="dashboardReport.summary"
           />
-          <FeedbackBox 
-            v-if="dashboardReport" 
-            :ruleMessage="dashboardReport.ruleFeedback" 
-            :aiMessage="dashboardReport.aiDailyFeedback" 
+          <FeedbackBox
+            v-if="dashboardReport"
+            :ruleMessage="dashboardReport.ruleFeedback"
+            :aiMessage="dashboardReport.aiDailyFeedback"
           />
-          <NutrientTrendChart 
-            v-if="periodTrendList && periodTrendList.length > 0" 
-            :trendData="periodTrendList" 
+          <NutrientTrendChart
+            v-if="periodTrendList && periodTrendList.length > 0"
+            :trendData="periodTrendList"
           />
         </div>
 
@@ -273,20 +283,27 @@
             </div>
           </div>
 
-          <div class="mylog-components-zone" style="padding: 0 16px; margin-bottom: 16px;">
-            <NutrientSummary 
-              v-if="dashboardReport && dashboardReport.goal && dashboardReport.summary" 
-              :goal="dashboardReport.goal" 
-              :summary="dashboardReport.summary" 
+          <div
+            class="mylog-components-zone"
+            style="padding: 0 16px; margin-bottom: 16px"
+          >
+            <NutrientSummary
+              v-if="
+                dashboardReport &&
+                dashboardReport.goal &&
+                dashboardReport.summary
+              "
+              :goal="dashboardReport.goal"
+              :summary="dashboardReport.summary"
             />
-            <FeedbackBox 
-              v-if="dashboardReport" 
-              :ruleMessage="dashboardReport.ruleFeedback" 
-              :aiMessage="dashboardReport.aiDailyFeedback" 
+            <FeedbackBox
+              v-if="dashboardReport"
+              :ruleMessage="dashboardReport.ruleFeedback"
+              :aiMessage="dashboardReport.aiDailyFeedback"
             />
-            <NutrientTrendChart 
-              v-if="periodTrendList && periodTrendList.length > 0" 
-              :trendData="periodTrendList" 
+            <NutrientTrendChart
+              v-if="periodTrendList && periodTrendList.length > 0"
+              :trendData="periodTrendList"
             />
           </div>
 
@@ -399,20 +416,27 @@
             </div>
           </div>
 
-          <div class="mylog-components-zone" style="padding: 0 16px; margin-bottom: 16px;">
-            <NutrientSummary 
-              v-if="dashboardReport && dashboardReport.goal && dashboardReport.summary" 
-              :goal="dashboardReport.goal" 
-              :summary="dashboardReport.summary" 
+          <div
+            class="mylog-components-zone"
+            style="padding: 0 16px; margin-bottom: 16px"
+          >
+            <NutrientSummary
+              v-if="
+                dashboardReport &&
+                dashboardReport.goal &&
+                dashboardReport.summary
+              "
+              :goal="dashboardReport.goal"
+              :summary="dashboardReport.summary"
             />
-            <FeedbackBox 
-              v-if="dashboardReport" 
-              :ruleMessage="dashboardReport.ruleFeedback" 
-              :aiMessage="dashboardReport.aiDailyFeedback" 
+            <FeedbackBox
+              v-if="dashboardReport"
+              :ruleMessage="dashboardReport.ruleFeedback"
+              :aiMessage="dashboardReport.aiDailyFeedback"
             />
-            <NutrientTrendChart 
-              v-if="periodTrendList && periodTrendList.length > 0" 
-              :trendData="periodTrendList" 
+            <NutrientTrendChart
+              v-if="periodTrendList && periodTrendList.length > 0"
+              :trendData="periodTrendList"
             />
           </div>
 
@@ -537,18 +561,24 @@ import { emojis, calendarData } from "../data/mockData.js";
 import { useStore } from "../composables/useStore.js";
 import DashboardUserProfile from "@/components/DashboardUserProfile.vue";
 import VideoUploadModal from "@/components/VideoUploadModal.vue";
-import NutrientSummary from '@/components/NutrientSummary.vue'
-import FeedbackBox from '@/components/FeedbackBox.vue'
-import NutrientTrendChart from '@/components/NutrientTrendChart.vue'
+import NutrientSummary from "@/components/NutrientSummary.vue";
+import FeedbackBox from "@/components/FeedbackBox.vue";
+import NutrientTrendChart from "@/components/NutrientTrendChart.vue";
 
 // 🌟 대시보드 상태 관리용 초기값 선언 완전체 보정
 const dashboardReport = ref({
-  goal: { targetCalories: 2000, targetCarbs: 250, targetProtein: 150, targetFat: 50 },
+  goal: {
+    targetCalories: 2000,
+    targetCarbs: 250,
+    targetProtein: 150,
+    targetFat: 50,
+  },
   summary: { totalCalories: 0, totalCarbs: 0, totalProtein: 0, totalFat: 0 },
-  ruleFeedback: '식단을 공유해 보세요!',
-  aiDailyFeedback: '해당 날짜의 AI 정기 리포트가 아직 생성되지 않았거나 없습니다.'
-})
-const periodTrendList = ref([])
+  ruleFeedback: "식단을 공유해 보세요!",
+  aiDailyFeedback:
+    "해당 날짜의 AI 정기 리포트가 아직 생성되지 않았거나 없습니다.",
+});
+const periodTrendList = ref([]);
 
 const { goTo } = inject("navigation");
 const auth = inject("auth");
@@ -617,33 +647,36 @@ async function selectDay(d) {
   selectedDay.value = d;
   loadingDayVideos.value = true;
   const dateStr = toDateStr(d, currentYear.value, currentMonth.value);
-  
+
   try {
     // 1. GraphQL - 유저 비디오 파일 정보 획득
-    const res = await axios.post('/graphql', {
+    const res = await axios.post("/graphql", {
       query: `query GetMyVideos($userId: ID, $date: String!) {
         videos(userId: $userId, date: $date) {
           id userId uploaderNickName teamId mealType mealDate videoUrl
           description calories carbs protein fat aiComment likeCount liked createdAt
         }
       }`,
-      variables: { userId: String(auth.loginUser.value?.id), date: dateStr }
+      variables: { userId: String(auth.loginUser.value?.id), date: dateStr },
     });
     dayVideos.value = res.data?.data?.videos ?? [];
-    
+
     // 2. REST API - 당일 종합 대시보드 수치 및 가이드라인 바인딩
-    const reportRes = await axios.get(`/api/videos/dashboard/daily?date=${dateStr}`);
+    const reportRes = await axios.get(
+      `/api/videos/dashboard/daily?date=${dateStr}`,
+    );
     dashboardReport.value = reportRes.data;
 
     // 3. REST API - 그래프용 7일(일주일 단위 스케일) 추이 데이터 패칭
     const end = new Date(currentYear.value, currentMonth.value, d);
     const start = new Date(end);
     start.setDate(start.getDate() - 6);
-    
-    const startStr = toDateStr(start);
-    const trendRes = await axios.get(`/api/videos/dashboard/trend?startDate=${startStr}&endDate=${dateStr}`);
-    periodTrendList.value = trendRes.data;
 
+    const startStr = toDateStr(start);
+    const trendRes = await axios.get(
+      `/api/videos/dashboard/trend?startDate=${startStr}&endDate=${dateStr}`,
+    );
+    periodTrendList.value = trendRes.data;
   } catch (err) {
     console.error("대시보드 패이프라인 패칭 예외 발생:", err);
     dayVideos.value = [];
@@ -950,6 +983,7 @@ onMounted(async () => {
   await selectDay(today.getDate());
 });
 </script>
+
 <style scoped>
 .dashboard {
   width: 100vw;
@@ -958,7 +992,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   background: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   letter-spacing: -0.02em;
   overflow: hidden;
 }
@@ -1124,7 +1159,10 @@ onMounted(async () => {
   gap: 6px;
   color: #ccc;
   font-size: 20px;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
 }
 .meal-upload-slot:hover .meal-slot-placeholder {
   border-color: #bbb;
@@ -1155,7 +1193,7 @@ onMounted(async () => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0,0,0,0.55));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -1182,7 +1220,9 @@ onMounted(async () => {
   pointer-events: none;
 }
 .toast-fade-enter-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .toast-fade-leave-active {
   transition: opacity 0.3s;
@@ -1411,15 +1451,46 @@ onMounted(async () => {
 }
 
 /* ==============================
-   마이로그 공통
+   마이로그 공통 및 반응형 스택 고정 🌟
 ══════════════════════════════ */
+/* 태블릿과 와이드 데스크톱 우측 패널 내부를 절대 규칙 수직 Flex 기둥으로 전환 */
+.tablet-video-panel,
+.wide-video-panel {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important; /* 🌟 내부 요소들을 무조건 순서대로 위에서 아래로 정렬 */
+  overflow-y: auto !important; /* 스크롤 권한 부여 */
+  background: #f7f7f7;
+  padding: 0 0 40px 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 상단 마이로그 통계/차트 존의 영역 절대 사수 및 밀림 보안장치 */
+/* 2. 대시보드 컴포넌트 존 (요약바, 피드백, 차트) 컨테이너 가드 */
+.mylog-components-zone {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px !important; /* 컴포넌트 간 간격 확대 */
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 16px 16px 0 !important;
+  margin-bottom: 40px !important; /* 🌟 아래 피자 영상 목록이 절대 침범하지 못하도록 강제 하단 여백 대폭 확대 */
+  flex-shrink: 0 !important; /* 내부 요소들이 찌그러지는 것 방지 */
+  position: relative !important;
+  clear: both !important;
+}
+
+/* 선택일 기록 헤더 (날짜 타이틀 및 필터바 구역) */
 .mylog-day-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
   gap: 8px;
-  padding: 12px 16px 8px;
+  padding: 16px 16px 12px !important;
+  margin-top: 16px !important; /* 상단 대시보드 구역과의 확실한 레이아웃 분리 차단벽 */
+  flex-shrink: 0 !important;
 }
 .mylog-day-title {
   font-size: 14px;
@@ -1440,7 +1511,9 @@ onMounted(async () => {
   font-weight: 600;
   color: #888;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .mylog-filter-btn.active {
   background: #e8909e;
@@ -1460,7 +1533,7 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-/* -- 영상 카드 공통 -- */
+/* -- 영상 카드 레이아웃 크기 폭주 방지 가이드 🌟 -- */
 .mylog-card {
   position: relative;
   overflow: hidden;
@@ -1478,13 +1551,14 @@ onMounted(async () => {
   left: 50%;
   transform: translate(-50%, -50%);
   width: calc(100% - 20px);
-  font-size: 15px;
+  font-size: 14px !important;
   font-weight: 700;
   color: #fff;
   text-align: center;
   pointer-events: none;
   line-height: 1.4;
   word-break: keep-all;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
 }
 .mylog-vid-bottom {
   position: absolute;
@@ -1513,7 +1587,7 @@ onMounted(async () => {
   font-size: 16px;
 }
 
-/* -- 태블릿 분할 -- */
+/* -- 태블릿 분할 및 격자 그리드 가드 🌟 -- */
 .tablet-split {
   flex: 1;
   display: flex;
@@ -1528,23 +1602,21 @@ onMounted(async () => {
   border-right: 1px solid #e5e5e5;
   padding: 16px;
 }
-.tablet-video-panel {
-  flex: 1;
-  overflow-y: auto;
-  background: #f7f7f7;
-  padding: 0 0 24px;
-}
 .mylog-grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 0 16px;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+  padding: 0 16px 24px !important;
+  margin-top: 8px !important;
+  flex-shrink: 0 !important;
 }
 .mylog-grid-2 .mylog-card {
-  aspect-ratio: 1;
+  width: 100% !important;
+  aspect-ratio: 16 / 10 !important; /* 🌟 가로 확장에 따른 지나친 세로 폭주 방지비율 */
+  max-height: 220px !important; /* 🌟 최대 세로 상한 높이 고정 */
 }
 
-/* -- 와이드 데스크톱 분할 -- */
+/* -- 와이드 데스크톱 분할 및 격자 그리드 가드 🌟 -- */
 .wide-split {
   flex: 1;
   display: flex;
@@ -1563,20 +1635,18 @@ onMounted(async () => {
   flex-direction: column;
   gap: 16px;
 }
-.wide-video-panel {
-  flex: 1;
-  overflow-y: auto;
-  background: #f7f7f7;
-  padding: 0 0 24px;
-}
 .mylog-grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 0 16px;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 14px !important;
+  padding: 0 16px 32px !important;
+  margin-top: 8px !important;
+  flex-shrink: 0 !important;
 }
 .mylog-grid-3 .mylog-card {
-  aspect-ratio: 1;
+  width: 100% !important;
+  aspect-ratio: 16 / 10 !important;
+  max-height: 180px !important; /* 🌟 데스크톱 3열 스케일에 맞춘 최적화 높이 상한선 고정 */
 }
 
 /* 월간 통계 */
@@ -1688,64 +1758,13 @@ onMounted(async () => {
   animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
-/* ========================================================
-   🌟 [최종 해결] 마이로그 반응형 패널 겹침 현상 완전 가드 CSS
-   ======================================================== */
-
-/* 1. 태블릿과 데스크톱 우측 비디오 패널의 배치 규칙 강제 정형화 */
-.tablet-video-panel, .wide-video-panel {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important; /* 🌟 내부 부품들이 무조건 위에서 아래로 한 줄로만 흐르게 강제 */
-  overflow-y: auto !important;       /* 패널 자체에 세로 스크롤 부여 */
-  background: #f7f7f7;
-  padding-bottom: 40px;
-  box-sizing: border-box;
-}
-
-/* 2. 대시보드 컴포넌트 존 (요약바, 피드백, 차트) 컨테이너 가드 */
-.mylog-components-zone {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 20px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box;
-  padding: 0 16px !important;
-  margin-bottom: 32px !important;    /* 🌟 아래 영상 구역을 확실하게 밑으로 밀어내는 마진 확대 */
-  flex-shrink: 0 !important;         /* 🌟 영상 그리드가 치고 올라와도 절대 찌그러지지 않도록 고정 */
-  position: relative !important;
-}
-
-/* 3. 차트 카드 자체의 밀림 방지 하단 오버플로우 제어 */
-.chart-card {
-  width: 100% !important;
-  box-sizing: border-box;
-  margin-bottom: 16px !important;
-  flex-shrink: 0 !important;         /* 차트 박스가 수축하며 짤리는 현상 방지 */
-}
-
-/* 4. 선택일 영상 헤더 (날짜 타이틀 및 필터 버튼 구역) */
-.mylog-day-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 24px 16px 12px !important; /* 🌟 여백 보정 패딩 확대 */
-  margin-top: 24px !important;       /* 🌟 상단 차트 영역과의 확실한 물리적 분리 */
-  flex-shrink: 0 !important;
-}
-
-/* 5. 비디오 목록 그리드 레이아웃 (태블릿 2열 / 데스크톱 3열) */
-.mylog-grid-2, .mylog-grid-3 {
-  flex-shrink: 0 !important;         /* 내부 아이템 카드들이 겹침 없이 자기 높이를 확보하도록 가드 */
-  margin-top: 12px !important;
-  padding: 0 16px 40px !important;   /* 🌟 가려짐 없는 스크롤 하단 안심 마진 */
-}
-
 </style>
