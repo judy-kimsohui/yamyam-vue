@@ -38,7 +38,7 @@
                 <option value="MALE">남성</option>
                 <option value="FEMALE">여성</option>
               </select>
-              ·
+              
               <input
                 v-model.number="editForm.age"
                 type="number"
@@ -61,22 +61,27 @@
 
       <div class="goal-phrase-box">
         <p class="goal-title">나의 목표 한마디</p>
-        <p class="goal-text">
+        <input v-if="isEditMode"
+          v-model="editForm.userGoal"
+          class="goal-input"
+          placeholder="목표를 입력하세요"
+        />
+        <p v-else class="goal-text" @click="startEdit">
           “
           {{
-            profile?.user_goal && profile.user_goal.trim().length > 0
+            profile?.user_goal?.trim()
               ? profile.user_goal
-              : "야무지게 먹고 건강하게 기록하자!"
+              : "목표를 작성해볼까요?"
           }}
           ”
         </p>
       </div>
 
-      <hr class="divider" />
+      <!-- <hr class="divider" /> -->
 
       <div class="profile-specs">
         <div class="spec-item">
-          <span class="label">현재 신장</span>
+          <span class="label">키</span>
           <div v-if="isEditMode" class="edit-input-wrapper">
             <input
               v-model.number="editForm.height"
@@ -124,7 +129,7 @@
           >
         </div>
 
-        <div class="achievement-progress">
+        <!-- <div class="achievement-progress">
           <div class="progress-info">
             <span>목표 달성도</span>
             <span class="progress-percentage">{{ achievementRate }}%</span>
@@ -135,7 +140,7 @@
               :style="{ width: achievementRate + '%' }"
             ></div>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <div class="profile-action-box">
@@ -148,9 +153,9 @@
         </div>
       </div>
 
-      <hr class="divider" />
+      <!-- <hr class="divider" /> -->
 
-      <div class="weight-recorder">
+      <!-- <div class="weight-recorder">
         <p class="section-subtitle">오늘 체중 바로 기록하기</p>
         <form @submit.prevent="submitWeight" class="record-form">
           <div class="input-wrapper">
@@ -166,14 +171,16 @@
           </div>
           <button type="submit" class="btn-record">기록</button>
         </form>
-      </div>
+      </div> -->
     </template>
   </aside>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import axios from "axios"; //  직접 API 연동을 위해 추가
+import axios from "axios";
+import { useToast } from "../composables/useToast.js";
+const { showToast } = useToast();
 
 //  단독 컴포넌트이므로 props와 emit은 과감히 삭제!
 const profile = ref(null);
@@ -186,12 +193,13 @@ const editForm = ref({
   nickName: "",
   age: 0,
   gender: "NONE",
+  userGoal: "",
   height: 0,
   weight: 0,
   goalWeight: 0,
 });
 
-// 1. 화면이 켜지면 백엔드 문지기 거쳐서 데이터 가져오기 (원래 UserController에 있던 프로필 조회 API)
+// 1. 조회
 const fetchProfileData = async () => {
   try {
     isLoading.value = true;
@@ -199,7 +207,7 @@ const fetchProfileData = async () => {
     profile.value = response.data;
   } catch (error) {
     console.error("프로필 조회 실패:", error);
-    alert("내 정보를 불러오지 못했습니다. 다시 시도해 주세요.");
+    showToast("error", "프로필 로드 실패", "다시 시도해 주세요.");
   } finally {
     isLoading.value = false;
   }
@@ -209,12 +217,13 @@ onMounted(() => {
   fetchProfileData();
 });
 
-// 2. 수정 모드 진입 (기존 데이터 복사)
+// 2. 수정
 const startEdit = () => {
   editForm.value = {
     nickName: profile.value?.nick_name || profile.value?.nickName || "",
     age: profile.value?.age || 0,
     gender: profile.value?.gender || "NONE",
+    userGoal: profile.value?.user_goal || profile.value?.userGoal || "",
     height: profile.value?.height || 0,
     weight: profile.value?.weight || 0,
     goalWeight: profile.value?.goal_weight || profile.value?.goalWeight || 0,
@@ -222,35 +231,32 @@ const startEdit = () => {
   isEditMode.value = true;
 };
 
+// 2-1. 수정 취소
 const cancelEdit = () => {
   isEditMode.value = false;
 };
 
-// 3.  백엔드로 다이렉트 수정 요청 날리기 (JWT 인증)
+// 3. JWT 인증 + 백엔드 수정 요청
 const saveEdit = async () => {
   if (!editForm.value.nickName.trim()) {
-    alert("닉네임을 입력해 주세요.");
+    showToast("error", "닉네임을 입력해 주세요.");
     return;
   }
 
   try {
-    // 우리가 백엔드에 새로 만든 PUT /api/users/profile 호출!
     await axios.put("/api/users/profile", editForm.value);
-
-    alert("프로필이 성공적으로 수정되었습니다! ✨");
     isEditMode.value = false;
-
-    // 화면 갱신을 위해 데이터를 다시 서버에서 깔끔하게 땡겨옴
-    fetchProfileData();
+    await fetchProfileData();
+    showToast("success", "프로필이 수정되었습니다!");
   } catch (error) {
-    alert("수정 실패: " + (error.response?.data || error.message));
+    showToast("error", "수정 실패", error.response?.data || error.message);
   }
 };
 
 // 4. 단독 체중 기록 기능 추가 연동
 const submitWeight = async () => {
   if (todayWeight.value <= 0) {
-    alert("올바른 체중을 입력해 주세요.");
+    showToast("error", "올바른 체중을 입력해 주세요.");
     return;
   }
 
@@ -261,17 +267,18 @@ const submitWeight = async () => {
       nickName: profile.value?.nick_name || profile.value?.nickName,
       age: profile.value?.age,
       gender: profile.value?.gender,
+      userGoal: profile.value?.user_goal || profile.value?.userGoal || "",
       height: profile.value?.height,
-      weight: todayWeight.value, // 입력한 오늘의 체중만 치환
+      weight: todayWeight.value,
       goalWeight: profile.value?.goal_weight || profile.value?.goalWeight,
     };
 
     await axios.put("/api/users/profile", updatePayload);
-    alert("오늘의 체중이 등록되었습니다!");
+    showToast("success", "오늘의 체중이 등록되었습니다!");
     todayWeight.value = "";
-    fetchProfileData(); // 최신 달성도 갱신을 위한 새로고침
+    fetchProfileData();
   } catch (error) {
-    alert("체중 기록 실패: " + (error.response?.data || error.message));
+    showToast("error", "체중 기록 실패", error.response?.data || error.message);
   }
 };
 
@@ -340,8 +347,8 @@ const achievementRate = computed(() => {
   gap: 4px;
 }
 .user-nickname {
-  margin: 0;
-  font-size: 18px;
+  margin-bottom: 5px;
+  font-size: 16px;
   font-weight: 700;
   color: #000000;
 }
@@ -370,6 +377,21 @@ const achievementRate = computed(() => {
   line-height: 1.4;
   font-style: italic;
 }
+.goal-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  font-size: 13px;
+  font-style: italic;
+  color: #555555;
+  outline: none;
+  padding: 2px 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+.goal-input:focus {
+  border-bottom-color: #A0C4FF;
+}
 .divider {
   border: none;
   border-top: 1px solid #e5e5e5;
@@ -378,6 +400,7 @@ const achievementRate = computed(() => {
 .profile-specs {
   display: flex;
   flex-direction: column;
+  padding: 10px;
   gap: 12px;
 }
 .spec-item {
@@ -484,7 +507,7 @@ const achievementRate = computed(() => {
   border-bottom: 1px solid #ccc;
   font-size: 14px;
   outline: none;
-  padding: 2px 4px;
+  padding: 2px 0;
 }
 .inline-input:focus {
   border-bottom: 1px solid #A0C4FF;
@@ -495,10 +518,15 @@ const achievementRate = computed(() => {
   width: 120px;
 }
 .age-input {
+  font-size: 14px;
+  margin-left: 10px;
+  padding: 1px;
   width: 40px;
   text-align: center;
 }
 .inline-select {
+  font-size: 14px;
+  margin: 0;
   border: none;
   border-bottom: 1px solid #ccc;
   font-size: 12px;
@@ -537,15 +565,15 @@ const achievementRate = computed(() => {
   cursor: pointer;
 }
 .btn-profile-edit:hover {
-  border-color: #000;
-  color: #000;
+  border-color: #e8909e;
+  color: #e8909e;
 }
 .edit-actions {
   display: flex;
   gap: 6px;
 }
 .btn-profile-save {
-  flex: 2;
+  flex: 1;
   padding: 10px;
   background: #E8909E;
   color: #fff;
@@ -566,4 +594,8 @@ const achievementRate = computed(() => {
   font-weight: 600;
   cursor: pointer;
 }
+
+.btn-profile-save:hover { opacity: 0.85; }
+.btn-profile-cancel:hover { opacity: 0.85; }
+
 </style>

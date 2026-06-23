@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import axios from "axios";
+import { useToast } from "../composables/useToast.js";
+const { showToast } = useToast();
 
 const props = defineProps({
   video: { type: Object, required: true },
@@ -11,6 +13,7 @@ const emit = defineEmits(["close", "deleted", "reupload"]);
 const detail = ref(null);
 const loading = ref(true);
 const deleting = ref(false);
+const confirmingDelete = ref(false);
 
 const analysisStatus = ref(props.video.status || null);
 const retrying = ref(false);
@@ -78,28 +81,32 @@ async function onSaveQuantities() {
     const updatedAiComment = JSON.stringify({ foods: foodList.value });
 
     // 백엔드에 업데이트 요청 (엔드포인트는 다음 주에 팀원들과 맞추기 위해 임시 작성)
-    await axios.put(`/api/videos/${props.video.id}/ingredients`, {
+    await axios.patch(`/api/videos/${props.video.id}/ingredients`, {
       aiComment: updatedAiComment,
       calories: totalNutrients.value.calories,
       carbs: totalNutrients.value.carbs,
       protein: totalNutrients.value.protein,
       fat: totalNutrients.value.fat,
     });
-    alert("식단 정보가 저장되었습니다! 💪");
+    showToast("success", "식단 정보가 저장되었습니다!");
   } catch (e) {
-    alert("저장 실패: " + e.message);
+    showToast("error", "저장 실패", e.message);
   }
 }
 
 async function onDelete() {
-  if (!confirm("정말 삭제하시겠어요?")) return;
+  confirmingDelete.value = true;
+}
+
+async function confirmDelete() {
+  confirmingDelete.value = false;
   deleting.value = true;
   try {
     await axios.delete(`/api/videos/${props.video.id}`);
     emit("deleted", props.video.id);
     emit("close");
   } catch (e) {
-    alert("삭제 실패: " + (e.response?.data || e.message));
+    showToast("error", "삭제 실패", e.response?.data || e.message);
   } finally {
     deleting.value = false;
   }
@@ -295,6 +302,21 @@ async function onRetryAnalysis() {
       </template>
     </div>
   </div>
+
+  <!-- 삭제 확인 다이얼로그 -->
+  <Transition name="modal-pop">
+    <div v-if="confirmingDelete" class="confirm-overlay" @click.self="confirmingDelete = false">
+      <div class="confirm-card">
+        <div class="confirm-icon">🗑️</div>
+        <p class="confirm-title">정말 삭제하시겠어요?</p>
+        <p class="confirm-desc">삭제된 로그는 복구할 수 없어요.</p>
+        <div class="confirm-actions">
+          <button class="confirm-cancel" @click="confirmingDelete = false">취소</button>
+          <button class="confirm-ok" @click="confirmDelete">삭제</button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -655,5 +677,44 @@ async function onRetryAnalysis() {
   font-size: 12px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* 삭제 확인 다이얼로그 */
+.confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.confirm-card {
+  background: #fff; border-radius: 20px;
+  padding: 32px 28px 24px;
+  width: 280px; text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.confirm-icon { font-size: 32px; margin-bottom: 4px; }
+.confirm-title { margin: 0; font-size: 16px; font-weight: 700; color: #111; }
+.confirm-desc { margin: 0; font-size: 13px; color: #999; }
+.confirm-actions { display: flex; gap: 8px; margin-top: 16px; width: 100%; }
+.confirm-cancel {
+  flex: 1; padding: 11px; border: 1.5px solid #e5e5e5; background: #fff;
+  border-radius: 10px; font-size: 14px; font-weight: 600; color: #666; cursor: pointer;
+  transition: all 0.15s;
+}
+.confirm-cancel:hover { border-color: #ccc; color: #333; }
+.confirm-ok {
+  flex: 1; padding: 11px; border: none; background: #e53e3e;
+  border-radius: 10px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;
+  transition: background 0.15s;
+}
+.confirm-ok:hover { background: #c53030; }
+
+.modal-pop-enter-active { animation: modal-in 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+.modal-pop-leave-active { animation: modal-in 0.15s ease reverse; }
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
 }
 </style>

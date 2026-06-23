@@ -10,12 +10,13 @@
         >
           <i class="ti ti-arrow-left"></i>
         </button>
-        <span
+        <img
           v-if="subView === 'groups'"
-          class="dash-logo clickable"
+          src="/yamyamlog.png"
+          class="dash-logo-img clickable"
+          alt="YamYamLog"
           @click="goTo('home')"
-          >YamYam</span
-        >
+        />
       </div>
       <nav v-if="subView === 'groups'" class="dash-nav">
         <button class="nav-pill" @click="subView = 'mylog'">마이로그</button>
@@ -410,11 +411,6 @@
       @close="isUploadModalOpen = false"
       @upload="onVideoUploadSubmit"
     />
-    <!-- 토스트 -->
-    <Transition name="toast-fade">
-      <div v-if="toastVisible" class="toast-popup">{{ toastMessage }}</div>
-    </Transition>
-
     <!-- 그룹 생성 모달 -->
     <div
       v-if="isCreateModalOpen"
@@ -497,6 +493,7 @@ import { ref, computed, inject, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import { emojis, calendarData } from "../data/mockData.js";
 import { useStore } from "../composables/useStore.js";
+import { useToast } from "../composables/useToast.js";
 import DashboardUserProfile from "@/components/DashboardUserProfile.vue";
 import VideoUploadModal from "@/components/VideoUploadModal.vue";
 
@@ -513,18 +510,8 @@ const newMemberCount = ref("");
 const joinInviteInput = ref("");
 const uploadMealType = ref("");
 
-const toastVisible = ref(false);
-const toastMessage = ref("");
 const inviteLinkHandled = ref(false);
-let toastTimer = null;
-function showToast(msg) {
-  toastMessage.value = msg;
-  toastVisible.value = true;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toastVisible.value = false;
-  }, 2000);
-}
+const { showToast } = useToast();
 
 const _today = new Date();
 const todayMealLabel = `${_today.getMonth() + 1}월 ${_today.getDate()}일`;
@@ -752,17 +739,17 @@ function clearInviteQueryFromUrl() {
 async function joinTeamByInviteCode(rawInput) {
   const inviteCode = parseInviteCode(rawInput);
   if (!inviteCode) {
-    showToast("초대 링크 또는 코드를 입력해 주세요.");
+    showToast("error", "초대 링크 또는 코드를 입력해 주세요.");
     return false;
   }
 
   try {
     await axios.post("/api/teams/join", { inviteCode });
     await fetchMyTeams();
-    showToast("그룹 참여 완료!");
+    showToast("success", "그룹 참여 완료!");
     return true;
   } catch (e) {
-    showToast("참여 실패: " + (e.response?.data || "서버 오류"));
+    showToast("error", "그룹 참여 실패", e.response?.data || "서버 오류");
     return false;
   }
 }
@@ -783,9 +770,9 @@ const handleWeightUpdateBackend = async (newWeight) => {
   try {
     await axios.post("/api/users/weight-history", { weight: newWeight });
     userProfileData.value.weight = newWeight;
-    alert(`오늘의 몸무게(${newWeight}kg)가 기록되었습니다.`);
+    showToast("success", `${newWeight}kg 기록 완료!`);
   } catch (e) {
-    alert("체중 기록 실패: " + (e.response?.data || "서버 오류"));
+    showToast("error", "체중 기록 실패", e.response?.data || "서버 오류");
   }
 };
 const handleCreateGroup = async () => {
@@ -801,7 +788,7 @@ const handleCreateGroup = async () => {
     newGroupName.value = "";
     newMemberCount.value = "";
   } catch (e) {
-    alert("그룹 생성 오류: " + (e.response?.data || "서버 오류"));
+    showToast("error", "그룹 생성 실패", e.response?.data || "서버 오류");
   }
 };
 const onVideoUploadSubmit = async ({
@@ -826,15 +813,15 @@ const onVideoUploadSubmit = async ({
       }),
     );
     isUploadModalOpen.value = false;
-    alert("냠냠 로그가 업로드되었습니다!");
+    showToast("success", "냠냠 로그가 업로드되었습니다!");
   } catch (e) {
-    alert("업로드 실패: " + (e.response?.data || "서버 오류"));
+    showToast("error", "업로드 실패", e.response?.data || "서버 오류");
   }
 };
 async function copyInviteCode(group) {
   const inviteCode = group?.inviteCode;
   if (!inviteCode) {
-    showToast("초대코드를 찾을 수 없습니다.");
+    showToast("error", "초대코드를 찾을 수 없습니다.");
     return;
   }
 
@@ -854,10 +841,10 @@ async function copyInviteCode(group) {
       document.execCommand("copy");
       document.body.removeChild(el);
     }
-    showToast("링크 복사 완료!");
-  } catch (e) {
+    showToast("success", "링크 복사 완료!");
+} catch (e) {
     console.error("복사 실패:", e);
-    showToast("복사 실패: 수동으로 복사해 주세요.");
+    showToast("error", "복사 실패", "수동으로 복사해 주세요.");
   }
 }
 function openGroup(group) {
@@ -929,17 +916,17 @@ onMounted(async () => {
 .logo-back:hover {
   background: #f0f0f0;
 }
-.dash-logo {
-  font-size: 20px;
-  font-weight: 800;
-  color: #000;
-  letter-spacing: -0.04em;
+.dash-logo-img {
+  height: 26px;
+  width: auto;
+  display: block;
+  user-select: none;
 }
-.dash-logo.clickable {
+.dash-logo-img.clickable {
   cursor: pointer;
 }
-.dash-logo.clickable:hover {
-  opacity: 0.7;
+.dash-logo-img.clickable:hover {
+  opacity: 0.75;
 }
 .dash-nav {
   display: flex;
@@ -1102,38 +1089,6 @@ onMounted(async () => {
   padding: 6px 8px 5px;
 }
 
-/* -- 토스트 -- */
-.toast-popup {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.78);
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  z-index: 9999;
-  pointer-events: none;
-}
-.toast-fade-enter-active {
-  transition:
-    opacity 0.2s,
-    transform 0.2s;
-}
-.toast-fade-leave-active {
-  transition: opacity 0.3s;
-}
-.toast-fade-enter-from {
-  opacity: 0;
-  transform: translateX(-50%) translateY(8px);
-}
-.toast-fade-leave-to {
-  opacity: 0;
-}
-
 /* -- 섹션 헤더 -- */
 .section-row {
   display: flex;
@@ -1152,6 +1107,7 @@ onMounted(async () => {
   color: #888;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-top: 3px;
 }
 .join-btn {
   border: 1px solid #f0c3c9;
@@ -1617,7 +1573,7 @@ onMounted(async () => {
 }
 .btn-submit {
   padding: 8px 14px;
-  background: #000;
+  background: #e8909e;
   color: #fff;
   border: none;
   border-radius: 6px;

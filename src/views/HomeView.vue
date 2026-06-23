@@ -2,7 +2,7 @@
   <div class="setlog-layout">
     <!-- 1. 좌상단 로고 -->
     <header class="logo-header">
-      <span class="logo-text" @click="authMode = 'login'">YamYam</span>
+      <img src="/yamyamlog.png" class="logo-img" @click="authMode = 'login'" alt="YamYamLog" />
     </header>
 
     <!-- 2. 메인 스플릿 구조 -->
@@ -40,6 +40,7 @@
               <span class="btn-label default-label">Let's Eat!</span>
               <span class="btn-label eat-label">Let's Eat!</span>
             </button>
+            <button class="mypage-logout" @click="auth.logout()">로그아웃</button>
           </div>
 
           <!-- 상태 1: 비로그인 상태 (실제 입력 폼 구역) -->
@@ -152,6 +153,22 @@
         </div>
       </div>
     </div>
+
+    <!-- 알림 모달 -->
+    <Transition name="modal-pop">
+      <div v-if="modal.visible" class="notify-overlay" @click.self="modal.type === 'error' && closeModal()">
+        <div class="notify-card" :class="modal.type">
+          <div class="notify-icon">
+            <span v-if="modal.type === 'error'">✕</span>
+            <span v-else-if="modal.type === 'success'">✓</span>
+            <span v-else class="notify-spin">◌</span>
+          </div>
+          <p class="notify-title">{{ modal.title }}</p>
+          <p v-if="modal.message" class="notify-msg">{{ modal.message }}</p>
+          <button v-if="modal.type === 'error'" class="notify-btn" @click="closeModal">확인</button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -165,6 +182,15 @@ const pendingInviteCode = inject("inviteCode");
 
 const authMode = ref("login");
 const btnPressed = ref(false);
+
+const modal = ref({ visible: false, type: "error", title: "", message: "" });
+
+function showModal(type, title, message = "") {
+  modal.value = { visible: true, type, title, message };
+}
+function closeModal() {
+  modal.value.visible = false;
+}
 
 const loginForm = ref({ userId: "", password: "" });
 
@@ -208,7 +234,7 @@ const handleLogin = async () => {
     // 초대 링크로 접근한 경우 그룹 페이지로 이동 (GroupsView에서 자동 참여 처리)
     navigation.goTo(pendingInviteCode?.value ? "groups" : "calendar");
   } catch (error) {
-    alert(error.response?.data || "Login failed");
+    showModal("error", "로그인 실패", error.response?.data || "아이디 또는 비밀번호를 확인해주세요.");
   }
 };
 
@@ -245,21 +271,65 @@ const handleDevLogin = async () => {
   navigation.goTo(pendingInviteCode?.value ? "groups" : "calendar");
 };
 
-//  FormData 멀티파트 포맷을 이용한 오리지널 회원가입 절차 완전 정상화
 const handleSignup = async () => {
+  // 클라이언트 검증
+  if (!signupForm.value.userId.trim()) {
+    showModal("error", "아이디를 입력해주세요");
+    return;
+  }
+  if (!signupForm.value.password.trim()) {
+    showModal("error", "비밀번호를 입력해주세요");
+    return;
+  }
+  if (!signupForm.value.nickName.trim()) {
+    showModal("error", "닉네임을 입력해주세요");
+    return;
+  }
+
   try {
     const formData = new FormData();
     Object.keys(signupForm.value).forEach((key) => {
       formData.append(key, signupForm.value[key]);
     });
 
-    const response = await axios.post("/api/users/signup", formData, {
+    await axios.post("/api/users/signup", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    alert(response.data);
-    authMode.value = "login"; // 가입 성공하면 로그인 폼으로 귀환
+
+    // 성공 모달 표시
+    showModal("loading", "가입 완료!", "잠시 후 로그인합니다...");
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // 자동 로그인
+    const loginRes = await axios.post("/api/users/login", {
+      userId: signupForm.value.userId,
+      password: signupForm.value.password,
+    });
+    const { token } = loginRes.data;
+
+    const profileRes = await axios.get("/api/users/profile", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const p = profileRes.data;
+
+    closeModal();
+    auth.loginSuccess(
+      {
+        id: p.id,
+        nickName: p.nick_name || p.nickName || signupForm.value.userId,
+        userId: signupForm.value.userId,
+      },
+      token,
+    );
+
+    navigation.goTo(pendingInviteCode?.value ? "groups" : "calendar");
   } catch (error) {
-    alert(error.response?.data || "Signup failed");
+    const msg = error.response?.data || "회원가입에 실패했습니다.";
+    if (msg.includes("아이디") || msg.includes("중복") || msg.includes("존재")) {
+      showModal("error", "이미 사용 중인 아이디예요", "다른 아이디를 입력해주세요.");
+    } else {
+      showModal("error", "회원가입 실패", msg);
+    }
   }
 };
 
@@ -285,15 +355,16 @@ const handleSignup = async () => {
 
 .logo-header {
   position: absolute;
-  top: 50px;
-  left: 60px;
+  top: 36px;
+  left: 52px;
   z-index: 10;
 }
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: #000000;
+.logo-img {
+  height: 28px;
+  width: auto;
   cursor: pointer;
+  display: block;
+  user-select: none;
 }
 
 .split-body {
@@ -304,7 +375,8 @@ const handleSignup = async () => {
 }
 
 .left-hero {
-  flex: 1.2;
+  flex: 1;
+  margin-left: 10%;
   display: flex;
   align-items: center;
   padding-left: 100px;
@@ -334,7 +406,7 @@ const handleSignup = async () => {
   background-clip: text;
 }
 .brand-desc {
-  font-size: 16px;
+  font-size: 18px;
   color: #888888;
   margin: 0;
 }
@@ -401,11 +473,11 @@ const handleSignup = async () => {
 .btn-continue {
   width: 100%;
   padding: 14px;
-  background-color: #000000;
+  background-color: #f6aeba;
   color: #ffffff;
   border: none;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   cursor: pointer;
   position: relative;
@@ -481,6 +553,7 @@ const handleSignup = async () => {
 
 /* 로그인 상태 유저 보조 스타일 */
 .logged-in-unit {
+  margin-top: 50px;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -571,4 +644,116 @@ const handleSignup = async () => {
     transform: translateY(0);
   }
 }
+
+.mypage-logout {
+  margin-top: 50px;
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.mypage-logout:hover {
+  color: #e53e3e;
+}
+
+/* ── 알림 모달 ── */
+.notify-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+.notify-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.notify-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.notify-card.error .notify-icon {
+  background: #fff0f0;
+  color: #e53e3e;
+}
+.notify-card.success .notify-icon {
+  background: #f0fff4;
+  color: #38a169;
+}
+.notify-card.loading .notify-icon {
+  background: #fff5f7;
+  color: #e8909e;
+}
+.notify-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.notify-msg {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  line-height: 1.5;
+}
+.notify-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #f6aeba;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notify-btn:hover {
+  background: #e8909e;
+}
+.notify-spin {
+  display: inline-block;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 모달 트랜지션 */
+.modal-pop-enter-active {
+  animation: modal-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-pop-leave-active {
+  animation: modal-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 </style>

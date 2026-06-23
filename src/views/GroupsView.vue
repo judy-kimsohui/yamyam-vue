@@ -3,10 +3,12 @@ import { ref, inject, onMounted } from "vue";
 import axios from "axios";
 import BottomNav from "../components/BottomNav.vue";
 import { useStore } from "../composables/useStore.js";
+import { useToast } from "../composables/useToast.js";
 
 const { goTo } = inject("navigation");
 const { selectedGroup } = useStore();
 const pendingInviteCode = inject("inviteCode");
+const { showToast } = useToast();
 
 const groups = ref([]);
 const loading = ref(false);
@@ -23,7 +25,7 @@ async function fetchMyTeams() {
     groups.value = response.data;
   } catch (error) {
     console.error("팀 목록을 가져오는데 실패했습니다:", error);
-    alert("그룹 정보를 불러오지 못했습니다. 다시 로그인해 주세요.");
+    showToast("error", "그룹 정보를 불러오지 못했습니다.", "다시 로그인해 주세요.");
     goTo("home");
   } finally {
     loading.value = false;
@@ -46,7 +48,7 @@ onMounted(async () => {
       };
     } catch (e) {
       const msg = e.response?.data;
-      if (msg) alert("초대 링크 오류: " + msg);
+      if (msg) showToast("error", "초대 링크 오류", msg);
       pendingInviteCode.value = null;
     }
   }
@@ -65,7 +67,7 @@ async function acceptInvite() {
       inviteModal.value.show = false;
       pendingInviteCode.value = null;
     } else {
-      alert("참여 실패: " + (msg || "서버 오류"));
+      showToast("error", "참여 실패", msg || "서버 오류");
       inviteModal.value.joining = false;
     }
   }
@@ -88,13 +90,13 @@ const newMemberCount = ref("");
 function copyInviteCode(group) {
   const inviteCode = group?.inviteCode;
   if (!inviteCode) {
-    alert("초대코드를 찾을 수 없습니다.");
+    showToast("error", "초대코드를 찾을 수 없습니다.");
     return;
   }
 
   const link = `${window.location.origin}?invite=${inviteCode}`;
   navigator.clipboard?.writeText(link).catch(() => {});
-  alert("초대 링크를 복사했습니다.");
+  showToast("success", "초대 링크를 복사했습니다.");
 }
 
 function parseInviteCode(input) {
@@ -128,14 +130,14 @@ async function createGroup() {
     newMemberCount.value = "";
     showCreate.value = false;
   } catch (e) {
-    alert("그룹 생성 오류: " + (e.response?.data || "서버 오류"));
+    showToast("error", "그룹 생성 실패", e.response?.data || "서버 오류");
   }
 }
 
 async function joinByInvite() {
   const inviteCode = parseInviteCode(inviteInput.value);
   if (!inviteCode) {
-    alert("초대 링크 또는 코드를 입력해 주세요.");
+    showToast("error", "초대 링크 또는 코드를 입력해 주세요.");
     return;
   }
 
@@ -144,9 +146,9 @@ async function joinByInvite() {
     await fetchMyTeams();
     inviteInput.value = "";
     showJoin.value = false;
-    alert("그룹 참여 완료!");
+    showToast("success", "그룹 참여 완료!");
   } catch (e) {
-    alert("참여 실패: " + (e.response?.data || "서버 오류"));
+    showToast("error", "참여 실패", e.response?.data || "서버 오류");
   }
 }
 </script>

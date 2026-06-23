@@ -102,6 +102,8 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
+import { useToast } from '../composables/useToast.js'
+const { showToast } = useToast()
 
 const props = defineProps({ teams: Array, defaultMealType: String })
 const emit = defineEmits(['close', 'upload'])
@@ -175,7 +177,7 @@ async function openCamera() {
     await nextTick()
     if (cameraVideoEl.value) cameraVideoEl.value.srcObject = stream
   } catch {
-    alert('카메라를 열 수 없습니다. 카메라 권한을 허용해 주세요.')
+    showToast('error', '카메라를 열 수 없습니다.', '카메라 권한을 허용해 주세요.')
   }
 }
 
@@ -253,56 +255,79 @@ onUnmounted(() => {
 <style scoped>
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 .modal-window {
-  background: #fff; padding: 20px;
-  border-radius: 18px; width: 100%; max-width: 420px;
-  max-height: 92vh; overflow-y: auto;
+  background: #fff;
+  padding: 24px 22px 20px;
+  border-radius: 22px;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
 }
-.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.modal-title { margin: 0; font-size: 17px; font-weight: 700; }
-.modal-close { background: none; border: none; font-size: 16px; color: #888; cursor: pointer; }
-.modal-close:hover { color: #000; }
+.modal-window::-webkit-scrollbar { width: 4px; }
+.modal-window::-webkit-scrollbar-thumb { background: #e8d5d8; border-radius: 4px; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 22px;
+}
+.modal-title { margin: 0; font-size: 17px; font-weight: 700; color: #111; letter-spacing: -0.02em; }
+.modal-close {
+  background: #f5f5f5; border: none; border-radius: 50%;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: #666; cursor: pointer; transition: background 0.15s;
+}
+.modal-close:hover { background: #eee; color: #000; }
 
-.form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-.form-group label { font-size: 12px; font-weight: 600; color: #555; display: flex; align-items: center; gap: 6px; }
-.required { color: #e53e3e; }
-.hint { font-size: 11px; color: #aaa; font-weight: 400; }
+.form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.form-group label {
+  font-size: 12px; font-weight: 700; color: #444;
+  display: flex; align-items: center; gap: 6px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.required { color: #e8909e; }
+.hint { font-size: 11px; color: #bbb; font-weight: 400; text-transform: none; letter-spacing: 0; }
 
 .team-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   display: flex; align-items: center; gap: 5px;
-  padding: 8px 14px; border-radius: 999px;
-  border: 1.5px solid #e5e5e5;
-  background: #fff; color: #555;
+  padding: 8px 16px; border-radius: 999px;
+  border: 1.5px solid #ebebeb;
+  background: #fafafa; color: #666;
   font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s;
+  cursor: pointer; transition: all 0.18s;
   white-space: nowrap;
 }
-.chip:hover { border-color: #000; color: #000; }
-.chip.selected { background: #000; color: #fff; border-color: #000; }
+.chip:hover { border-color: #e8909e; color: #e8909e; background: #fff5f7; }
+.chip.selected { background: #e8909e; color: #fff; border-color: #e8909e; box-shadow: 0 2px 8px rgba(232,144,158,0.35); }
 .chip-check { font-size: 11px; }
 
 /* 파일 선택 전 영역 */
 .file-drop-area {
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: stretch; justify-content: center;
   gap: 10px;
-  border: 1.5px dashed #ccc; border-radius: 14px; padding: 20px 14px;
+  border: 1.5px dashed #e0e0e0; border-radius: 16px; padding: 20px 14px;
+  background: #fafafa;
 }
 .drop-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; padding: 18px 0;
-  background: #f7f7f7; border: none; border-radius: 12px;
-  font-size: 12px; color: #555; cursor: pointer; transition: background 0.15s;
-  flex: 1;
+  gap: 10px; padding: 20px 0;
+  background: #fff; border: 1.5px solid #ebebeb; border-radius: 14px;
+  font-size: 12px; font-weight: 600; color: #666; cursor: pointer;
+  transition: all 0.18s; flex: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
-.drop-btn:hover { background: #eee; color: #000; }
-.camera-btn { background: #fff5f7; color: #e8909e; }
-.camera-btn:hover { background: #ffe0e8; color: #c0607a; }
-.drop-or { font-size: 12px; color: #ccc; white-space: nowrap; }
+.drop-btn:hover { border-color: #e8909e; color: #e8909e; background: #fff5f7; }
+.camera-btn { background: #fff5f7; color: #e8909e; border-color: #f5c6ce; }
+.camera-btn:hover { background: #ffe0e8; color: #c0607a; border-color: #e8909e; }
+.drop-or { font-size: 12px; color: #ccc; white-space: nowrap; display: flex; align-items: center; }
 
 /* 영상 미리보기 */
 .preview-wrap {
@@ -348,16 +373,20 @@ onUnmounted(() => {
 }
 .btn-change-file:hover { background: rgba(0,0,0,0.65); }
 
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-.btn-cancel { padding: 10px 18px; background: #f5f5f5; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
-.btn-cancel:hover { background: #eee; }
-.btn-submit {
-  padding: 10px 18px; background: #000; color: #fff;
-  border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: opacity 0.15s;
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.btn-cancel {
+  padding: 11px 20px; background: #f5f5f5; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 500; color: #666; cursor: pointer; transition: background 0.15s;
 }
-.btn-submit:hover:not(:disabled) { opacity: 0.85; }
-.btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-cancel:hover { background: #ebebeb; color: #333; }
+.btn-submit {
+  padding: 11px 22px; background: #e8909e; color: #fff;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.18s;
+  box-shadow: 0 2px 8px rgba(232,144,158,0.35);
+}
+.btn-submit:hover:not(:disabled) { background: #d4778a; box-shadow: 0 4px 14px rgba(232,144,158,0.45); }
+.btn-submit:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
 
 /* 카메라 오버레이 */
 .camera-overlay {

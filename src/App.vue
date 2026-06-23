@@ -6,6 +6,7 @@ import DashboardView from "./views/DashboardView.vue";
 import GroupsView from "./views/GroupsView.vue";
 import GroupDetailView from "./views/GroupDetailView.vue";
 import ChatView from "./views/ChatView.vue";
+import ToastContainer from "./components/ToastContainer.vue";
 
 // ==================== [네비게이션 로직] ====================
 const history = ref(["home"]);
@@ -89,6 +90,7 @@ provide("inviteCode", pendingInviteCode);
       />
       <ChatView v-else-if="currentScreen === 'chat'" key="chat" />
     </Transition>
+    <ToastContainer />
   </div>
 </template>
 

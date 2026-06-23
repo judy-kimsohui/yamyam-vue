@@ -32,7 +32,7 @@
             v-model="signupForm.height"
             type="number"
             step="0.1"
-            placeholder="현재 키(cm)"
+            placeholder="키(cm)"
           />
           <input
             v-model="signupForm.weight"
@@ -69,10 +69,13 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import axios from "axios";
+import { useToast } from "../composables/useToast.js";
+const { showToast } = useToast();
 
 const emit = defineEmits(["close", "switchToLogin"]);
+const auth = inject("auth");
 
 const signupForm = ref({
   userId: "",
@@ -100,14 +103,29 @@ const handleSignup = async () => {
       }
     });
 
-    const response = await axios.post("/api/users/signup", formData, {
+    await axios.post("/api/users/signup", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    alert(response.data);
-    emit("switchToLogin"); // 가입 성공 시 로그인 창으로 바꾸라고 부모에게 알림
+    await handleLogin();
   } catch (error) {
-    alert(error.response?.data || "회원가입에 실패했습니다.");
+    showToast("error", "회원가입 실패", error.response?.data || "다시 시도해 주세요.");
+  }
+};
+
+const handleLogin = async () => {
+  try {
+    const response = await axios.post(
+      "/api/users/login",
+      { userId: signupForm.value.userId, password: signupForm.value.password },
+      { headers: { "Content-Type": "application/json" } },
+    );
+    const { token } = response.data;
+    auth.loginSuccess({ nickName: signupForm.value.nickName }, token);
+    emit("close");
+  } catch (error) {
+    showToast("error", "자동 로그인 실패", "직접 로그인해 주세요.");
+    emit("switchToLogin");
   }
 };
 </script>

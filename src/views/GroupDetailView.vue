@@ -710,9 +710,9 @@
               @error="(e) => (e.target.src = '/default_avatar.svg')"
             />
             <div class="summary-info">
-              <div class="summary-name">
-                {{ member.nickName
-                }}<span v-if="isMe(member.id)" class="mine-badge">나</span>
+              <div class="summary-info order">
+              <div class="summary-name">{{ member.nickName}}</div>
+              <span v-if="isMe(member.id)" class="mine-badge">나</span>
               </div>
               <div
                 v-if="memberMeals(member.id).length > 0"
@@ -1007,11 +1007,13 @@ import {
   groupMembers,
 } from "../data/mockData.js";
 import { useStore } from "../composables/useStore.js";
+import { useToast } from "../composables/useToast.js";
 import VideoDetailModal from "../components/VideoDetailModal.vue";
 
 const { goTo, goBack } = inject("navigation");
 const auth = inject("auth");
 const { selectedGroup } = useStore();
+const { showToast } = useToast();
 
 const teamMembers = ref([]);
 const videoMap = ref({});
@@ -1251,7 +1253,7 @@ async function openGroupCamera() {
     await nextTick()
     if (groupCameraVideoEl.value) groupCameraVideoEl.value.srcObject = stream
   } catch {
-    alert('카메라를 열 수 없습니다. 카메라 권한을 허용해 주세요.')
+    showToast('error', '카메라를 열 수 없습니다.', '카메라 권한을 허용해 주세요.')
   }
 }
 
@@ -1318,7 +1320,7 @@ const submitUpload = async () => {
     closeUpload();
     await loadVideos();
   } catch (e) {
-    alert("업로드 실패: " + (e.response?.data || "서버 오류"));
+    showToast("error", "업로드 실패", e.response?.data || "서버 오류");
   }
 };
 
@@ -1637,7 +1639,7 @@ function onMouseUp(e) {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: #000;
+  background: #e8909e;
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -1759,9 +1761,9 @@ function onMouseUp(e) {
 .mine-badge {
   font-size: 10px;
   font-weight: 700;
-  color: #000;
-  background: #f5f5f5;
-  border: 1px solid #e5e5e5;
+  color: #000000;
+  background: #eeeeee;
+  border: 1px solid #fff;
   padding: 2px 7px;
   border-radius: 20px;
 }
@@ -1859,8 +1861,8 @@ function onMouseUp(e) {
 }
 .video-thumb.upload-slot {
   background: #f5f5f5;
-  border: 1.5px dashed #000;
-  color: #000;
+  border: 1.5px dashed #999999;
+  color: #999999;
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
@@ -2054,11 +2056,13 @@ function onMouseUp(e) {
   background: #f5f5f5;
 }
 .cal-cell.selected {
-  background: #e8909e;
+  background: #f5f5f5;
+  border: 1px solid;
+  border-color: #d7d7d7
 }
-.cal-cell.selected .cal-num {
+/* .cal-cell.selected .cal-num {
   color: #fff;
-}
+} */
 .cal-num {
   font-size: 11px;
   color: #333;
@@ -2157,7 +2161,7 @@ function onMouseUp(e) {
   font-size: 12px;
   font-weight: 700;
   color: #888;
-  padding: 4px 0 2px;
+  padding: 10px 2px 5px;
   border-top: 1px solid #e5e5e5;
   margin-top: 4px;
 }
@@ -2182,6 +2186,11 @@ function onMouseUp(e) {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.order {
+  flex-direction: row;
+  justify-content: space-between;
 }
 .summary-name {
   font-size: 13px;

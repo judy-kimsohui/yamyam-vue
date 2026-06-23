@@ -21,6 +21,8 @@
 <script setup>
 import { ref, inject } from "vue";
 import axios from "axios";
+import { useToast } from "../composables/useToast.js";
+const { showToast } = useToast();
 
 const emit = defineEmits(["close"]);
 const auth = inject("auth"); // App.vue에서 제공한 로그인 상태 변경 함수 주입
@@ -42,13 +44,13 @@ const handleLogin = async () => {
       },
     );
 
-    alert(response.data);
-    auth.loginSuccess({ nickName: loginForm.value.userId });
+    const { token } = response.data;
+    auth.loginSuccess({ nickName: loginForm.value.userId }, token);
     emit("close");
   } catch (error) {
     //  에러가 났을 때 어떤 메시지가 오는지 구체적으로 보기 위해 alert 보완
     console.error(error);
-    alert(error.response?.data || "로그인 실패 (서버 연결 에러)");
+    showToast("error", "로그인 실패", error.response?.data || "서버 연결 오류");
   }
 };
 </script>
