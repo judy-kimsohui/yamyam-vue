@@ -1,6 +1,5 @@
 <template>
   <div class="screen">
-    <!-- ── 헤더 ── -->
     <header class="header">
       <button
         class="icon-btn"
@@ -19,7 +18,6 @@
           !isWide && showCalendar ? "AI 달력" : (selectedGroup?.name ?? "그룹")
         }}</span>
       </div>
-      <!-- 모바일/아이패드: 달력 + 채팅 버튼 (와이드는 좌측 패널에 있음) -->
       <div class="header-actions" v-if="!isWide && !showCalendar">
         <button class="icon-btn" @click="showCalendar = true" title="AI 달력">
           <i class="ti ti-calendar"></i>
@@ -31,9 +29,7 @@
       <div v-else style="width: 36px"></div>
     </header>
 
-    <!-- ══════════════ MOBILE (< 768px) ══════════════ -->
     <main v-if="isMobile" class="scroll-body">
-      <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
         <div class="cal-nav">
           <button class="cal-arrow" @click="prevMonth">
@@ -51,6 +47,7 @@
             >{{ d }}</span
           >
         </div>
+
         <div class="cal-grid">
           <div
             v-for="(cell, i) in calendarCells"
@@ -61,17 +58,14 @@
           >
             <template v-if="cell">
               <span class="cal-num">{{ cell }}</span>
-              <span
-                v-if="getDayEmoji(cell)"
-                class="cal-expr"
-                v-html="getDayEmoji(cell)"
-              ></span>
+              <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
             </template>
           </div>
         </div>
+
         <div class="day-record">
           <div class="day-record-title">
-            {{ currentMonth + 1 }}월 {{ selectedDay }}일 기록
+            내 일일 영양 기록 ({{ currentMonth + 1 }}/{{ selectedDay }})
           </div>
           <div class="day-bars">
             <div class="bar-row">
@@ -82,15 +76,31 @@
                   :style="{
                     width:
                       calPercent(
-                        dayRecord.totalCalories,
-                        dayRecord.targetCalories,
+                        myDayRecord.calories,
+                        myDayRecord.targetCalories,
                       ) + '%',
                   }"
                 ></div>
               </div>
               <span class="bar-val"
-                >{{ dayRecord.totalCalories }} /
-                {{ dayRecord.targetCalories }}</span
+                >{{ myDayRecord.calories }} /
+                {{ myDayRecord.targetCalories }}</span
+              >
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">탄수화물</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill carbs"
+                  :style="{
+                    width:
+                      calPercent(myDayRecord.carbs, myDayRecord.targetCarbs) +
+                      '%',
+                  }"
+                ></div>
+              </div>
+              <span class="bar-val"
+                >{{ myDayRecord.carbs }}g / {{ myDayRecord.targetCarbs }}g</span
               >
             </div>
             <div class="bar-row">
@@ -100,20 +110,39 @@
                   class="bar-fill protein"
                   :style="{
                     width:
-                      calPercent(dayRecord.protein, dayRecord.targetProtein) +
-                      '%',
+                      calPercent(
+                        myDayRecord.protein,
+                        myDayRecord.targetProtein,
+                      ) + '%',
                   }"
                 ></div>
               </div>
               <span class="bar-val"
-                >{{ dayRecord.protein }}g / {{ dayRecord.targetProtein }}g</span
+                >{{ myDayRecord.protein }}g /
+                {{ myDayRecord.targetProtein }}g</span
+              >
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">지방</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill fat"
+                  :style="{
+                    width:
+                      calPercent(myDayRecord.fat, myDayRecord.targetFat) + '%',
+                  }"
+                ></div>
+              </div>
+              <span class="bar-val"
+                >{{ myDayRecord.fat }}g / {{ myDayRecord.targetFat }}g</span
               >
             </div>
           </div>
           <div class="day-ai">
-            <span class="ai-chip">AI</span>{{ dayRecord.aiComment }}
+            <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
         </div>
+
         <div class="member-summary-list">
           <div class="summary-title">
             {{ currentMonth + 1 }}월 {{ selectedDay }}일 · 참가자 식단
@@ -133,6 +162,7 @@
                 {{ member.nickName
                 }}<span v-if="isMe(member.id)" class="mine-badge">나</span>
               </div>
+
               <div
                 v-if="memberMeals(member.id).length > 0"
                 class="summary-meals"
@@ -142,8 +172,27 @@
                   :key="mt.key"
                   class="summary-chip"
                 >
-                  <span class="summary-meal-type">{{ mt.label }}</span
-                  >{{ mt.video.description || "기록됨" }}
+                  <span class="summary-meal-type">{{ mt.label }}</span>
+                  <div
+                    class="summary-macros"
+                    v-if="mt.video.status === 'DONE' || mt.video.calories"
+                  >
+                    <span class="s-mac c"
+                      >탄 {{ Math.round(mt.video.carbs || 0) }}</span
+                    >
+                    <span class="s-mac p"
+                      >단 {{ Math.round(mt.video.protein || 0) }}</span
+                    >
+                    <span class="s-mac f"
+                      >지 {{ Math.round(mt.video.fat || 0) }}</span
+                    >
+                    <span class="s-mac k"
+                      >{{ Math.round(mt.video.calories || 0) }}kcal</span
+                    >
+                  </div>
+                  <div class="summary-macros empty" v-else>
+                    <span>분석 대기중</span>
+                  </div>
                 </span>
               </div>
               <div v-else class="summary-no-record">이 날 기록 없음</div>
@@ -159,7 +208,6 @@
         </div>
       </section>
 
-      <!-- 피드 (모바일) -->
       <template v-else>
         <div class="feed-wrap">
           <div class="feed-controls-bar">
@@ -209,7 +257,6 @@
                     )
                   "
                 >
-                  <!-- 🌟 [모바일] 영상 상위에 레이아웃을 얹기 위해 video-thumb-wrap 구조 적용 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video-full"
@@ -223,8 +270,6 @@
                       playsinline
                       preload="metadata"
                     ></video>
-
-                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-if="
                         getVideo(
@@ -271,7 +316,6 @@
                       >
                     </div>
                   </div>
-
                   <div class="vid-member-top">
                     <div
                       class="member-avatar"
@@ -279,9 +323,7 @@
                     >
                       <img
                         :src="member.profileImg || '/default_avatar.svg'"
-                        :alt="member.nickName"
                         class="avatar-img"
-                        @error="(e) => (e.target.src = '/default_avatar.svg')"
                       />
                     </div>
                     <div class="member-name">{{ member.nickName }}</div>
@@ -299,14 +341,9 @@
                     }}</span
                   >
                   <div class="vid-bottom">
-                    <span class="vid-tag"
-                      >{{ mealTypes[activeMealIdx].label }} ·
-                      {{
-                        videoTime(
-                          getVideo(member.id, mealTypes[activeMealIdx].key),
-                        )
-                      }}</span
-                    >
+                    <span class="vid-tag">{{
+                      mealTypes[activeMealIdx].label
+                    }}</span>
                     <button
                       class="like-btn"
                       :class="{
@@ -344,7 +381,6 @@
                       <img
                         :src="member.profileImg || '/default_avatar.svg'"
                         class="avatar-img"
-                        @error="(e) => (e.target.src = '/default_avatar.svg')"
                       />
                     </div>
                     <div class="member-name-dark">{{ member.nickName }}</div>
@@ -352,18 +388,13 @@
                   <i class="ti ti-minus"></i><span>미기록</span>
                 </div>
               </div>
-              <div v-if="teamMembers.length === 0" class="empty-feed">
-                멤버 정보를 불러올 수 없습니다.
-              </div>
             </section>
           </template>
         </div>
       </template>
     </main>
 
-    <!-- ══════════════ TABLET / iPad (768–1199px): 3열 그리드 ══════════════ -->
     <main v-else-if="!isWide" class="scroll-body">
-      <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
         <div class="cal-nav">
           <button class="cal-arrow" @click="prevMonth">
@@ -391,17 +422,13 @@
           >
             <template v-if="cell">
               <span class="cal-num">{{ cell }}</span>
-              <span
-                v-if="getDayEmoji(cell)"
-                class="cal-expr"
-                v-html="getDayEmoji(cell)"
-              ></span>
+              <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
             </template>
           </div>
         </div>
         <div class="day-record">
           <div class="day-record-title">
-            {{ currentMonth + 1 }}월 {{ selectedDay }}일 기록
+            내 일일 영양 기록 ({{ currentMonth + 1 }}/{{ selectedDay }})
           </div>
           <div class="day-bars">
             <div class="bar-row">
@@ -412,15 +439,31 @@
                   :style="{
                     width:
                       calPercent(
-                        dayRecord.totalCalories,
-                        dayRecord.targetCalories,
+                        myDayRecord.calories,
+                        myDayRecord.targetCalories,
                       ) + '%',
                   }"
                 ></div>
               </div>
               <span class="bar-val"
-                >{{ dayRecord.totalCalories }} /
-                {{ dayRecord.targetCalories }}</span
+                >{{ myDayRecord.calories }} /
+                {{ myDayRecord.targetCalories }}</span
+              >
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">탄수화물</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill carbs"
+                  :style="{
+                    width:
+                      calPercent(myDayRecord.carbs, myDayRecord.targetCarbs) +
+                      '%',
+                  }"
+                ></div>
+              </div>
+              <span class="bar-val"
+                >{{ myDayRecord.carbs }}g / {{ myDayRecord.targetCarbs }}g</span
               >
             </div>
             <div class="bar-row">
@@ -430,18 +473,36 @@
                   class="bar-fill protein"
                   :style="{
                     width:
-                      calPercent(dayRecord.protein, dayRecord.targetProtein) +
-                      '%',
+                      calPercent(
+                        myDayRecord.protein,
+                        myDayRecord.targetProtein,
+                      ) + '%',
                   }"
                 ></div>
               </div>
               <span class="bar-val"
-                >{{ dayRecord.protein }}g / {{ dayRecord.targetProtein }}g</span
+                >{{ myDayRecord.protein }}g /
+                {{ myDayRecord.targetProtein }}g</span
+              >
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">지방</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill fat"
+                  :style="{
+                    width:
+                      calPercent(myDayRecord.fat, myDayRecord.targetFat) + '%',
+                  }"
+                ></div>
+              </div>
+              <span class="bar-val"
+                >{{ myDayRecord.fat }}g / {{ myDayRecord.targetFat }}g</span
               >
             </div>
           </div>
           <div class="day-ai">
-            <span class="ai-chip">AI</span>{{ dayRecord.aiComment }}
+            <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
         </div>
         <div class="member-summary-list">
@@ -456,7 +517,6 @@
             <img
               :src="member.profileImg || '/default_avatar.svg'"
               class="summary-avatar"
-              @error="(e) => (e.target.src = '/default_avatar.svg')"
             />
             <div class="summary-info">
               <div class="summary-name">
@@ -472,24 +532,34 @@
                   :key="mt.key"
                   class="summary-chip"
                 >
-                  <span class="summary-meal-type">{{ mt.label }}</span
-                  >{{ mt.video.description || "기록됨" }}
+                  <span class="summary-meal-type">{{ mt.label }}</span>
+                  <div
+                    class="summary-macros"
+                    v-if="mt.video.status === 'DONE' || mt.video.calories"
+                  >
+                    <span class="s-mac c"
+                      >탄 {{ Math.round(mt.video.carbs || 0) }}</span
+                    >
+                    <span class="s-mac p"
+                      >단 {{ Math.round(mt.video.protein || 0) }}</span
+                    >
+                    <span class="s-mac f"
+                      >지 {{ Math.round(mt.video.fat || 0) }}</span
+                    >
+                    <span class="s-mac k"
+                      >{{ Math.round(mt.video.calories || 0) }}kcal</span
+                    >
+                  </div>
+                  <div class="summary-macros empty" v-else>
+                    <span>분석 대기중</span>
+                  </div>
                 </span>
               </div>
               <div v-else class="summary-no-record">이 날 기록 없음</div>
             </div>
           </div>
-          <div
-            v-if="teamMembers.length === 0"
-            class="summary-no-record"
-            style="padding: 12px 0"
-          >
-            멤버 정보 없음
-          </div>
         </div>
       </section>
-
-      <!-- 피드 (태블릿) -->
       <template v-else>
         <div class="feed-date-label desk-date">
           <button class="date-nav-btn" @click="prevDay">
@@ -511,9 +581,7 @@
               <div class="member-avatar" :class="{ mine: isMe(member.id) }">
                 <img
                   :src="member.profileImg || '/default_avatar.svg'"
-                  :alt="member.nickName"
                   class="avatar-img"
-                  @error="(e) => (e.target.src = '/default_avatar.svg')"
                 />
               </div>
               <div class="member-name">{{ member.nickName }}</div>
@@ -524,10 +592,8 @@
                 <div
                   v-if="getVideo(member.id, mt.key)"
                   class="video-wrap"
-                  style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
-                  <!-- 🌟 [태블릿] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video"
@@ -538,8 +604,6 @@
                       playsinline
                       preload="metadata"
                     ></video>
-
-                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -551,38 +615,27 @@
                         >탄
                         {{
                           Math.round(getVideo(member.id, mt.key).carbs || 0)
-                        }}g</span
+                        }}</span
                       >
                       <span class="m-tag p"
                         >단
                         {{
                           Math.round(getVideo(member.id, mt.key).protein || 0)
-                        }}g</span
+                        }}</span
                       >
                       <span class="m-tag f"
                         >지
                         {{
                           Math.round(getVideo(member.id, mt.key).fat || 0)
-                        }}g</span
+                        }}</span
                       >
-                      <span class="m-tag k"
-                        >{{
-                          Math.round(getVideo(member.id, mt.key).calories || 0)
-                        }}kcal</span
-                      >
+                      <span class="m-tag k">{{
+                        Math.round(getVideo(member.id, mt.key).calories || 0)
+                      }}</span>
                     </div>
                   </div>
-
-                  <span
-                    v-if="getVideo(member.id, mt.key).description"
-                    class="vid-center-desc"
-                    >{{ getVideo(member.id, mt.key).description }}</span
-                  >
                   <div class="vid-bottom">
-                    <span class="vid-tag"
-                      >{{ mt.label }} ·
-                      {{ videoTime(getVideo(member.id, mt.key)) }}</span
-                    >
+                    <span class="vid-tag">{{ mt.label }}</span>
                     <button
                       class="like-btn"
                       :class="{ liked: getVideo(member.id, mt.key).liked }"
@@ -607,16 +660,11 @@
               </div>
             </div>
           </div>
-          <div v-if="teamMembers.length === 0" class="empty-feed">
-            멤버 정보를 불러올 수 없습니다.
-          </div>
         </section>
       </template>
     </main>
 
-    <!-- ══════════════ WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 피드 ══════════════ -->
     <div v-else class="desktop-split">
-      <!-- 좌측 1/3: 달력 + 채팅 버튼 -->
       <aside class="left-panel">
         <div class="cal-nav">
           <button class="cal-arrow" @click="prevMonth">
@@ -644,17 +692,14 @@
           >
             <template v-if="cell">
               <span class="cal-num">{{ cell }}</span>
-              <span
-                v-if="getDayEmoji(cell)"
-                class="cal-expr"
-                v-html="getDayEmoji(cell)"
-              ></span>
+              <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
             </template>
           </div>
         </div>
+
         <div class="day-record">
           <div class="day-record-title">
-            {{ currentMonth + 1 }}월 {{ selectedDay }}일 기록
+            내 일일 영양 기록 ({{ currentMonth + 1 }}/{{ selectedDay }})
           </div>
           <div class="day-bars">
             <div class="bar-row">
@@ -665,15 +710,31 @@
                   :style="{
                     width:
                       calPercent(
-                        dayRecord.totalCalories,
-                        dayRecord.targetCalories,
+                        myDayRecord.calories,
+                        myDayRecord.targetCalories,
                       ) + '%',
                   }"
                 ></div>
               </div>
               <span class="bar-val"
-                >{{ dayRecord.totalCalories }} /
-                {{ dayRecord.targetCalories }}</span
+                >{{ myDayRecord.calories }} /
+                {{ myDayRecord.targetCalories }}</span
+              >
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">탄수화물</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill carbs"
+                  :style="{
+                    width:
+                      calPercent(myDayRecord.carbs, myDayRecord.targetCarbs) +
+                      '%',
+                  }"
+                ></div>
+              </div>
+              <span class="bar-val"
+                >{{ myDayRecord.carbs }}g / {{ myDayRecord.targetCarbs }}g</span
               >
             </div>
             <div class="bar-row">
@@ -683,20 +744,39 @@
                   class="bar-fill protein"
                   :style="{
                     width:
-                      calPercent(dayRecord.protein, dayRecord.targetProtein) +
-                      '%',
+                      calPercent(
+                        myDayRecord.protein,
+                        myDayRecord.targetProtein,
+                      ) + '%',
                   }"
                 ></div>
               </div>
               <span class="bar-val"
-                >{{ dayRecord.protein }}g / {{ dayRecord.targetProtein }}g</span
+                >{{ myDayRecord.protein }}g /
+                {{ myDayRecord.targetProtein }}g</span
+              >
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">지방</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill fat"
+                  :style="{
+                    width:
+                      calPercent(myDayRecord.fat, myDayRecord.targetFat) + '%',
+                  }"
+                ></div>
+              </div>
+              <span class="bar-val"
+                >{{ myDayRecord.fat }}g / {{ myDayRecord.targetFat }}g</span
               >
             </div>
           </div>
           <div class="day-ai">
-            <span class="ai-chip">AI</span>{{ dayRecord.aiComment }}
+            <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
         </div>
+
         <div class="member-summary-list">
           <div class="summary-title">
             {{ currentMonth + 1 }}월 {{ selectedDay }}일 · 참가자 식단
@@ -709,12 +789,11 @@
             <img
               :src="member.profileImg || '/default_avatar.svg'"
               class="summary-avatar"
-              @error="(e) => (e.target.src = '/default_avatar.svg')"
             />
             <div class="summary-info">
               <div class="summary-info order">
-              <div class="summary-name">{{ member.nickName}}</div>
-              <span v-if="isMe(member.id)" class="mine-badge">나</span>
+                <div class="summary-name">{{ member.nickName }}</div>
+                <span v-if="isMe(member.id)" class="mine-badge">나</span>
               </div>
               <div
                 v-if="memberMeals(member.id).length > 0"
@@ -725,19 +804,31 @@
                   :key="mt.key"
                   class="summary-chip"
                 >
-                  <span class="summary-meal-type">{{ mt.label }}</span
-                  >{{ mt.video.description || "기록됨" }}
+                  <span class="summary-meal-type">{{ mt.label }}</span>
+                  <div
+                    class="summary-macros"
+                    v-if="mt.video.status === 'DONE' || mt.video.calories"
+                  >
+                    <span class="s-mac c"
+                      >탄 {{ Math.round(mt.video.carbs || 0) }}</span
+                    >
+                    <span class="s-mac p"
+                      >단 {{ Math.round(mt.video.protein || 0) }}</span
+                    >
+                    <span class="s-mac f"
+                      >지 {{ Math.round(mt.video.fat || 0) }}</span
+                    >
+                    <span class="s-mac k"
+                      >{{ Math.round(mt.video.calories || 0) }}kcal</span
+                    >
+                  </div>
+                  <div class="summary-macros empty" v-else>
+                    <span>분석 대기중</span>
+                  </div>
                 </span>
               </div>
               <div v-else class="summary-no-record">이 날 기록 없음</div>
             </div>
-          </div>
-          <div
-            v-if="teamMembers.length === 0"
-            class="summary-no-record"
-            style="padding: 12px 0"
-          >
-            멤버 정보 없음
           </div>
         </div>
         <button class="chat-btn-desk" @click="goTo('chat')">
@@ -745,7 +836,6 @@
         </button>
       </aside>
 
-      <!-- 우측 2/3: 피드 (데스크톱) -->
       <main class="right-panel">
         <div class="feed-date-label desk-date">
           <button class="date-nav-btn" @click="prevDay">
@@ -767,9 +857,7 @@
               <div class="member-avatar" :class="{ mine: isMe(member.id) }">
                 <img
                   :src="member.profileImg || '/default_avatar.svg'"
-                  :alt="member.nickName"
                   class="avatar-img"
-                  @error="(e) => (e.target.src = '/default_avatar.svg')"
                 />
               </div>
               <div class="member-name">{{ member.nickName }}</div>
@@ -780,10 +868,8 @@
                 <div
                   v-if="getVideo(member.id, mt.key)"
                   class="video-wrap"
-                  style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
-                  <!-- 🌟 [데스크톱] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
                     <video
                       class="meal-video"
@@ -794,8 +880,6 @@
                       playsinline
                       preload="metadata"
                     ></video>
-
-                    <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
@@ -807,38 +891,27 @@
                         >탄
                         {{
                           Math.round(getVideo(member.id, mt.key).carbs || 0)
-                        }}g</span
+                        }}</span
                       >
                       <span class="m-tag p"
                         >단
                         {{
                           Math.round(getVideo(member.id, mt.key).protein || 0)
-                        }}g</span
+                        }}</span
                       >
                       <span class="m-tag f"
                         >지
                         {{
                           Math.round(getVideo(member.id, mt.key).fat || 0)
-                        }}g</span
+                        }}</span
                       >
-                      <span class="m-tag k"
-                        >{{
-                          Math.round(getVideo(member.id, mt.key).calories || 0)
-                        }}kcal</span
-                      >
+                      <span class="m-tag k">{{
+                        Math.round(getVideo(member.id, mt.key).calories || 0)
+                      }}</span>
                     </div>
                   </div>
-
-                  <span
-                    v-if="getVideo(member.id, mt.key).description"
-                    class="vid-center-desc"
-                    >{{ getVideo(member.id, mt.key).description }}</span
-                  >
                   <div class="vid-bottom">
-                    <span class="vid-tag"
-                      >{{ mt.label }} ·
-                      {{ videoTime(getVideo(member.id, mt.key)) }}</span
-                    >
+                    <span class="vid-tag">{{ mt.label }}</span>
                     <button
                       class="like-btn"
                       :class="{ liked: getVideo(member.id, mt.key).liked }"
@@ -863,14 +936,10 @@
               </div>
             </div>
           </div>
-          <div v-if="teamMembers.length === 0" class="empty-feed">
-            멤버 정보를 불러올 수 없습니다.
-          </div>
         </section>
       </main>
     </div>
 
-    <!-- 업로드 모달 -->
     <div
       v-if="uploadModal.open"
       class="modal-overlay"
@@ -885,7 +954,6 @@
           <button class="modal-close" @click="closeUpload">✕</button>
         </div>
         <form @submit.prevent="submitUpload">
-          <!-- 영상 미리보기 (파일 선택 후) -->
           <div v-if="videoPreviewUrl" class="preview-wrap">
             <video
               :src="videoPreviewUrl"
@@ -896,8 +964,6 @@
               playsinline
               preload="metadata"
             ></video>
-
-            <!-- 영상 중앙에 바로 타이핑 -->
             <textarea
               ref="memoTextRef"
               v-model="uploadModal.description"
@@ -909,30 +975,42 @@
             <span class="memo-counter"
               >{{ uploadModal.description.length }}/30</span
             >
-
             <div class="change-btns">
-              <button type="button" class="btn-change-file" @click="uploadFileInput.click()" title="파일 선택">
+              <button
+                type="button"
+                class="btn-change-file"
+                @click="uploadFileInput.click()"
+              >
                 <i class="ti ti-folder-open"></i>
               </button>
-              <button type="button" class="btn-change-file" @click="openGroupCamera" title="카메라 재촬영">
+              <button
+                type="button"
+                class="btn-change-file"
+                @click="openGroupCamera"
+              >
                 <i class="ti ti-camera"></i>
               </button>
             </div>
           </div>
-
-          <!-- 파일 선택 전: 드롭존 -->
           <div v-else class="file-drop-area">
-            <button type="button" class="drop-btn" @click="uploadFileInput.click()">
-              <i class="ti ti-folder-open" style="font-size:24px"></i>
-              <span>파일 선택</span>
+            <button
+              type="button"
+              class="drop-btn"
+              @click="uploadFileInput.click()"
+            >
+              <i class="ti ti-folder-open" style="font-size: 24px"></i
+              ><span>파일 선택</span>
             </button>
             <span class="drop-or">또는</span>
-            <button type="button" class="drop-btn camera-btn" @click="openGroupCamera">
-              <i class="ti ti-camera" style="font-size:24px"></i>
-              <span>카메라 촬영</span>
+            <button
+              type="button"
+              class="drop-btn camera-btn"
+              @click="openGroupCamera"
+            >
+              <i class="ti ti-camera" style="font-size: 24px"></i
+              ><span>카메라 촬영</span>
             </button>
           </div>
-
           <input
             ref="uploadFileInput"
             type="file"
@@ -940,7 +1018,6 @@
             @change="onUploadFileChange"
             style="display: none"
           />
-
           <div class="modal-actions">
             <button type="button" @click="closeUpload" class="btn-cancel">
               취소
@@ -957,23 +1034,45 @@
       </div>
     </div>
 
-    <!-- 카메라 촬영 오버레이 -->
     <Teleport to="body">
       <div v-if="showGroupCamera" class="camera-overlay">
-        <video ref="groupCameraVideoEl" class="camera-feed" autoplay playsinline muted></video>
+        <video
+          ref="groupCameraVideoEl"
+          class="camera-feed"
+          autoplay
+          playsinline
+          muted
+        ></video>
         <div class="camera-ui">
-          <button v-if="!groupIsRecording" type="button" class="btn-close-camera" @click="stopGroupCamera">✕</button>
-          <div class="camera-tip" v-if="!groupIsRecording">음식을 화면에 맞추고 촬영 버튼을 누르세요</div>
+          <button
+            v-if="!groupIsRecording"
+            type="button"
+            class="btn-close-camera"
+            @click="stopGroupCamera"
+          >
+            ✕
+          </button>
+          <div class="camera-tip" v-if="!groupIsRecording">
+            음식을 화면에 맞추고 촬영 버튼을 누르세요
+          </div>
           <div class="camera-bottom">
             <div v-if="groupIsRecording" class="record-progress-wrap">
               <div class="record-label">
                 <span class="rec-dot"></span> 촬영 중...
               </div>
               <div class="record-progress-bar">
-                <div class="record-fill" :style="{ width: groupRecordProgress + '%' }"></div>
+                <div
+                  class="record-fill"
+                  :style="{ width: groupRecordProgress + '%' }"
+                ></div>
               </div>
             </div>
-            <button v-if="!groupIsRecording" type="button" class="btn-shutter" @click="startGroupRecording">
+            <button
+              v-if="!groupIsRecording"
+              type="button"
+              class="btn-shutter"
+              @click="startGroupRecording"
+            >
               <span class="shutter-inner"></span>
             </button>
           </div>
@@ -981,7 +1080,6 @@
       </div>
     </Teleport>
 
-    <!-- 비디오 상세 모달 -->
     <VideoDetailModal
       v-if="detailModal.open && detailModal.video"
       :video="detailModal.video"
@@ -1004,12 +1102,6 @@ import {
   nextTick,
 } from "vue";
 import axios from "axios";
-import {
-  calendarData,
-  emojis,
-  groupDayRecords,
-  groupMembers,
-} from "../data/mockData.js";
 import { useStore } from "../composables/useStore.js";
 import { useToast } from "../composables/useToast.js";
 import VideoDetailModal from "../components/VideoDetailModal.vue";
@@ -1122,31 +1214,33 @@ const loadTeamDetail = async () => {
     const res = await axios.get(`/api/teams/${selectedGroup.value.id}`);
     teamMembers.value = res.data.members || [];
   } catch (e) {
-    teamMembers.value = groupMembers.map((m) => ({
-      id: m.id,
-      nickName: m.name,
-      isMine: m.isMine,
-    }));
+    teamMembers.value = [
+      { id: auth.loginUser.value?.id, nickName: "나", profileImg: "" },
+    ];
   }
 };
 
 const loadVideos = async () => {
   if (!selectedGroup.value?.id) return;
   try {
-    const res = await axios.post('/graphql', {
+    const res = await axios.post("/graphql", {
       query: `query GetTeamVideos($teamId: ID, $date: String!) {
         videos(teamId: $teamId, date: $date) {
           id userId uploaderNickName teamId mealType mealDate videoUrl
-          description calories carbs protein fat aiComment likeCount liked createdAt
-          status # 🌟 [여기 추가!] 백엔드로부터 PENDING/DONE 상태 문자열을 명시적으로 받아옵니다.
+          description calories carbs protein fat aiComment likeCount liked createdAt status
         }
       }`,
-      variables: { teamId: String(selectedGroup.value.id), date: feedDate.value }
-    })
-    const map = {}
-    const list = res.data?.data?.videos ?? []
-    list.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
-    videoMap.value = map
+      variables: {
+        teamId: String(selectedGroup.value.id),
+        date: feedDate.value,
+      },
+    });
+    const map = {};
+    const list = res.data?.data?.videos ?? [];
+    list.forEach((v) => {
+      map[`${v.userId}_${v.mealType}`] = v;
+    });
+    videoMap.value = map;
   } catch (e) {
     videoMap.value = {};
   }
@@ -1166,8 +1260,6 @@ const uploadModal = ref({
   description: "",
   file: null,
 });
-
-// 비디오 상세 모달
 const detailModal = ref({ open: false, video: null });
 function openDetail(video) {
   detailModal.value = { open: true, video };
@@ -1208,19 +1300,19 @@ async function toggleLike(video, e) {
     if (res.data.liked && e) spawnHearts(e);
   } catch {}
 }
+
 const uploadFileInput = ref(null);
 const videoPreviewUrl = ref(null);
 const memoTextRef = ref(null);
 
-// 카메라 관련 state
-const showGroupCamera = ref(false)
-const groupCameraVideoEl = ref(null)
-const groupCameraStream = ref(null)
-const groupIsRecording = ref(false)
-const groupRecordProgress = ref(0)
-let groupMediaRecorder = null
-let groupRecordedChunks = []
-let groupProgressTimer = null
+const showGroupCamera = ref(false);
+const groupCameraVideoEl = ref(null);
+const groupCameraStream = ref(null);
+const groupIsRecording = ref(false);
+const groupRecordProgress = ref(0);
+let groupMediaRecorder = null;
+let groupRecordedChunks = [];
+let groupProgressTimer = null;
 
 watch(videoPreviewUrl, async (url) => {
   if (url) {
@@ -1234,9 +1326,12 @@ function openUpload(mealType) {
   videoPreviewUrl.value = null;
 }
 function closeUpload() {
-  stopGroupCamera()
-  if (videoPreviewUrl.value) { URL.revokeObjectURL(videoPreviewUrl.value); videoPreviewUrl.value = null }
-  uploadModal.value.open = false
+  stopGroupCamera();
+  if (videoPreviewUrl.value) {
+    URL.revokeObjectURL(videoPreviewUrl.value);
+    videoPreviewUrl.value = null;
+  }
+  uploadModal.value.open = false;
 }
 function onUploadFileChange(e) {
   if (!e.target.files.length) return;
@@ -1249,63 +1344,78 @@ function onUploadFileChange(e) {
 async function openGroupCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
+      video: { facingMode: { ideal: "environment" } },
       audio: false,
-    })
-    groupCameraStream.value = stream
-    showGroupCamera.value = true
-    await nextTick()
-    if (groupCameraVideoEl.value) groupCameraVideoEl.value.srcObject = stream
+    });
+    groupCameraStream.value = stream;
+    showGroupCamera.value = true;
+    await nextTick();
+    if (groupCameraVideoEl.value) groupCameraVideoEl.value.srcObject = stream;
   } catch {
-    showToast('error', '카메라를 열 수 없습니다.', '카메라 권한을 허용해 주세요.')
+    showToast(
+      "error",
+      "카메라를 열 수 없습니다.",
+      "카메라 권한을 허용해 주세요.",
+    );
   }
 }
 
 function startGroupRecording() {
-  if (!groupCameraStream.value || groupIsRecording.value) return
-  groupRecordedChunks = []
-  groupRecordProgress.value = 0
-  groupIsRecording.value = true
+  if (!groupCameraStream.value || groupIsRecording.value) return;
+  groupRecordedChunks = [];
+  groupRecordProgress.value = 0;
+  groupIsRecording.value = true;
 
-  const mimeType = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm']
-    .find(t => MediaRecorder.isTypeSupported(t)) || ''
-  groupMediaRecorder = new MediaRecorder(groupCameraStream.value, mimeType ? { mimeType } : {})
+  const mimeType =
+    ["video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) =>
+      MediaRecorder.isTypeSupported(t),
+    ) || "";
+  groupMediaRecorder = new MediaRecorder(
+    groupCameraStream.value,
+    mimeType ? { mimeType } : {},
+  );
 
   groupMediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) groupRecordedChunks.push(e.data)
-  }
+    if (e.data.size > 0) groupRecordedChunks.push(e.data);
+  };
   groupMediaRecorder.onstop = () => {
-    const blob = new Blob(groupRecordedChunks, { type: mimeType || 'video/webm' })
-    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
-    const file = new File([blob], `meal_${Date.now()}.${ext}`, { type: blob.type })
-    uploadModal.value.file = file
-    if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
-    videoPreviewUrl.value = URL.createObjectURL(blob)
-    stopGroupCamera()
-  }
+    const blob = new Blob(groupRecordedChunks, {
+      type: mimeType || "video/webm",
+    });
+    const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+    const file = new File([blob], `meal_${Date.now()}.${ext}`, {
+      type: blob.type,
+    });
+    uploadModal.value.file = file;
+    if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
+    videoPreviewUrl.value = URL.createObjectURL(blob);
+    stopGroupCamera();
+  };
 
-  groupMediaRecorder.start()
-  const startTime = Date.now()
+  groupMediaRecorder.start();
+  const startTime = Date.now();
   groupProgressTimer = setInterval(() => {
-    groupRecordProgress.value = Math.min(100, ((Date.now() - startTime) / 2000) * 100)
-  }, 30)
-
+    groupRecordProgress.value = Math.min(
+      100,
+      ((Date.now() - startTime) / 2000) * 100,
+    );
+  }, 30);
   setTimeout(() => {
-    clearInterval(groupProgressTimer)
-    groupRecordProgress.value = 100
-    if (groupMediaRecorder?.state === 'recording') groupMediaRecorder.stop()
-    groupIsRecording.value = false
-  }, 2000)
+    clearInterval(groupProgressTimer);
+    groupRecordProgress.value = 100;
+    if (groupMediaRecorder?.state === "recording") groupMediaRecorder.stop();
+    groupIsRecording.value = false;
+  }, 2000);
 }
 
 function stopGroupCamera() {
-  clearInterval(groupProgressTimer)
+  clearInterval(groupProgressTimer);
   if (groupCameraStream.value) {
-    groupCameraStream.value.getTracks().forEach(t => t.stop())
-    groupCameraStream.value = null
+    groupCameraStream.value.getTracks().forEach((t) => t.stop());
+    groupCameraStream.value = null;
   }
-  showGroupCamera.value = false
-  groupIsRecording.value = false
+  showGroupCamera.value = false;
+  groupIsRecording.value = false;
 }
 
 const submitUpload = async () => {
@@ -1313,16 +1423,13 @@ const submitUpload = async () => {
   const file = uploadModal.value.file;
   const contentType = file.type || "video/mp4";
   try {
-    // Try presigned URL (prod/S3 mode)
     let presigned = null;
     try {
       const res = await axios.get("/api/videos/presigned-upload", {
         params: { contentType },
       });
       presigned = res.data;
-    } catch {
-      // dev mode fallback
-    }
+    } catch {}
 
     if (presigned) {
       await axios.put(presigned.uploadUrl, file, {
@@ -1348,7 +1455,6 @@ const submitUpload = async () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
     }
-
     closeUpload();
     await loadVideos();
   } catch (e) {
@@ -1356,28 +1462,13 @@ const submitUpload = async () => {
   }
 };
 
-// ── 달력 ──
+// ── 달력 및 영양 데이터 연산 (Mock Data 제거 및 실데이터 연동) ──
 const today = new Date();
+const todayMonth = today.getMonth();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth());
 const selectedDay = ref(today.getDate());
 
-function getDayEmoji(day) {
-  if (currentYear.value > today.getFullYear()) return "";
-  if (
-    currentYear.value === today.getFullYear() &&
-    currentMonth.value > today.getMonth()
-  )
-    return "";
-  if (
-    currentYear.value === today.getFullYear() &&
-    currentMonth.value === today.getMonth() &&
-    day > today.getDate()
-  )
-    return "";
-  const mood = calendarData[day];
-  return mood ? emojis[mood] : "";
-}
 const monthLabel = computed(
   () => `${currentYear.value}년 ${currentMonth.value + 1}월`,
 );
@@ -1426,53 +1517,90 @@ async function selectDay(d) {
   loadVideos();
   if (!selectedGroup.value?.id) return;
   try {
-    const res = await axios.post('/graphql', {
+    const res = await axios.post("/graphql", {
       query: `query GetTeamVideos($teamId: ID, $date: String!) {
         videos(teamId: $teamId, date: $date) {
           id userId uploaderNickName teamId mealType mealDate videoUrl
-          description calories carbs protein fat aiComment likeCount liked createdAt
-          status # 🌟 [여기 추가!] 달력에서 날짜를 찍었을 때도 상태가 누락되지 않게 채워줍니다.
+          description calories carbs protein fat aiComment likeCount liked createdAt status
         }
       }`,
-      variables: { teamId: String(selectedGroup.value.id), date: calDateStr(d) }
-    })
-    const map = {}
-    const list = res.data?.data?.videos ?? []
-    list.forEach(v => { map[`${v.userId}_${v.mealType}`] = v })
-    calendarVideoMap.value = map
-  } catch (e) { console.error('달력 영상 로드 실패:', e) }
+      variables: {
+        teamId: String(selectedGroup.value.id),
+        date: calDateStr(d),
+      },
+    });
+    const map = {};
+    const list = res.data?.data?.videos ?? [];
+    list.forEach((v) => {
+      map[`${v.userId}_${v.mealType}`] = v;
+    });
+    calendarVideoMap.value = map;
+  } catch (e) {
+    console.error("달력 영상 로드 실패:", e);
+  }
 }
 
 function getCalVideo(userId, mealType) {
   return calendarVideoMap.value[`${userId}_${mealType}`] || null;
 }
+
+// 참가자별 달력 요약 데이터를 매핑
 function memberMeals(memberId) {
   return mealTypes
     .map((mt) => ({ ...mt, video: getCalVideo(memberId, mt.key) }))
     .filter((mt) => mt.video);
 }
+
+// 달력에 표시할 나의 일일 영양 종합 데이터
+const myDayRecord = computed(() => {
+  const myId = auth?.loginUser?.value?.id ?? auth?.loginUser?.id;
+  const myVideos = mealTypes
+    .map((mt) => getCalVideo(myId, mt.key))
+    .filter((v) => v);
+
+  const totals = myVideos.reduce(
+    (acc, v) => {
+      acc.calories += v.calories || 0;
+      acc.carbs += v.carbs || 0;
+      acc.protein += v.protein || 0;
+      acc.fat += v.fat || 0;
+      return acc;
+    },
+    { calories: 0, carbs: 0, protein: 0, fat: 0 },
+  );
+
+  let aiComment = myVideos.find((v) => v.aiComment)?.aiComment;
+  if (!aiComment) {
+    if (myVideos.length === 0) aiComment = "이 날 기록된 나의 식단이 없습니다.";
+    else aiComment = "AI 영양 분석이 진행 중이거나 코멘트가 없습니다.";
+  }
+
+  return {
+    calories: Math.round(totals.calories),
+    targetCalories: 2200,
+    carbs: Math.round(totals.carbs),
+    targetCarbs: 275,
+    protein: Math.round(totals.protein),
+    targetProtein: 110,
+    fat: Math.round(totals.fat),
+    targetFat: 60,
+    aiComment,
+  };
+});
+
+function hasRecordInMonth(day) {
+  // 현재는 선택된 날짜의 데이터만 서버에서 가져오므로 선택일에만 점검 가능
+  if (day === selectedDay.value) {
+    const myId = auth?.loginUser?.value?.id ?? auth?.loginUser?.id;
+    return mealTypes.some((mt) => getCalVideo(myId, mt.key));
+  }
+  return false;
+}
+
 function calPercent(val, total) {
   return Math.min(100, Math.round((val / total) * 100));
 }
 
-const MEAL_DEMO_TIMES = { BREAKFAST: "08:23", LUNCH: "12:45", DINNER: "19:12" };
-function videoTime(video) {
-  if (!video) return null;
-  const ts = video.uploadedAt || video.createdAt || video.recordedAt;
-  if (ts) {
-    const d = new Date(ts);
-    if (!isNaN(d))
-      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  }
-  return MEAL_DEMO_TIMES[video.mealType] || null;
-}
-
-const dayRecord = computed(
-  () => groupDayRecords[selectedDay.value] ?? groupDayRecords.default,
-);
-
-
-// ── 반응형 ──
 const isMobile = ref(window.innerWidth < 768);
 const isWide = ref(window.innerWidth >= 1200);
 const onResize = () => {
@@ -1481,19 +1609,16 @@ const onResize = () => {
 };
 window.addEventListener("resize", onResize);
 
-// 컴포넌트 소거 시 백그라운드 누수 방지를 위해 해제 추가
 onUnmounted(() => {
-  window.removeEventListener('resize', onResize);
+  window.removeEventListener("resize", onResize);
   stopGroupCamera();
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
 });
 
-// ── 모바일 스와이프 + 마우스 드래그 ──
 const activeMealIdx = ref(0);
 let touchStartX = 0;
 let touchStartY = 0;
 let swipeEnabled = false;
-
 function onTouchStart(e) {
   if (e.target.closest(".like-btn")) {
     swipeEnabled = false;
@@ -1515,7 +1640,6 @@ function onTouchEnd(e) {
 
 let mouseStartX = 0;
 const isDragging = ref(false);
-
 function onMouseDown(e) {
   mouseStartX = e.clientX;
   isDragging.value = true;
@@ -1533,6 +1657,7 @@ function onMouseUp(e) {
 </script>
 
 <style scoped>
+/* (기존 최상단 및 공통 레이아웃 스타일은 유지됩니다.) */
 .screen {
   height: 100vh;
   height: 100dvh;
@@ -1543,8 +1668,6 @@ function onMouseUp(e) {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-
-/* ── 헤더 ── */
 .header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-light, #e5e5e5);
@@ -1624,7 +1747,6 @@ function onMouseUp(e) {
   }
 }
 
-/* ── MOBILE 스크롤 본문 ── */
 .scroll-body {
   flex: 1;
   overflow-y: auto;
@@ -1636,8 +1758,6 @@ function onMouseUp(e) {
   display: flex;
   flex-direction: column;
 }
-
-/* ── DESKTOP 분할 레이아웃 ── */
 .desktop-split {
   flex: 1;
   display: flex;
@@ -1684,7 +1804,6 @@ function onMouseUp(e) {
   opacity: 0.85;
 }
 
-/* ── 날짜 네비게이션 ── */
 .feed-controls-bar {
   display: flex;
   align-items: center;
@@ -1748,7 +1867,6 @@ function onMouseUp(e) {
   font-size: 14px;
 }
 
-/* ── 데스크탑 피드 ── */
 .feed {
   display: flex;
   flex-direction: column;
@@ -1825,7 +1943,6 @@ function onMouseUp(e) {
   display: block;
 }
 
-/* ── 영상 내 오버레이 (공통) ── */
 .vid-bottom {
   position: absolute;
   bottom: 8px;
@@ -1908,7 +2025,6 @@ function onMouseUp(e) {
   background: #ebebeb;
 }
 
-/* ── 모바일 탭 바 ── */
 .meal-tab-bar {
   display: flex;
   gap: 4px;
@@ -1932,7 +2048,6 @@ function onMouseUp(e) {
   color: #fff;
 }
 
-/* ── 모바일 피드 ── */
 .feed-mobile {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1962,7 +2077,7 @@ function onMouseUp(e) {
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 3; /* 배지보다 상위에 위치하도록 우선순위 업 */
+  z-index: 3;
 }
 .vid-member-top .member-avatar {
   width: 30px;
@@ -2025,7 +2140,7 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* ── 달력 (공통) ── */
+/* ── 달력 공통 ── */
 .calendar-panel {
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
@@ -2078,7 +2193,7 @@ function onMouseUp(e) {
   justify-content: center;
   border-radius: 10px;
   cursor: pointer;
-  gap: 2px;
+  position: relative;
   transition: background 0.15s;
 }
 .cal-cell.empty {
@@ -2089,28 +2204,26 @@ function onMouseUp(e) {
 }
 .cal-cell.selected {
   background: #f5f5f5;
-  border: 1px solid;
-  border-color: #d7d7d7
+  border: 1px solid #d7d7d7;
 }
-/* .cal-cell.selected .cal-num {
-  color: #fff;
-} */
 .cal-num {
-  font-size: 11px;
+  font-size: 12px;
   color: #333;
   line-height: 1;
+  z-index: 2;
 }
-.cal-expr {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+
+/* 🌟 [수정] 이모지 대신 기록 유무를 표시하는 Dot 스타일 */
+.cal-dot {
+  width: 4.5px;
+  height: 4.5px;
+  background-color: #10b981;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 6px;
 }
-.cal-expr :deep(svg) {
-  width: 18px;
-  height: 18px;
-  display: block;
+.cal-cell.selected .cal-dot {
+  background-color: #059669;
 }
 
 .day-record {
@@ -2138,7 +2251,8 @@ function onMouseUp(e) {
 }
 .bar-label {
   font-size: 11px;
-  color: #888;
+  font-weight: 600;
+  color: #666;
   width: 36px;
   flex-shrink: 0;
 }
@@ -2156,15 +2270,23 @@ function onMouseUp(e) {
   transition: width 0.4s;
 }
 .bar-fill.protein {
-  background: #7ec8a0;
+  background: #10b981;
+}
+/* 🌟 [추가] 탄수화물, 지방 프로그레스 바 스타일 */
+.bar-fill.carbs {
+  background: #3b82f6;
+}
+.bar-fill.fat {
+  background: #f59e0b;
 }
 .bar-val {
   font-size: 10px;
   color: #888;
-  width: 80px;
+  width: 75px;
   text-align: right;
   flex-shrink: 0;
 }
+
 .day-ai {
   font-size: 12px;
   color: #666;
@@ -2219,7 +2341,6 @@ function onMouseUp(e) {
   flex-direction: column;
   gap: 4px;
 }
-
 .order {
   flex-direction: row;
   justify-content: space-between;
@@ -2235,22 +2356,21 @@ function onMouseUp(e) {
 .summary-meals {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  margin-top: 4px;
 }
 .summary-chip {
-  font-size: 12px;
-  color: #444;
-  line-height: 1.4;
   display: flex;
-  align-items: baseline;
-  gap: 5px;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 .summary-meal-type {
   font-size: 10px;
   font-weight: 700;
   background: #f0f0f0;
   color: #555;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 10px;
   flex-shrink: 0;
 }
@@ -2259,7 +2379,42 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* ── 영상 중앙 설명 텍스트 ── */
+/* 🌟 [신규] 참가자 요약용 탄단지 뱃지 스타일 */
+.summary-macros {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.summary-macros.empty span {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+}
+.s-mac {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.s-mac.c {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.s-mac.p {
+  background: #ecfdf5;
+  color: #059669;
+}
+.s-mac.f {
+  background: #fffbeb;
+  color: #d97706;
+}
+.s-mac.k {
+  background: #f1f5f9;
+  color: #334155;
+  margin-left: 2px;
+}
+
 .vid-center-desc {
   position: absolute;
   top: 50%;
@@ -2276,7 +2431,7 @@ function onMouseUp(e) {
   z-index: 2;
 }
 
-/* ── 업로드 모달 ── */
+/* 업로드 모달 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2341,9 +2496,21 @@ function onMouseUp(e) {
   flex: 1;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
-.drop-btn:hover { border-color: #e8909e; color: #e8909e; background: #fff5f7; }
-.camera-btn { background: #fff5f7; color: #e8909e; border-color: #f5c6ce; }
-.camera-btn:hover { background: #ffe0e8; color: #c0607a; border-color: #e8909e; }
+.drop-btn:hover {
+  border-color: #e8909e;
+  color: #e8909e;
+  background: #fff5f7;
+}
+.camera-btn {
+  background: #fff5f7;
+  color: #e8909e;
+  border-color: #f5c6ce;
+}
+.camera-btn:hover {
+  background: #ffe0e8;
+  color: #c0607a;
+  border-color: #e8909e;
+}
 .drop-or {
   font-size: 12px;
   color: #ccc;
@@ -2368,7 +2535,6 @@ function onMouseUp(e) {
   object-fit: cover;
   display: block;
 }
-
 .memo-direct {
   position: absolute;
   top: 50%;
@@ -2401,18 +2567,15 @@ function onMouseUp(e) {
   z-index: 2;
   pointer-events: none;
 }
-
-
-/* 파일 변경 버튼들 */
 .change-btns {
-  position: absolute; top: 10px; right: 10px;
-  display: flex; gap: 6px; z-index: 3;
-}
-
-.btn-change-file {
   position: absolute;
   top: 10px;
   right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+.btn-change-file {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -2425,26 +2588,8 @@ function onMouseUp(e) {
   align-items: center;
   justify-content: center;
 }
-.btn-change-file:hover { background: rgba(0,0,0,0.65); }
-
-.file-drop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 1.5px dashed #ccc;
-  border-radius: 14px;
-  padding: 32px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #888;
-  transition: border-color 0.15s;
-  margin-bottom: 14px;
-}
-.file-drop:hover {
-  border-color: #000;
-  color: #333;
+.btn-change-file:hover {
+  background: rgba(0, 0, 0, 0.65);
 }
 
 .modal-actions {
@@ -2475,7 +2620,6 @@ function onMouseUp(e) {
   cursor: not-allowed;
 }
 
-/* ── 🌟 오버레이 배지 전용 정밀 스타일 지정 ── */
 .video-thumb-wrap {
   position: relative;
   width: 100%;
@@ -2483,36 +2627,42 @@ function onMouseUp(e) {
   background: #000;
 }
 
-/* 🕒 1. 좌측 상단 AI 분석 중 배지 */
 .ai-analyzing-badge {
   position: absolute;
   top: 8px;
-  left: 8px;
-  background: rgba(0, 0, 0, 0.65);
+  right: 8px;
+  background: rgba(217, 83, 79, 0.9);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: pulse 1.8s infinite ease-in-out;
 }
-
-.spin {
-  animation: spin 0.9s linear infinite;
+.mini-nutri-preview {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 6px;
+  border-radius: 10px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 9;
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-
 .m-tag {
   font-size: 10px;
   font-weight: 800;
@@ -2537,64 +2687,28 @@ function onMouseUp(e) {
   margin-left: 2px;
 }
 
-/* 🕒 1. [수정] 우측 상단 AI 분석 중 배지 정밀 배치 및 애니메이션 */
-.ai-analyzing-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px; /* 🌟 좌측(left)에서 우측(right) 배치로 변경 */
-  background: rgba(217, 83, 79, 0.9); /* 은은한 다홍빛 빨간색으로 AI 상태 강조 */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 5px 9px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 10; /* 레이어 우선순위를 높여 다른 요소 위에 명확히 노출 */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  animation: pulse 1.8s infinite ease-in-out; /* 반짝이는 맥박 효과 */
-}
-
-/* 🍕 2. [수정] 우측 상단 탄단지 칼로리 미니 미리보기 바 (분석 완료 시 노출) */
-.mini-nutri-preview {
-  position: absolute;
-  top: 8px; /* 🌟 우측 하단에서 우측 상단(top) 배치로 변경 */
-  right: 8px; /* 🌟 우측 정렬 유지 */
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 4px 6px;
-  border-radius: 10px;
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 9;
-}
-
-/* 맥박 애니메이션 속성 보존 */
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.75; transform: scale(0.97); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(0.97);
+  }
 }
 
-/* iOS 자동 줌인 방지 — 모든 input/textarea 16px 이상 */
 @media (max-width: 767px) {
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     font-size: 16px !important;
   }
-  /* 업로드 모달 안 메모 placeholder 크기 조정 */
   .memo-direct {
     font-size: 18px;
   }
 }
-
-/* 아이폰 SE 등 초소형 기기 (< 390px) */
 @media (max-width: 390px) {
   .header {
     padding: 0 8px;
@@ -2613,5 +2727,4 @@ function onMouseUp(e) {
     font-size: 16px;
   }
 }
-
 </style>
