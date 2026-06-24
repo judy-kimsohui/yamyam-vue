@@ -816,15 +816,17 @@ const onVideoUploadSubmit = async ({
   try {
     const contentType = file.type || "video/mp4";
 
-    // Try presigned URL (prod/S3 mode)
+    // presigned URL은 prod(S3) 환경에서만 시도
     let presigned = null;
-    try {
-      const res = await axios.get("/api/videos/presigned-upload", {
-        params: { contentType },
-      });
-      presigned = res.data; // { uploadUrl, key }
-    } catch {
-      // dev mode — fall back to regular multipart upload
+    if (!import.meta.env.DEV) {
+      try {
+        const res = await axios.get("/api/videos/presigned-upload", {
+          params: { contentType },
+        });
+        presigned = res.data; // { uploadUrl, key }
+      } catch {
+        // presigned 미지원 시 multipart fallback
+      }
     }
 
     if (presigned) {

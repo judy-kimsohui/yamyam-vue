@@ -1313,15 +1313,17 @@ const submitUpload = async () => {
   const file = uploadModal.value.file;
   const contentType = file.type || "video/mp4";
   try {
-    // Try presigned URL (prod/S3 mode)
+    // presigned URL은 prod(S3) 환경에서만 시도
     let presigned = null;
-    try {
-      const res = await axios.get("/api/videos/presigned-upload", {
-        params: { contentType },
-      });
-      presigned = res.data;
-    } catch {
-      // dev mode fallback
+    if (!import.meta.env.DEV) {
+      try {
+        const res = await axios.get("/api/videos/presigned-upload", {
+          params: { contentType },
+        });
+        presigned = res.data;
+      } catch {
+        // presigned 미지원 시 multipart fallback
+      }
     }
 
     if (presigned) {
