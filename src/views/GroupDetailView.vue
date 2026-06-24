@@ -211,18 +211,11 @@
                 >
                   <!-- 🌟 [모바일] 영상 상위에 레이아웃을 얹기 위해 video-thumb-wrap 구조 적용 -->
                   <div class="video-thumb-wrap">
-                    <video
+                    <StickerVideo
                       class="meal-video-full"
-                      :src="
-                        getVideo(member.id, mealTypes[activeMealIdx].key)
-                          .videoUrl
-                      "
-                      v-lazy-video
-                      loop
-                      muted
-                      playsinline
-                      preload="metadata"
-                    ></video>
+                      :src="getVideo(member.id, mealTypes[activeMealIdx].key).videoUrl"
+                      loop muted playsinline preload="metadata"
+                    />
 
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
@@ -529,15 +522,11 @@
                 >
                   <!-- 🌟 [태블릿] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
-                    <video
+                    <StickerVideo
                       class="meal-video"
                       :src="getVideo(member.id, mt.key).videoUrl"
-                      v-lazy-video
-                      loop
-                      muted
-                      playsinline
-                      preload="metadata"
-                    ></video>
+                      loop muted playsinline preload="metadata"
+                    />
 
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
@@ -785,15 +774,11 @@
                 >
                   <!-- 🌟 [데스크톱] 영상 상위 래퍼 구조 결합 -->
                   <div class="video-thumb-wrap">
-                    <video
+                    <StickerVideo
                       class="meal-video"
                       :src="getVideo(member.id, mt.key).videoUrl"
-                      v-lazy-video
-                      loop
-                      muted
-                      playsinline
-                      preload="metadata"
-                    ></video>
+                      loop muted playsinline preload="metadata"
+                    />
 
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
                     <div
@@ -1013,6 +998,7 @@ import {
 import { useStore } from "../composables/useStore.js";
 import { useToast } from "../composables/useToast.js";
 import VideoDetailModal from "../components/VideoDetailModal.vue";
+import StickerVideo from "../components/StickerVideo.vue";
 
 const { goTo, goBack } = inject("navigation");
 const auth = inject("auth");
@@ -2481,6 +2467,7 @@ function onMouseUp(e) {
   width: 100%;
   height: 100%;
   background: #000;
+  overflow: visible;
 }
 
 /* 🕒 1. 좌측 상단 AI 분석 중 배지 */

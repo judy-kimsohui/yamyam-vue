@@ -48,12 +48,12 @@
             @click="!todayVideoByMeal(mt.key) && openUploadForMeal(mt.key)"
           >
             <template v-if="todayVideoByMeal(mt.key)">
-              <video
+              <StickerVideo
                 :src="todayVideoByMeal(mt.key).videoUrl"
-                v-lazy-video loop muted playsinline
-                preload="metadata"
+                :label="mt.label + '.'"
+                loop muted playsinline preload="metadata"
                 class="meal-slot-video"
-              ></video>
+              />
               <div class="meal-slot-done-label">
                 <i class="ti ti-check"></i>
                 <span>{{ mt.label }}</span>
@@ -187,15 +187,11 @@
         </div>
         <div v-else class="mylog-list-mobile">
           <div v-for="v in dayVideos" :key="v.id" class="mylog-card">
-            <video
+            <StickerVideo
               :src="v.videoUrl"
-              v-lazy-video
-              loop
-              muted
-              playsinline
-              preload="metadata"
+              loop muted playsinline preload="metadata"
               class="mylog-video"
-            ></video>
+            />
             <span v-if="v.description" class="mylog-center-desc">{{
               v.description
             }}</span>
@@ -500,6 +496,7 @@ import { useStore } from "../composables/useStore.js";
 import { useToast } from "../composables/useToast.js";
 import DashboardUserProfile from "@/components/DashboardUserProfile.vue";
 import VideoUploadModal from "@/components/VideoUploadModal.vue";
+import StickerVideo from "@/components/StickerVideo.vue";
 
 const { goTo } = inject("navigation");
 const auth = inject("auth");
@@ -1117,7 +1114,7 @@ onMounted(async () => {
   position: relative;
   aspect-ratio: 1;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   cursor: default;
 }
 .meal-slot-video {
@@ -1412,7 +1409,7 @@ onMounted(async () => {
 /* -- 영상 카드 공통 -- */
 .mylog-card {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 12px;
 }
 .mylog-video {
