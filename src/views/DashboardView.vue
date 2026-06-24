@@ -830,11 +830,13 @@ const onVideoUploadSubmit = async ({
     }
 
     if (presigned) {
-      // Direct browser-to-S3 upload
-      await axios.put(presigned.uploadUrl, file, {
+      // S3 presigned PUT — axios 기본 헤더(Authorization) 제외하려고 fetch 사용
+      const s3Res = await fetch(presigned.uploadUrl, {
+        method: "PUT",
+        body: file,
         headers: { "Content-Type": contentType },
-        withCredentials: false,
       });
+      if (!s3Res.ok) throw new Error(`S3 업로드 실패: ${s3Res.status}`);
       // Register metadata for each selected team
       await Promise.all(
         teamIds.map((teamId) =>

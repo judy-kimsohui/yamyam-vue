@@ -1327,10 +1327,13 @@ const submitUpload = async () => {
     }
 
     if (presigned) {
-      await axios.put(presigned.uploadUrl, file, {
+      // S3 presigned PUT — axios 기본 헤더(Authorization) 제외하려고 fetch 사용
+      const s3Res = await fetch(presigned.uploadUrl, {
+        method: "PUT",
+        body: file,
         headers: { "Content-Type": contentType },
-        withCredentials: false,
       });
+      if (!s3Res.ok) throw new Error(`S3 업로드 실패: ${s3Res.status}`);
       await axios.post("/api/videos/register", {
         key: presigned.key,
         teamId: selectedGroup.value.id,
