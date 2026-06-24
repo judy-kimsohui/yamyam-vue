@@ -257,22 +257,34 @@ onUnmounted(() => {
   position: fixed; inset: 0;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(3px);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-end; justify-content: center;
   z-index: 1000;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 .modal-window {
   background: #fff;
-  padding: 24px 22px 20px;
-  border-radius: 22px;
-  width: calc(100% - 32px);
-  max-width: 420px;
-  max-height: 92vh;
+  padding: 24px 22px 32px;
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
   overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
 }
 .modal-window::-webkit-scrollbar { width: 4px; }
 .modal-window::-webkit-scrollbar-thumb { background: #e8d5d8; border-radius: 4px; }
+
+@media (min-width: 600px) {
+  .modal-overlay {
+    align-items: center;
+  }
+  .modal-window {
+    border-radius: 22px;
+    width: calc(100% - 32px);
+    max-width: 420px;
+    padding-bottom: 20px;
+  }
+}
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 22px;

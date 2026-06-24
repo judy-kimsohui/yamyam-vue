@@ -367,6 +367,7 @@ const handleSignup = async () => {
   user-select: none;
 }
 
+
 .split-body {
   flex: 1;
   display: flex;
@@ -599,19 +600,80 @@ const handleSignup = async () => {
 }
 
 @media (max-width: 768px) {
+  /* 레이아웃: 키보드가 올라와도 스크롤 가능하게 */
+  .setlog-layout {
+    height: auto;
+    min-height: 100svh;
+    min-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 로고: absolute → flow 안으로 */
+  .logo-header {
+    position: relative;
+    top: auto;
+    left: auto;
+    padding: 28px 24px 8px;
+    z-index: auto;
+  }
+
+  .split-body {
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .left-hero {
     display: none;
   }
+
   .right-auth {
-    padding: 40px;
-    justify-content: center;
+    flex: none;
+    width: 100%;
+    padding: 16px 28px 56px;
+    justify-content: flex-start;
+    align-items: stretch;
   }
+
+  .auth-inner {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .auth-title {
+    font-size: 20px;
+    margin-bottom: 28px;
+  }
+
+  .setlog-form {
+    margin-bottom: 22px;
+  }
+
+  .setlog-form input,
+  .clean-select {
+    padding: 13px 0;
+    font-size: 16px; /* iOS 16px 미만이면 자동 줌인 방지 */
+  }
+
+  .btn-continue {
+    padding: 14px;
+    font-size: 16px;
+  }
+
+  .signup-scroll {
+    max-height: none; /* 모바일에서는 스크롤 없이 전체 표시 */
+  }
+
   .mobile-slogan {
     display: block;
-    font-size: 48px;
+    font-size: 40px;
     font-weight: 800;
     line-height: 1.05;
     letter-spacing: -0.04em;
+    margin-bottom: 8px;
     background: linear-gradient(
       135deg,
       #ffb6c1 0%,
@@ -623,11 +685,18 @@ const handleSignup = async () => {
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .mobile-desc {
     display: block;
-    font-size: 16px;
+    font-size: 14px;
     color: #888888;
-    margin-top: -16px;
+    margin-bottom: 24px;
+  }
+
+  /* 로그인된 상태 */
+  .logged-in-unit {
+    margin-top: 16px;
+    gap: 20px;
   }
 }
 
@@ -676,7 +745,7 @@ const handleSignup = async () => {
   background: #fff;
   border-radius: 20px;
   padding: 36px 32px 28px;
-  width: 300px;
+  width: min(300px, calc(100vw - 48px));
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   display: flex;

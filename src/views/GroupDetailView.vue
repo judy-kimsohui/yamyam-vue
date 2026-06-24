@@ -217,10 +217,11 @@
                         getVideo(member.id, mealTypes[activeMealIdx].key)
                           .videoUrl
                       "
-                      autoplay
+                      v-lazy-video
                       loop
                       muted
                       playsinline
+                      preload="metadata"
                     ></video>
 
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
@@ -531,10 +532,11 @@
                     <video
                       class="meal-video"
                       :src="getVideo(member.id, mt.key).videoUrl"
-                      autoplay
+                      v-lazy-video
                       loop
                       muted
                       playsinline
+                      preload="metadata"
                     ></video>
 
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
@@ -786,10 +788,11 @@
                     <video
                       class="meal-video"
                       :src="getVideo(member.id, mt.key).videoUrl"
-                      autoplay
+                      v-lazy-video
                       loop
                       muted
                       playsinline
+                      preload="metadata"
                     ></video>
 
                     <!-- 🍕 우측 하단 탄단지 미니 미리보기 -->
@@ -891,6 +894,7 @@
               loop
               muted
               playsinline
+              preload="metadata"
             ></video>
 
             <!-- 영상 중앙에 바로 타이핑 -->
@@ -1306,17 +1310,45 @@ function stopGroupCamera() {
 
 const submitUpload = async () => {
   if (!uploadModal.value.file) return;
-  const formData = new FormData();
-  formData.append("teamId", selectedGroup.value.id);
-  formData.append("mealType", uploadModal.value.mealType);
-  formData.append("mealDate", feedDate.value);
-  if (uploadModal.value.description)
-    formData.append("description", uploadModal.value.description);
-  formData.append("videoFile", uploadModal.value.file);
+  const file = uploadModal.value.file;
+  const contentType = file.type || "video/mp4";
   try {
-    await axios.post("/api/videos/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    // Try presigned URL (prod/S3 mode)
+    let presigned = null;
+    try {
+      const res = await axios.get("/api/videos/presigned-upload", {
+        params: { contentType },
+      });
+      presigned = res.data;
+    } catch {
+      // dev mode fallback
+    }
+
+    if (presigned) {
+      await axios.put(presigned.uploadUrl, file, {
+        headers: { "Content-Type": contentType },
+        withCredentials: false,
+      });
+      await axios.post("/api/videos/register", {
+        key: presigned.key,
+        teamId: selectedGroup.value.id,
+        mealType: uploadModal.value.mealType,
+        mealDate: feedDate.value,
+        description: uploadModal.value.description || "",
+      });
+    } else {
+      const formData = new FormData();
+      formData.append("teamId", selectedGroup.value.id);
+      formData.append("mealType", uploadModal.value.mealType);
+      formData.append("mealDate", feedDate.value);
+      if (uploadModal.value.description)
+        formData.append("description", uploadModal.value.description);
+      formData.append("videoFile", file);
+      await axios.post("/api/videos/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+
     closeUpload();
     await loadVideos();
   } catch (e) {
@@ -2509,6 +2541,37 @@ function onMouseUp(e) {
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.75; transform: scale(0.97); }
+}
+
+/* iOS 자동 줌인 방지 — 모든 input/textarea 16px 이상 */
+@media (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  /* 업로드 모달 안 메모 placeholder 크기 조정 */
+  .memo-direct {
+    font-size: 18px;
+  }
+}
+
+/* 아이폰 SE 등 초소형 기기 (< 390px) */
+@media (max-width: 390px) {
+  .header {
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .group-title {
+    font-size: 13px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
 }
 
 </style>

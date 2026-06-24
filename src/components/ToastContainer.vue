@@ -33,15 +33,26 @@ const { toasts, dismiss } = useToast()
 <style>
 .toast-stack {
   position: fixed;
-  bottom: 24px;
-  right: 20px;
+  bottom: 20px;
+  right: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   z-index: 99999;
   pointer-events: none;
   max-width: 320px;
-  width: calc(100vw - 40px);
+  width: calc(100vw - 32px);
+}
+
+@media (max-width: 480px) {
+  .toast-stack {
+    right: 0;
+    left: 0;
+    bottom: 16px;
+    width: calc(100vw - 24px);
+    max-width: none;
+    margin: 0 auto;
+  }
 }
 
 .toast-item {

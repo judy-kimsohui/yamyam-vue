@@ -56,16 +56,26 @@ onMounted(async () => {
 
 async function acceptInvite() {
   inviteModal.value.joining = true;
+  const code = inviteModal.value.inviteCode;
   try {
-    await axios.post("/api/teams/join", { inviteCode: inviteModal.value.inviteCode });
+    await axios.post("/api/teams/join", { inviteCode: code });
     inviteModal.value.show = false;
     pendingInviteCode.value = null;
     await fetchMyTeams();
+    showToast("success", "그룹 참여 완료!");
   } catch (e) {
     const msg = e.response?.data;
     if (msg === "이미 참여 중인 팀입니다.") {
       inviteModal.value.show = false;
       pendingInviteCode.value = null;
+      const joined = groups.value.find(g => g.inviteCode === code);
+      if (joined) {
+        showToast("info", "이미 참여 중인 그룹입니다. 이동합니다.");
+        selectedGroup.value = joined;
+        goTo("group-detail");
+      } else {
+        showToast("info", "이미 참여 중인 그룹입니다.");
+      }
     } else {
       showToast("error", "참여 실패", msg || "서버 오류");
       inviteModal.value.joining = false;
@@ -148,7 +158,20 @@ async function joinByInvite() {
     showJoin.value = false;
     showToast("success", "그룹 참여 완료!");
   } catch (e) {
-    showToast("error", "참여 실패", e.response?.data || "서버 오류");
+    const msg = e.response?.data;
+    if (msg === "이미 참여 중인 팀입니다.") {
+      showJoin.value = false;
+      const joined = groups.value.find(g => g.inviteCode === inviteCode);
+      if (joined) {
+        showToast("info", "이미 참여 중인 그룹입니다. 이동합니다.");
+        selectedGroup.value = joined;
+        goTo("group-detail");
+      } else {
+        showToast("info", "이미 참여 중인 그룹입니다.");
+      }
+    } else {
+      showToast("error", "참여 실패", msg || "서버 오류");
+    }
   }
 }
 </script>
@@ -598,5 +621,36 @@ async function joinByInvite() {
 .invite-accept-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 12px 16px;
+  }
+  .title {
+    font-size: 16px;
+  }
+  .content {
+    padding: 12px 14px;
+  }
+  .group-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .group-name {
+    font-size: 14px;
+  }
+  .join-link-btn {
+    font-size: 11px;
+    padding: 0 10px;
+  }
+  /* 그룹 생성 폼 */
+  .create-form {
+    padding: 16px;
+  }
+  input[type="text"],
+  input[type="number"] {
+    font-size: 16px; /* iOS 자동 줌 방지 */
+  }
 }
 </style>

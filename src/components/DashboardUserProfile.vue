@@ -598,4 +598,11 @@ const achievementRate = computed(() => {
 .btn-profile-save:hover { opacity: 0.85; }
 .btn-profile-cancel:hover { opacity: 0.85; }
 
+/* iOS 자동 줌인 방지 */
+@media (max-width: 480px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 </style>

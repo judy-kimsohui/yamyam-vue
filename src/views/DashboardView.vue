@@ -50,7 +50,8 @@
             <template v-if="todayVideoByMeal(mt.key)">
               <video
                 :src="todayVideoByMeal(mt.key).videoUrl"
-                autoplay loop muted playsinline
+                v-lazy-video loop muted playsinline
+                preload="metadata"
                 class="meal-slot-video"
               ></video>
               <div class="meal-slot-done-label">
@@ -188,10 +189,11 @@
           <div v-for="v in dayVideos" :key="v.id" class="mylog-card">
             <video
               :src="v.videoUrl"
-              autoplay
+              v-lazy-video
               loop
               muted
               playsinline
+              preload="metadata"
               class="mylog-video"
             ></video>
             <span v-if="v.description" class="mylog-center-desc">{{
@@ -275,10 +277,11 @@
             <div v-for="v in filteredDayVideos" :key="v.id" class="mylog-card">
               <video
                 :src="v.videoUrl"
-                autoplay
+                v-lazy-video
                 loop
                 muted
                 playsinline
+                preload="metadata"
                 class="mylog-video"
               ></video>
               <span v-if="v.description" class="mylog-center-desc">{{
@@ -385,10 +388,11 @@
             <div v-for="v in filteredDayVideos" :key="v.id" class="mylog-card">
               <video
                 :src="v.videoUrl"
-                autoplay
+                v-lazy-video
                 loop
                 muted
                 playsinline
+                preload="metadata"
                 class="mylog-video"
               ></video>
               <span v-if="v.description" class="mylog-center-desc">{{
@@ -749,7 +753,18 @@ async function joinTeamByInviteCode(rawInput) {
     showToast("success", "그룹 참여 완료!");
     return true;
   } catch (e) {
-    showToast("error", "그룹 참여 실패", e.response?.data || "서버 오류");
+    const msg = e.response?.data;
+    if (msg === "이미 참여 중인 팀입니다.") {
+      const joined = groups.value.find(g => g.inviteCode === inviteCode);
+      if (joined) {
+        showToast("info", "이미 참여 중인 그룹입니다. 이동합니다.");
+        openGroup(joined);
+      } else {
+        showToast("info", "이미 참여 중인 그룹입니다.");
+      }
+    } else {
+      showToast("error", "그룹 참여 실패", msg || "서버 오류");
+    }
     return false;
   }
 }
@@ -799,19 +814,54 @@ const onVideoUploadSubmit = async ({
   file,
 }) => {
   try {
-    await Promise.all(
-      teamIds.map((teamId) => {
-        const formData = new FormData();
-        formData.append("teamId", teamId);
-        formData.append("mealType", mealType);
-        formData.append("mealDate", mealDate);
-        if (description) formData.append("description", description);
-        formData.append("videoFile", file);
-        return axios.post("/api/videos/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      }),
-    );
+    const contentType = file.type || "video/mp4";
+
+    // Try presigned URL (prod/S3 mode)
+    let presigned = null;
+    try {
+      const res = await axios.get("/api/videos/presigned-upload", {
+        params: { contentType },
+      });
+      presigned = res.data; // { uploadUrl, key }
+    } catch {
+      // dev mode — fall back to regular multipart upload
+    }
+
+    if (presigned) {
+      // Direct browser-to-S3 upload
+      await axios.put(presigned.uploadUrl, file, {
+        headers: { "Content-Type": contentType },
+        withCredentials: false,
+      });
+      // Register metadata for each selected team
+      await Promise.all(
+        teamIds.map((teamId) =>
+          axios.post("/api/videos/register", {
+            key: presigned.key,
+            teamId,
+            mealType,
+            mealDate,
+            description: description || "",
+          }),
+        ),
+      );
+    } else {
+      // Regular multipart upload (dev mode)
+      await Promise.all(
+        teamIds.map((teamId) => {
+          const formData = new FormData();
+          formData.append("teamId", teamId);
+          formData.append("mealType", mealType);
+          formData.append("mealDate", mealDate);
+          if (description) formData.append("description", description);
+          formData.append("videoFile", file);
+          return axios.post("/api/videos/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }),
+      );
+    }
+
     isUploadModalOpen.value = false;
     showToast("success", "냠냠 로그가 업로드되었습니다!");
   } catch (e) {
@@ -889,7 +939,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 28px;
+  padding: 14px 20px;
   border-bottom: 1px solid #e5e5e5;
   flex-shrink: 0;
   background: #fff;
@@ -957,7 +1007,7 @@ onMounted(async () => {
 .dash-body {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 28px 40px;
+  padding: 20px 20px 80px;
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
@@ -1592,6 +1642,37 @@ onMounted(async () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-header {
+    padding: 12px 16px;
+  }
+  .dash-logo-img {
+    height: 22px;
+  }
+  .nav-pill {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .dash-body {
+    padding: 16px 14px 80px;
+  }
+  .section-row {
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 13px;
+  }
+  .group-card {
+    padding: 12px 14px;
+  }
+  .group-name {
+    font-size: 14px;
+  }
+  .today-meal-slots {
+    gap: 8px;
   }
 }
 </style>
