@@ -2410,20 +2410,18 @@ function onMouseUp(e) {
 }
 
 .btn-change-file {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   border: none;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .btn-change-file:hover { background: rgba(0,0,0,0.65); }
 
