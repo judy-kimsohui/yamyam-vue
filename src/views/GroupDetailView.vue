@@ -2312,6 +2312,46 @@ function onMouseUp(e) {
   cursor: pointer;
 }
 
+.file-drop-area {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+  border: 1.5px dashed #e0e0e0;
+  border-radius: 16px;
+  padding: 20px 14px;
+  background: #fafafa;
+  margin-bottom: 14px;
+}
+.drop-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 0;
+  background: #fff;
+  border: 1.5px solid #ebebeb;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.18s;
+  flex: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+.drop-btn:hover { border-color: #e8909e; color: #e8909e; background: #fff5f7; }
+.camera-btn { background: #fff5f7; color: #e8909e; border-color: #f5c6ce; }
+.camera-btn:hover { background: #ffe0e8; color: #c0607a; border-color: #e8909e; }
+.drop-or {
+  font-size: 12px;
+  color: #ccc;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
 .preview-wrap {
   width: 100%;
   aspect-ratio: 9/16;
