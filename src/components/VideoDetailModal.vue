@@ -49,48 +49,76 @@ const totalNutrients = computed(() => {
   return total;
 });
 
+const editMode = ref(false);
+
+function addFood() {
+  foodList.value.push({
+    foodName: '',
+    calories: 0,
+    carbs: 0,
+    protein: 0,
+    fat: 0,
+    quantity: 1
+  });
+}
+
+function removeFood(index) {
+  foodList.value.splice(index, 1);
+}
+
+
+
 onMounted(async () => {
   try {
     const res = await axios.get(`/api/videos/${props.video.id}`);
     detail.value = res.data;
     analysisStatus.value = detail.value.status || null;
 
-    if (detail.value && detail.value.aiComment) {
-      try {
-        const parsed = JSON.parse(detail.value.aiComment);
-        foodList.value = (parsed.foods || []).map((food) => ({
-          ...food,
-          quantity: food.quantity || 1,
+    if (analysisStatus.value === 'DONE') {
+      const nutriRes = await axios.get(`/api/videos/${props.video.id}/nutrition`);
+      // 서버에서 받은 데이터(foods 배열)를 로그로 찍어서 quantity가 진짜 들어있는지 마지막으로 확인
+      console.log("받아온 음식 목록:", nutriRes.data.foods);
+
+      if (nutriRes.data && nutriRes.data.foods) {
+        // 기존 데이터를 비우고 서버에서 온 새 객체들로 확실히 교체
+        foodList.value = nutriRes.data.foods.map((food) => ({
+          id: food.id,
+          foodName: food.foodName,
+          calories: food.calories,
+          carbs: food.carbs,
+          protein: food.protein,
+          fat: food.fat,
+          // DB에서 읽어온 1.7 등의 값을 그대로 할당합니다.
+          quantity: Number(food.quantity) 
         }));
-      } catch (e) {
-        console.error("AI 코멘트 JSON 파싱 실패:", e);
-        foodList.value = [];
       }
     }
-  } catch {
+  } catch (e) {
+    console.error("데이터 로드 실패:", e);
     detail.value = { ...props.video };
   } finally {
     loading.value = false;
   }
 });
 
-async function onSaveQuantities() {
-  try {
-    // 백엔드로 보낼 때는 다시 원본 구조 형태로 가공하거나, 수량 배열만 따로 전송
-    // 여기서는 AI 코멘트 구조 그대로 인분만 업데이트해서 백엔드로 전송하는 예시입니다.
-    const updatedAiComment = JSON.stringify({ foods: foodList.value });
+async function onSaveNutritions() {
+  const payload = foodList.value.map(food => {
+    return {
+      foodName: food.foodName || '이름 없음',
+      calories: Number(food.calories || 0), // 수량 곱하지 않음
+      carbs: Number(food.carbs || 0),
+      protein: Number(food.protein || 0),
+      fat: Number(food.fat || 0),
+      quantity: Number(food.quantity || 1) // 조절한 수량(인분) 값 전송
+    };
+  });
 
-    // 백엔드에 업데이트 요청 (엔드포인트는 다음 주에 팀원들과 맞추기 위해 임시 작성)
-    await axios.patch(`/api/videos/${props.video.id}/ingredients`, {
-      aiComment: updatedAiComment,
-      calories: totalNutrients.value.calories,
-      carbs: totalNutrients.value.carbs,
-      protein: totalNutrients.value.protein,
-      fat: totalNutrients.value.fat,
-    });
+  try {
+    await axios.put(`/api/videos/${props.video.id}/nutrition`, payload);
     showToast("success", "식단 정보가 저장되었습니다!");
+    editMode.value = false;
   } catch (e) {
-    showToast("error", "저장 실패", e.message);
+    showToast("error", "저장 실패", e.response?.data || e.message);
   }
 }
 
@@ -247,39 +275,49 @@ async function onRetryAnalysis() {
           </div>
 
           <!-- 분석 완료: 음식 목록 -->
-          <div v-else-if="hasAnalysis" class="food-slider-list">
-            <div
-              v-for="(food, index) in foodList"
-              :key="index"
-              class="food-item"
-            >
-              <div class="food-info-row">
-                <span class="food-name">🍕 {{ food.foodName }}</span>
-                <span class="food-qty">{{ food.quantity }}인분</span>
-              </div>
+          <div v-else-if="hasAnalysis || editMode" class="food-slider-list">
+  <div v-for="(food, index) in foodList" :key="index" class="food-item">
+    <template v-if="!editMode">
+      <div class="food-info-row">
+        <span class="food-name">🍕 {{ food.foodName }}</span>
+        <span class="food-qty">{{ food.quantity }}인분</span>
+      </div>
+      <input type="range" min="0" max="3" step="0.1" v-model.number="food.quantity" class="qty-slider" />
+      <div class="food-mini-spec">
+        (1인분 기준: {{ Math.round(food.calories) }}kcal | 탄 {{ Math.round(food.carbs) }}g)
+      </div>
+    </template>
 
-              <input
-                type="range"
-                min="0"
-                max="3"
-                step="0.1"
-                v-model.number="food.quantity"
-                class="qty-slider"
-              />
+    <template v-else>
+      <div class="food-info-row">
+        <input type="text" v-model="food.foodName" class="edit-input name-input" placeholder="음식명 입력" />
+        <button class="del-btn" @click="removeFood(index)">
+          <i class="ti ti-trash"></i> 삭제
+        </button>
+      </div>
+      <div class="food-edit-specs">
+        <label>칼로리 <input type="number" v-model.number="food.calories"></label>
+        <label>탄수화물 <input type="number" v-model.number="food.carbs"></label>
+        <label>단백질 <input type="number" v-model.number="food.protein"></label>
+        <label>지방 <input type="number" v-model.number="food.fat"></label>
+      </div>
+    </template>
+  </div>
 
-              <div class="food-mini-spec">
-                (1인분 기준: {{ food.calories }}kcal | 탄 {{ food.carbs }}g)
-              </div>
-            </div>
-
-            <button
-              v-if="isMyVideo"
-              class="save-nutri-btn"
-              @click="onSaveQuantities"
-            >
-              조절한 양으로 최종 저장하기
-            </button>
-          </div>
+  <div v-if="isMyVideo" class="action-buttons">
+    <template v-if="!editMode">
+      <button class="save-nutri-btn edit-toggle-btn" @click="editMode = true">음식 직접 추가 / 수정하기</button>
+      <button class="save-nutri-btn" @click="onSaveNutritions">조절한 양으로 최종 저장하기</button>
+    </template>
+    <template v-else>
+      <button class="save-nutri-btn add-btn" @click="addFood">+ 새로운 음식 항목 추가</button>
+      <div class="edit-actions">
+        <button class="cancel-btn" @click="editMode = false">취소</button>
+        <button class="save-nutri-btn confirm-btn" @click="onSaveNutritions">수정 완료</button>
+      </div>
+    </template>
+  </div>
+</div>
 
           <!-- 미분석 / 실패 -->
           <p v-else class="ai-hint">
@@ -716,5 +754,82 @@ async function onRetryAnalysis() {
 @keyframes modal-in {
   from { opacity: 0; transform: scale(0.85); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+.edit-input {
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  width: 65%;
+}
+.del-btn {
+  background: #ffe3e3;
+  color: #e05050;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.food-edit-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.food-edit-specs label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0,0,0,0.02);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.food-edit-specs input {
+  width: 45px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 4px;
+  text-align: right;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.edit-toggle-btn {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.add-btn {
+  background: #e8f4ff;
+  color: #3a8fe8;
+}
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+.cancel-btn {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.confirm-btn {
+  flex: 2;
+  margin-top: 0;
 }
 </style>
