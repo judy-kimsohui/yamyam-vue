@@ -1374,6 +1374,38 @@ function getVideo(userId, mealType) {
   return videoMap.value[`${userId}_${mealType}`] || null;
 }
 
+function mergeStableVideoMap(current, nextList) {
+  const nextMap = {};
+
+  nextList.forEach((v) => {
+    const key = `${v.userId}_${v.mealType}`;
+    const existing = current[key];
+
+    if (!existing) {
+      nextMap[key] = v;
+      return;
+    }
+
+    const existingStatus = String(existing.status || "").toUpperCase();
+    const nextStatus = String(v.status || "").toUpperCase();
+    const sameVideo = existing.id === v.id;
+    const keepCurrentUrl =
+      sameVideo &&
+      existing.videoUrl &&
+      v.videoUrl &&
+      existingStatus === "DONE" &&
+      nextStatus === "DONE";
+
+    nextMap[key] = {
+      ...existing,
+      ...v,
+      videoUrl: keepCurrentUrl ? existing.videoUrl : v.videoUrl,
+    };
+  });
+
+  return nextMap;
+}
+
 // 🌟 teamInfo(방장 정보 등) 저장이 빠지지 않도록 유지
 const loadTeamDetail = async () => {
   if (!selectedGroup.value?.id) return;
@@ -1402,12 +1434,8 @@ const loadVideos = async () => {
       }`,
       variables: { teamId: String(selectedGroup.value.id), date: feedDate.value },
     });
-    const map = {};
     const list = res.data?.data?.videos ?? [];
-    list.forEach((v) => {
-      map[`${v.userId}_${v.mealType}`] = v;
-    });
-    videoMap.value = map;
+    videoMap.value = mergeStableVideoMap(videoMap.value, list);
   } catch (e) {
     videoMap.value = {};
   }
@@ -1852,12 +1880,8 @@ async function selectDay(d, { resetPolling = true } = {}) {
       }`,
       variables: { teamId: String(selectedGroup.value.id), date: calDateStr(d) },
     });
-    const map = {};
     const list = res.data?.data?.videos ?? [];
-    list.forEach((v) => {
-      map[`${v.userId}_${v.mealType}`] = v;
-    });
-    calendarVideoMap.value = map;
+    calendarVideoMap.value = mergeStableVideoMap(calendarVideoMap.value, list);
     await requestDailyEvaluation(calDateStr(d));
     if (resetPolling) startAnalysisPolling();
   } catch (e) {

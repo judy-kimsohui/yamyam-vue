@@ -36,11 +36,28 @@ function getSrc(el) {
   return el.getAttribute('src') || ''
 }
 
+function isHlsSource(src) {
+  if (!src) return false
+  try {
+    return new URL(src, window.location.href).pathname.endsWith('.m3u8')
+  } catch {
+    return src.split('?')[0].endsWith('.m3u8')
+  }
+}
+
 function attachHls(el, src) {
-  if (!src?.endsWith('.m3u8')) return
+  if (!isHlsSource(src)) return
   if (el.canPlayType('application/vnd.apple.mpegurl')) return
   if (!Hls.isSupported()) return
-  const hls = new Hls({ maxBufferLength: 10, enableWorker: true })
+  const hls = new Hls({
+    enableWorker: true,
+    lowLatencyMode: false,
+    startFragPrefetch: false,
+    maxBufferLength: 6,
+    maxMaxBufferLength: 12,
+    backBufferLength: 0,
+    maxBufferSize: 20 * 1000 * 1000,
+  })
   hls.loadSource(src)
   hls.attachMedia(el)
   el._hls = hls
@@ -66,7 +83,7 @@ function markLoading(el) {
 }
 
 function applyPreload(el) {
-  el.preload = 'auto'
+  el.preload = 'metadata'
   el._preloadStarted = true
 }
 
@@ -91,8 +108,8 @@ function tryPlay(el) {
   }
 }
 
-// Fires 600 px before the viewport — switches preload to "auto" so the browser
-// starts buffering before the video is actually visible.
+// Fires before the viewport and fetches metadata only. Full buffering starts
+// naturally when the browser actually plays the video.
 const preloadObserver = new IntersectionObserver((entries) => {
   entries.forEach(({ target: el, isIntersecting }) => {
     if (!isIntersecting || el._preloadStarted) return
@@ -119,7 +136,7 @@ export const autoplayWhenVisible = {
   mounted(el) {
     injectStyle()
 
-    el.loop = false
+    if (!el.hasAttribute('preload')) el.preload = 'metadata'
     el._hasLoaded = false
     el._preloadStarted = false
 
@@ -136,18 +153,13 @@ export const autoplayWhenVisible = {
     el.style.opacity = '0'
     el.style.transition = 'opacity 0.25s ease'
 
-    el._onTimeUpdate = () => {
-      if (el.currentTime >= 2) {
+    el._onEnded = () => {
+      if (!el.loop) {
         el.currentTime = 0
-        if (el._shouldPlay && el.paused) el.play().catch(() => {})
+        if (el._shouldPlay) el.play().catch(() => {})
       }
     }
-    el._onEnded = () => {
-      el.currentTime = 0
-      if (el._shouldPlay) el.play().catch(() => {})
-    }
 
-    el.addEventListener('timeupdate', el._onTimeUpdate)
     el.addEventListener('ended', el._onEnded)
 
     const src = getSrc(el)
@@ -159,8 +171,6 @@ export const autoplayWhenVisible = {
   },
 
   updated(el) {
-    el.loop = false
-
     // Vue re-renders can reset the preload attribute — re-apply our value.
     if (el._preloadStarted) applyPreload(el)
 
@@ -179,7 +189,6 @@ export const autoplayWhenVisible = {
 
   unmounted(el) {
     el._shouldPlay = false
-    el.removeEventListener('timeupdate', el._onTimeUpdate)
     el.removeEventListener('ended', el._onEnded)
     el._overlay?.remove()
     preloadObserver.unobserve(el)
