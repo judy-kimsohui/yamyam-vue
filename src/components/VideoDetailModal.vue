@@ -32,7 +32,7 @@ const isMyVideo = computed(
 //ai 분석 결과를 보유중인가?
 const hasAnalysis = computed(() => foodList.value.length > 0);
 
-const mealLabel = computed(() => {
+const mealLabel = computed(() => {  
   const map = { BREAKFAST: "아침", LUNCH: "점심", DINNER: "저녁" };
   return map[detail.value?.mealType] || detail.value?.mealType;
 });
