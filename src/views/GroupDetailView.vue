@@ -1125,6 +1125,7 @@
       @close="detailModal.open = false"
       @deleted="onVideoDeleted"
       @reupload="onReupload"
+      @updated="onVideoUpdated"
     />
 
     <!-- 그룹 설정 모달 -->
@@ -1177,6 +1178,12 @@ const showCalendar = ref(false);
 const dailyAiFeedback = ref("");
 const evaluatingDailyAi = ref(false);
 const dailyAiError = ref(false);
+const ANALYSIS_POLL_INTERVAL_MS = 3000;
+const ANALYSIS_POLL_MAX_ATTEMPTS = 40;
+const TEAM_REFRESH_INTERVAL_MS = 10000;
+let analysisPollTimer = null;
+let analysisPollAttempts = 0;
+let teamRefreshTimer = null;
 
 // ── 그룹 설정(방장/나가기/추방) ──
 const teamInfo = ref(null);
@@ -1354,12 +1361,75 @@ const loadVideos = async () => {
   }
 };
 
+function hasPendingAnalysis() {
+  return [...Object.values(videoMap.value), ...Object.values(calendarVideoMap.value)]
+    .some((v) => String(v?.status || "").toUpperCase() === "PENDING");
+}
+
+function stopAnalysisPolling() {
+  if (analysisPollTimer) {
+    clearInterval(analysisPollTimer);
+    analysisPollTimer = null;
+  }
+  analysisPollAttempts = 0;
+}
+
+function startAnalysisPolling() {
+  if (!hasPendingAnalysis()) {
+    stopAnalysisPolling();
+    return;
+  }
+  if (analysisPollTimer) return;
+
+  analysisPollAttempts = 0;
+  analysisPollTimer = setInterval(refreshPendingAnalysis, ANALYSIS_POLL_INTERVAL_MS);
+}
+
+async function refreshPendingAnalysis() {
+  if (++analysisPollAttempts > ANALYSIS_POLL_MAX_ATTEMPTS) {
+    stopAnalysisPolling();
+    return;
+  }
+
+  try {
+    await loadVideos();
+    await selectDay(selectedDay.value, { resetPolling: false });
+    if (!hasPendingAnalysis()) {
+      stopAnalysisPolling();
+    }
+  } catch (e) {
+    console.error("AI 분석 상태 갱신 실패:", e);
+  }
+}
+
+function stopTeamRefresh() {
+  if (teamRefreshTimer) {
+    clearInterval(teamRefreshTimer);
+    teamRefreshTimer = null;
+  }
+}
+
+function startTeamRefresh() {
+  if (teamRefreshTimer) return;
+  teamRefreshTimer = setInterval(refreshTeamVideos, TEAM_REFRESH_INTERVAL_MS);
+}
+
+async function refreshTeamVideos() {
+  try {
+    await loadVideos();
+    if (hasPendingAnalysis()) startAnalysisPolling();
+  } catch (e) {
+    console.error("그룹 영상 갱신 실패:", e);
+  }
+}
+
 onMounted(async () => {
   loading.value = true;
   await loadTeamDetail();
   await loadVideos();
   loading.value = false;
   selectDay(selectedDay.value);
+  startTeamRefresh();
 });
 
 const uploadModal = ref({
@@ -1384,6 +1454,35 @@ function onVideoDeleted(videoId) {
   if (key) delete videoMap.value[key];
   videoMap.value = { ...videoMap.value };
 }
+
+function patchVideoInMap(sourceMap, updated) {
+  const key = Object.keys(sourceMap.value).find(
+    (k) => sourceMap.value[k]?.id === updated.id,
+  );
+  if (!key) return;
+  sourceMap.value = {
+    ...sourceMap.value,
+    [key]: {
+      ...sourceMap.value[key],
+      ...updated,
+    },
+  };
+}
+
+function onVideoUpdated(updated) {
+  patchVideoInMap(videoMap, updated);
+  patchVideoInMap(calendarVideoMap, updated);
+  if (detailModal.value.video?.id === updated.id) {
+    detailModal.value = {
+      ...detailModal.value,
+      video: {
+        ...detailModal.value.video,
+        ...updated,
+      },
+    };
+  }
+}
+
 function onReupload({ videoId, teamId, mealType, mealDate }) {
   onVideoDeleted(videoId);
   openUpload(mealType);
@@ -1683,7 +1782,8 @@ function formatAiComment(comment) {
   }
 }
 
-async function selectDay(d) {
+async function selectDay(d, { resetPolling = true } = {}) {
+  if (resetPolling) stopAnalysisPolling();
   selectedDay.value = d;
   feedDateObj.value = new Date(currentYear.value, currentMonth.value, d);
   loadVideos();
@@ -1705,6 +1805,7 @@ async function selectDay(d) {
     });
     calendarVideoMap.value = map;
     await requestDailyEvaluation(calDateStr(d));
+    if (resetPolling) startAnalysisPolling();
   } catch (e) {
     console.error("달력 영상 로드 실패:", e);
   }
@@ -1788,6 +1889,8 @@ window.addEventListener("resize", onResize);
 
 onUnmounted(() => {
   window.removeEventListener("resize", onResize);
+  stopAnalysisPolling();
+  stopTeamRefresh();
   stopGroupCamera();
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
 });

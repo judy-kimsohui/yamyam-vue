@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import { useToast } from "../composables/useToast.js";
 const { showToast } = useToast();
@@ -8,7 +8,7 @@ const props = defineProps({
   video: { type: Object, required: true },
   myUserId: { type: [Number, String], default: null },
 });
-const emit = defineEmits(["close", "deleted", "reupload"]);
+const emit = defineEmits(["close", "deleted", "reupload", "updated"]);
 
 const detail = ref(null);
 const loading = ref(true);
@@ -18,6 +18,10 @@ const confirmingDelete = ref(false);
 const analysisStatus = ref(props.video.status || null);
 const retrying = ref(false);
 const retryMessage = ref(null);
+const ANALYSIS_POLL_INTERVAL_MS = 3000;
+const ANALYSIS_POLL_MAX_ATTEMPTS = 40;
+let analysisPollTimer = null;
+let analysisPollAttempts = 0;
 
 const isPending = computed(() => String(analysisStatus.value || '').toUpperCase() === 'PENDING');
 const isFailed = computed(() => String(analysisStatus.value || '').toUpperCase() === 'FAILED');
@@ -68,13 +72,13 @@ function removeFood(index) {
 
 
 
-onMounted(async () => {
+async function loadDetail() {
   try {
     const res = await axios.get(`/api/videos/${props.video.id}`);
     detail.value = res.data;
     analysisStatus.value = detail.value.status || null;
 
-    if (analysisStatus.value === 'DONE') {
+    if (String(analysisStatus.value || '').toUpperCase() === 'DONE') {
       const nutriRes = await axios.get(`/api/videos/${props.video.id}/nutrition`);
       // 서버에서 받은 데이터(foods 배열)를 로그로 찍어서 quantity가 진짜 들어있는지 마지막으로 확인
       console.log("받아온 음식 목록:", nutriRes.data.foods);
@@ -92,13 +96,46 @@ onMounted(async () => {
           quantity: Number(food.quantity) 
         }));
       }
+      stopAnalysisPolling();
+    } else if (String(analysisStatus.value || '').toUpperCase() === 'PENDING') {
+      startAnalysisPolling();
     }
   } catch (e) {
     console.error("데이터 로드 실패:", e);
     detail.value = { ...props.video };
+  }
+}
+
+function startAnalysisPolling() {
+  if (analysisPollTimer) return;
+  analysisPollAttempts = 0;
+  analysisPollTimer = setInterval(async () => {
+    if (++analysisPollAttempts > ANALYSIS_POLL_MAX_ATTEMPTS) {
+      stopAnalysisPolling();
+      return;
+    }
+    await loadDetail();
+  }, ANALYSIS_POLL_INTERVAL_MS);
+}
+
+function stopAnalysisPolling() {
+  if (analysisPollTimer) {
+    clearInterval(analysisPollTimer);
+    analysisPollTimer = null;
+  }
+  analysisPollAttempts = 0;
+}
+
+onMounted(async () => {
+  try {
+    await loadDetail();
   } finally {
     loading.value = false;
   }
+});
+
+onUnmounted(() => {
+  stopAnalysisPolling();
 });
 
 async function onSaveNutritions() {
@@ -115,6 +152,14 @@ async function onSaveNutritions() {
 
   try {
     await axios.put(`/api/videos/${props.video.id}/nutrition`, payload);
+    emit("updated", {
+      id: props.video.id,
+      calories: Math.round(totalNutrients.value.calories),
+      carbs: Math.round(totalNutrients.value.carbs),
+      protein: Math.round(totalNutrients.value.protein),
+      fat: Math.round(totalNutrients.value.fat),
+      status: "DONE",
+    });
     showToast("success", "식단 정보가 저장되었습니다!");
     editMode.value = false;
   } catch (e) {
@@ -168,7 +213,8 @@ async function onRetryAnalysis() {
     const res = await axios.post(`/api/videos/${props.video.id}/analyze`);
     if (res.status === 202) {
       analysisStatus.value = 'PENDING';
-      retryMessage.value = '분석 요청됨. 잠시 후 새로고침해주세요.';
+      startAnalysisPolling();
+      retryMessage.value = '분석 요청됨. 완료되면 자동으로 결과가 표시돼요.';
     } else {
       retryMessage.value = '이미 완료된 분석이에요.';
     }

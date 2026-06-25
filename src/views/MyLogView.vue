@@ -737,7 +737,10 @@ const onResize = () => {
   isWide.value = window.innerWidth >= 1200;
 };
 window.addEventListener("resize", onResize);
-onUnmounted(() => window.removeEventListener("resize", onResize));
+onUnmounted(() => {
+  window.removeEventListener("resize", onResize);
+  stopAnalysisPolling();
+});
 
 // 식사 필터 & 데이터
 const mealFilters = [
@@ -752,6 +755,10 @@ const loadingDayVideos = ref(false);
 const dailyAiFeedback = ref("");
 const evaluatingDailyAi = ref(false);
 const dailyAiError = ref(false);
+const ANALYSIS_POLL_INTERVAL_MS = 3000;
+const ANALYSIS_POLL_MAX_ATTEMPTS = 40;
+let analysisPollTimer = null;
+let analysisPollAttempts = 0;
 
 const trendPeriod = ref("week");
 
@@ -949,26 +956,81 @@ const targets = computed(() => {
 // ==============================================
 // 🎯 일일 비디오 및 영양 데이터 패치
 // ==============================================
+async function fetchMyVideosByDate(dateStr) {
+  const res = await axios.post("/graphql", {
+    query: `query GetMyVideos($userId: ID, $date: String!) {
+      videos(userId: $userId, date: $date) {
+        id userId uploaderNickName teamId mealType mealDate videoUrl
+        description calories carbs protein fat aiComment likeCount liked createdAt status
+      }
+    }`,
+    variables: { userId: String(auth.loginUser.value?.id), date: dateStr },
+  });
+  return res.data?.data?.videos ?? [];
+}
+
+function hasPendingAnalysis(videos = dayVideos.value) {
+  return videos.some((v) => String(v.status || "").toUpperCase() === "PENDING");
+}
+
+function stopAnalysisPolling() {
+  if (analysisPollTimer) {
+    clearInterval(analysisPollTimer);
+    analysisPollTimer = null;
+  }
+  analysisPollAttempts = 0;
+}
+
+function startAnalysisPolling() {
+  if (!hasPendingAnalysis()) {
+    stopAnalysisPolling();
+    return;
+  }
+  if (analysisPollTimer) return;
+
+  analysisPollAttempts = 0;
+  analysisPollTimer = setInterval(refreshPendingAnalysis, ANALYSIS_POLL_INTERVAL_MS);
+}
+
+async function refreshPendingAnalysis() {
+  if (++analysisPollAttempts > ANALYSIS_POLL_MAX_ATTEMPTS) {
+    stopAnalysisPolling();
+    return;
+  }
+
+  const dateStr = toDateStr(
+    selectedDay.value,
+    currentYear.value,
+    currentMonth.value,
+  );
+
+  try {
+    const videos = await fetchMyVideosByDate(dateStr);
+    dayVideos.value = videos;
+    await fetchAiIntegratedData(trendBaseDate, trendPeriod.value);
+
+    if (!hasPendingAnalysis(videos)) {
+      stopAnalysisPolling();
+      await requestDailyEvaluation();
+    }
+  } catch (e) {
+    console.error("AI 분석 상태 갱신 실패:", e);
+  }
+}
+
 async function selectDay(d) {
   selectedDay.value = d;
   loadingDayVideos.value = true;
   const dateStr = toDateStr(d, currentYear.value, currentMonth.value);
 
   try {
-    const res = await axios.post("/graphql", {
-      query: `query GetMyVideos($userId: ID, $date: String!) {
-        videos(userId: $userId, date: $date) {
-          id userId uploaderNickName teamId mealType mealDate videoUrl
-          description calories carbs protein fat aiComment likeCount liked createdAt status
-        }
-      }`,
-      variables: { userId: String(auth.loginUser.value?.id), date: dateStr },
-    });
-    dayVideos.value = res.data?.data?.videos ?? [];
+    stopAnalysisPolling();
+    dayVideos.value = await fetchMyVideosByDate(dateStr);
 
     // 차트는 선택일이 아니라 오늘 기준으로 고정
     await fetchAiIntegratedData(trendBaseDate, trendPeriod.value);
     await requestDailyEvaluation();
+    startAnalysisPolling();
   } catch (err) {
     console.error(err);
     dayVideos.value = [];
