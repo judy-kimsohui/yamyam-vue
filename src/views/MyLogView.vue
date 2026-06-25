@@ -986,20 +986,33 @@ const aiTrendData = ref({ calories: [], carbs: [], protein: [], fat: [] });
 let trendRequestSeq = 0;
 
 // 3. GraphQL 일자별 조회 기반 트렌드 구성
-async function fetchAiIntegratedData(dateString, period) {
+async function fetchAiIntegratedData(_dateString, period) {
   const requestSeq = ++trendRequestSeq;
-  const buckets = buildTrendBuckets(dateString, period);
-  const filledBuckets = [];
 
-  for (const bucket of buckets) {
-    const totals = await fetchBucketTotals(bucket.dates);
-    filledBuckets.push({ ...bucket, totals });
+  try {
+    const res = await axios.get("/api/logs/trend", {
+      params: { period },
+      headers: authHeaders(),
+    });
+
+    if (requestSeq !== trendRequestSeq) return;
+
+    aiTrendData.value = {
+      calories: res.data?.calories ?? [],
+      carbs: res.data?.carbs ?? [],
+      protein: res.data?.protein ?? [],
+      fat: res.data?.fat ?? [],
+    };
+    aiSummaryStats.value = res.data?.summary ?? {
+      avgCalories: 0,
+      recordedDays: 0,
+    };
+  } catch (e) {
+    console.error("트렌드 데이터 조회 실패:", e);
+    if (requestSeq !== trendRequestSeq) return;
+    aiTrendData.value = { calories: [], carbs: [], protein: [], fat: [] };
+    aiSummaryStats.value = { avgCalories: 0, recordedDays: 0 };
   }
-
-  if (requestSeq !== trendRequestSeq) return;
-
-  aiTrendData.value = toTrendSeries(filledBuckets);
-  updateMonthlyStats(filledBuckets);
 }
 
 function buildTrendBuckets(dateString, period) {
