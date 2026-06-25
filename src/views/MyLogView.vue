@@ -254,7 +254,6 @@
               <video
                 :src="v.videoUrl"
                 v-lazy-video
-                loop
                 muted
                 playsinline
                 preload="metadata"
@@ -697,7 +696,6 @@
               <video
                 :src="v.videoUrl"
                 v-lazy-video
-                loop
                 muted
                 playsinline
                 preload="metadata"
@@ -1860,7 +1858,8 @@ onMounted(async () => {
   position: relative;
   width: 100%;
   aspect-ratio: 16/9;
-  background: #0f172a;
+  background: #fdf8f3;
+  overflow: hidden;
 }
 .mylog-video {
   width: 100%;
@@ -1881,7 +1880,7 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 700;
   color: #1e293b;
-  z-index: 2;
+  z-index: 3;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -1897,6 +1896,7 @@ onMounted(async () => {
   padding: 5px 8px;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 3;
 }
 .m-tag {
   font-size: 10px;
