@@ -973,6 +973,20 @@ function stopAnalysisPolling() {
   analysisPollAttempts = 0;
 }
 
+// Preserve object references for unchanged videos to prevent Vue from touching
+// their DOM elements (avoids video flicker during polling).
+function mergeVideoList(current, next) {
+  if (!current.length) return next
+  const currMap = new Map(current.map(v => [v.id, v]))
+  return next.map(v => {
+    const existing = currMap.get(v.id)
+    if (existing && existing.status === v.status && existing.videoUrl === v.videoUrl) {
+      return existing
+    }
+    return v
+  })
+}
+
 function startAnalysisPolling() {
   if (!hasPendingAnalysis()) {
     stopAnalysisPolling();
@@ -998,7 +1012,7 @@ async function refreshPendingAnalysis() {
 
   try {
     const videos = await fetchMyVideosByDate(dateStr);
-    dayVideos.value = videos;
+    dayVideos.value = mergeVideoList(dayVideos.value, videos);
     await fetchAiIntegratedData(trendBaseDate, trendPeriod.value);
 
     if (!hasPendingAnalysis(videos)) {

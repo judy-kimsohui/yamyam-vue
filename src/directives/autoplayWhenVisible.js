@@ -1,37 +1,58 @@
 import Hls from 'hls.js'
 
-function attachHls(video) {
-  const src = video.src || video.getAttribute('src')
-  if (!src) return
+function getSrc(el) {
+  return el.getAttribute('src') || ''
+}
 
-  if (src.endsWith('.m3u8')) {
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari: native HLS support
-      video.src = src
-    } else if (Hls.isSupported()) {
-      const hls = new Hls({ maxBufferLength: 10 })
-      hls.loadSource(src)
-      hls.attachMedia(video)
-      video._hls = hls
-    }
+function attachHls(el, src) {
+  if (!src || !src.endsWith('.m3u8')) return
+  if (el.canPlayType('application/vnd.apple.mpegurl')) return // Safari native
+  if (!Hls.isSupported()) return
+
+  const hls = new Hls({ maxBufferLength: 10, enableWorker: true })
+  hls.loadSource(src)
+  hls.attachMedia(el)
+  el._hls = hls
+  el._hlsSrc = src
+}
+
+function destroyHls(el) {
+  if (el._hls) {
+    el._hls.destroy()
+    delete el._hls
+    delete el._hlsSrc
   }
 }
 
-function destroyHls(video) {
-  if (video._hls) {
-    video._hls.destroy()
-    delete video._hls
+function tryPlay(el) {
+  if (!el._shouldPlay) return
+
+  if (el.readyState >= 2) {
+    el.play().catch(() => {})
+    return
+  }
+
+  // Not enough data yet — wait for canplay before playing
+  if (!el._waitingForCanPlay) {
+    el._waitingForCanPlay = true
+    el.addEventListener('canplay', function onCanPlay() {
+      el._waitingForCanPlay = false
+      if (el._shouldPlay) el.play().catch(() => {})
+    }, { once: true })
   }
 }
 
 const observer = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
-      const video = entry.target
+      const el = entry.target
       if (entry.isIntersecting) {
-        video.play().catch(() => {})
+        el._shouldPlay = true
+        tryPlay(el)
       } else {
-        video.pause()
+        el._shouldPlay = false
+        el._waitingForCanPlay = false
+        el.pause()
       }
     })
   },
@@ -40,18 +61,31 @@ const observer = new IntersectionObserver(
 
 export const autoplayWhenVisible = {
   mounted(el) {
-    attachHls(el)
+    // Fade in once first frame is decoded
+    el.style.opacity = '0'
+    el.style.transition = 'opacity 0.35s ease'
+    el.addEventListener('loadeddata', () => {
+      el.style.opacity = '1'
+    }, { once: true })
+
+    const src = getSrc(el)
+    el._prevSrc = src
+    attachHls(el, src)
     observer.observe(el)
   },
-  updated(el, binding, vnode, prevVnode) {
-    // If src changed and is now HLS, re-attach
-    const newSrc = el.src || el.getAttribute('src')
-    if (newSrc && newSrc.endsWith('.m3u8') && !el._hls) {
-      destroyHls(el)
-      attachHls(el)
-    }
+
+  updated(el) {
+    const newSrc = getSrc(el)
+    if (newSrc === el._prevSrc) return // src unchanged — don't touch
+
+    el._prevSrc = newSrc
+    destroyHls(el)
+    attachHls(el, newSrc)
   },
+
   unmounted(el) {
+    el._shouldPlay = false
+    el._waitingForCanPlay = false
     observer.unobserve(el)
     destroyHls(el)
   },
