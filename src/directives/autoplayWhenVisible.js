@@ -1,6 +1,5 @@
 import Hls from 'hls.js'
 
-// Inject CSS once for overlay + spinner
 let styleInjected = false
 function injectStyle() {
   if (styleInjected) return
@@ -39,7 +38,7 @@ function getSrc(el) {
 
 function attachHls(el, src) {
   if (!src?.endsWith('.m3u8')) return
-  if (el.canPlayType('application/vnd.apple.mpegurl')) return // Safari native
+  if (el.canPlayType('application/vnd.apple.mpegurl')) return
   if (!Hls.isSupported()) return
   const hls = new Hls({ maxBufferLength: 10, enableWorker: true })
   hls.loadSource(src)
@@ -55,13 +54,20 @@ function destroyHls(el) {
 }
 
 function markReady(el) {
+  el._hasLoaded = true
   el._overlay?.classList.add('vlv-ready')
   el.style.opacity = '1'
 }
 
 function markLoading(el) {
+  if (el._hasLoaded) return
   el._overlay?.classList.remove('vlv-ready')
   el.style.opacity = '0'
+}
+
+function applyPreload(el) {
+  el.preload = 'auto'
+  el._preloadStarted = true
 }
 
 function tryPlay(el) {
@@ -73,43 +79,50 @@ function tryPlay(el) {
     return
   }
 
-  // Not buffered yet — show spinner and wait
   markLoading(el)
 
   if (!el._pendingCanPlay) {
     el._pendingCanPlay = true
     el.addEventListener('canplay', () => {
       el._pendingCanPlay = false
-      // Always mark ready regardless of shouldPlay so re-entry is instant
       markReady(el)
       if (el._shouldPlay) el.play().catch(() => {})
     }, { once: true })
   }
 }
 
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    const el = entry.target
-    if (entry.isIntersecting) {
+// Fires 600 px before the viewport — switches preload to "auto" so the browser
+// starts buffering before the video is actually visible.
+const preloadObserver = new IntersectionObserver((entries) => {
+  entries.forEach(({ target: el, isIntersecting }) => {
+    if (!isIntersecting || el._preloadStarted) return
+    applyPreload(el)
+    preloadObserver.unobserve(el)
+  })
+}, { rootMargin: '600px 0px', threshold: 0 })
+
+// Fires when any pixel of the video enters/leaves the viewport.
+// threshold: 0 means pause only when completely off screen (not at 25%).
+const playObserver = new IntersectionObserver((entries) => {
+  entries.forEach(({ target: el, isIntersecting }) => {
+    if (isIntersecting) {
       el._shouldPlay = true
       tryPlay(el)
     } else {
       el._shouldPlay = false
-      el._pendingCanPlay = false
       el.pause()
-      // Keep overlay/opacity as-is when scrolling away — no flash on re-entry
     }
   })
-}, { threshold: 0.25 })
+}, { threshold: 0 })
 
 export const autoplayWhenVisible = {
   mounted(el) {
     injectStyle()
 
-    // Disable native loop — controlled manually for the 2-second limit
     el.loop = false
+    el._hasLoaded = false
+    el._preloadStarted = false
 
-    // Inject beige loading overlay as first child of parent
     const overlay = document.createElement('div')
     overlay.className = 'vlv-overlay'
     overlay.innerHTML = '<div class="vlv-spinner"></div>'
@@ -120,18 +133,15 @@ export const autoplayWhenVisible = {
     }
     el._overlay = overlay
 
-    // Start invisible; overlay covers until ready
     el.style.opacity = '0'
     el.style.transition = 'opacity 0.25s ease'
 
-    // 2-second clip limit — seamless loop
     el._onTimeUpdate = () => {
       if (el.currentTime >= 2) {
         el.currentTime = 0
         if (el._shouldPlay && el.paused) el.play().catch(() => {})
       }
     }
-    // Handle videos shorter than 2 s
     el._onEnded = () => {
       el.currentTime = 0
       if (el._shouldPlay) el.play().catch(() => {})
@@ -143,29 +153,37 @@ export const autoplayWhenVisible = {
     const src = getSrc(el)
     el._prevSrc = src
     attachHls(el, src)
-    observer.observe(el)
+
+    preloadObserver.observe(el)
+    playObserver.observe(el)
   },
 
   updated(el) {
-    // Always keep native loop disabled even after Vue re-renders the attribute
     el.loop = false
+
+    // Vue re-renders can reset the preload attribute — re-apply our value.
+    if (el._preloadStarted) applyPreload(el)
 
     const newSrc = getSrc(el)
     if (newSrc === el._prevSrc) return
 
     el._prevSrc = newSrc
+    el._hasLoaded = false
+    el._preloadStarted = false
     markLoading(el)
     destroyHls(el)
     attachHls(el, newSrc)
+
+    preloadObserver.observe(el)
   },
 
   unmounted(el) {
     el._shouldPlay = false
-    el._pendingCanPlay = false
     el.removeEventListener('timeupdate', el._onTimeUpdate)
     el.removeEventListener('ended', el._onEnded)
     el._overlay?.remove()
-    observer.unobserve(el)
+    preloadObserver.unobserve(el)
+    playObserver.unobserve(el)
     destroyHls(el)
   },
 }

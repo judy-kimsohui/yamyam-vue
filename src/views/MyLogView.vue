@@ -971,16 +971,20 @@ function stopAnalysisPolling() {
   analysisPollAttempts = 0;
 }
 
-// Preserve object references for unchanged videos to prevent Vue from touching
-// their DOM elements (avoids video flicker during polling).
+// Preserve object references for unchanged videos so Vue never touches those
+// <video> DOM elements (avoids any reload/flicker during polling).
 function mergeVideoList(current, next) {
   if (!current.length) return next
   const currMap = new Map(current.map(v => [v.id, v]))
   return next.map(v => {
     const existing = currMap.get(v.id)
-    if (existing && existing.status === v.status && existing.videoUrl === v.videoUrl) {
-      return existing
-    }
+    if (!existing) return v
+    // DONE videos: keep existing reference unconditionally.
+    // The video is already playing — even if the server returns a refreshed
+    // presigned URL, we don't want to reload a video that's already on screen.
+    if (existing.status === 'DONE' && v.status === 'DONE') return existing
+    // Other statuses: replace only if something meaningful changed
+    if (existing.status === v.status && existing.videoUrl === v.videoUrl) return existing
     return v
   })
 }
