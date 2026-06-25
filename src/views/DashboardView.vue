@@ -271,15 +271,11 @@
           </div>
           <div v-else class="mylog-grid-2">
             <div v-for="v in filteredDayVideos" :key="v.id" class="mylog-card">
-              <video
+              <StickerVideo
                 :src="v.videoUrl"
-                v-lazy-video
-                loop
-                muted
-                playsinline
-                preload="metadata"
+                loop muted playsinline preload="metadata"
                 class="mylog-video"
-              ></video>
+              />
               <span v-if="v.description" class="mylog-center-desc">{{
                 v.description
               }}</span>
@@ -382,15 +378,11 @@
           </div>
           <div v-else class="mylog-grid-3">
             <div v-for="v in filteredDayVideos" :key="v.id" class="mylog-card">
-              <video
+              <StickerVideo
                 :src="v.videoUrl"
-                v-lazy-video
-                loop
-                muted
-                playsinline
-                preload="metadata"
+                loop muted playsinline preload="metadata"
                 class="mylog-video"
-              ></video>
+              />
               <span v-if="v.description" class="mylog-center-desc">{{
                 v.description
               }}</span>
@@ -966,7 +958,7 @@ onMounted(async () => {
   background: #f0f0f0;
 }
 .dash-logo-img {
-  height: 26px;
+  height: 28px;
   width: auto;
   display: block;
   user-select: none;
@@ -1114,7 +1106,7 @@ onMounted(async () => {
   position: relative;
   aspect-ratio: 1;
   border-radius: 12px;
-  overflow: visible;
+  overflow: hidden;
   cursor: default;
 }
 .meal-slot-video {
@@ -1409,7 +1401,7 @@ onMounted(async () => {
 /* -- 영상 카드 공통 -- */
 .mylog-card {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   border-radius: 12px;
 }
 .mylog-video {

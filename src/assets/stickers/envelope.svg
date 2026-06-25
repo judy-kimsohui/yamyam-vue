@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <defs>
+    <filter id="o" x="-25%" y="-25%" width="150%" height="150%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.5" result="e"/>
+      <feFlood flood-color="white" result="w"/>
+      <feComposite in="w" in2="e" operator="in" result="ol"/>
+      <feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#o)">
+    <!-- 봉투 몸체 -->
+    <rect x="6" y="18" width="48" height="34" rx="4" fill="#f0e0cc"/>
+    <!-- 봉투 뒷면 -->
+    <path d="M6,52 L24,36 L30,40 L36,36 L54,52Z" fill="#e8d0b8"/>
+    <!-- 봉투 접힌 부분 -->
+    <path d="M6,18 L30,36 L54,18Z" fill="#e0c8b0"/>
+    <!-- 봉투 측면 삼각형 -->
+    <path d="M6,18 L6,52 L24,36Z" fill="#e8d0b8"/>
+    <path d="M54,18 L54,52 L36,36Z" fill="#e8d0b8"/>
+    <!-- 하트 씰 -->
+    <path d="M27,36 C27,33.5 30,33.5 30,36 C30,38.5 28,41 28,41 C28,41 27,38.5 27,36Z" fill="#f5a0b8"/>
+    <path d="M30,36 C30,33.5 33,33.5 33,36 C33,38.5 31,41 31,41 C31,41 30,38.5 30,36Z" fill="#f5a0b8"/>
+    <!-- 작은 꽃 장식 -->
+    <circle cx="14" cy="42" r="2.5" fill="#f5c0d0"/>
+    <circle cx="14" cy="37" r="1.5" fill="#f5c0d0"/>
+    <circle cx="19" cy="42" r="1.5" fill="#f5c0d0"/>
+  </g>
+</svg>

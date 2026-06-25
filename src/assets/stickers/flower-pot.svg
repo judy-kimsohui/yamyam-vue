@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <defs>
+    <filter id="o" x="-25%" y="-25%" width="150%" height="150%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.5" result="e"/>
+      <feFlood flood-color="white" result="w"/>
+      <feComposite in="w" in2="e" operator="in" result="ol"/>
+      <feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#o)">
+    <!-- 화분 몸체 -->
+    <path d="M18,36 L20,54 Q20,58 24,58 L36,58 Q40,58 40,54 L42,36 Z" fill="#d4a96a"/>
+    <!-- 화분 테두리 -->
+    <rect x="16" y="32" width="28" height="6" rx="3" fill="#c09050"/>
+    <!-- 흙 -->
+    <ellipse cx="30" cy="36" rx="12" ry="4" fill="#8b6040"/>
+    <!-- 줄기 -->
+    <path d="M30,36 L30,24" stroke="#7ab870" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M30,30 Q22,26 20,20 Q24,26 30,30Z" fill="#8dba80"/>
+    <path d="M30,28 Q38,24 40,18 Q36,24 30,28Z" fill="#8dba80"/>
+    <!-- 꽃 -->
+    <circle cx="26" cy="20" r="5" fill="#f5a0c0"/>
+    <circle cx="34" cy="18" r="5" fill="#f5a0c0"/>
+    <circle cx="30" cy="14" r="5" fill="#f5b8d0"/>
+    <!-- 꽃 중심 -->
+    <circle cx="26" cy="20" r="2" fill="#f5d878"/>
+    <circle cx="34" cy="18" r="2" fill="#f5d878"/>
+    <circle cx="30" cy="14" r="2" fill="#f5d878"/>
+    <!-- happy days 라벨 -->
+    <rect x="20" y="42" width="20" height="10" rx="2" fill="rgba(255,255,255,0.4)"/>
+    <text x="30" y="48.5" text-anchor="middle" font-size="4.5" fill="#8b6040" font-family="sans-serif" font-weight="700">happy days</text>
+  </g>
+</svg>
