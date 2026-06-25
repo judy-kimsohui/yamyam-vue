@@ -128,6 +128,13 @@
             <span class="ai-badge"><i class="ti ti-robot"></i> AI 코멘트</span>
           </div>
           <p class="ai-text">{{ dailyAiComment }}</p>
+          <button
+            v-if="dailyAiError"
+            class="eval-btn retry-ai-btn"
+            @click="requestDailyEvaluation"
+          >
+            다시 AI 피드백 받기
+          </button>
         </div>
       </section>
 
@@ -622,6 +629,13 @@
                 >
               </div>
               <p class="ai-text">{{ dailyAiComment }}</p>
+              <button
+                v-if="dailyAiError"
+                class="eval-btn retry-ai-btn"
+                @click="requestDailyEvaluation"
+              >
+                다시 AI 피드백 받기
+              </button>
             </div>
             <div class="ai-feedback-card desk-ai empty" v-else>
               <i class="ti ti-robot-off"></i>
@@ -710,6 +724,9 @@ const mealFilters = [
 const activeFilter = ref("all");
 const dayVideos = ref([]);
 const loadingDayVideos = ref(false);
+const dailyAiFeedback = ref("");
+const evaluatingDailyAi = ref(false);
+const dailyAiError = ref(false);
 
 const trendPeriod = ref("week");
 
@@ -759,9 +776,15 @@ function toDateStr(d, y, m) {
 // 🎯 핵심 추가 로직: 프로필 로딩 및 맞춤형 권장량 계산 (Mifflin-St Jeor)
 // ==============================================
 
-// MyLogView.vue 내에 추가할 함수
 async function requestDailyEvaluation() {
-  loadingDayVideos.value = true; // 평가 중 로딩 표시
+  if (dailyTotals.value.calories <= 0) {
+    dailyAiFeedback.value = "";
+    dailyAiError.value = false;
+    return;
+  }
+
+  evaluatingDailyAi.value = true;
+  dailyAiError.value = false;
   try {
     const dateStr = toDateStr(
       selectedDay.value,
@@ -772,17 +795,61 @@ async function requestDailyEvaluation() {
       `/api/logs/daily/evaluate?date=${dateStr}`,
       null,
       {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }, // 토큰 확인 필요
+        headers: authHeaders(),
       },
     );
 
-    // AI 피드백을 상태 변수에 저장
-    const aiData = JSON.parse(res.data.aiComment);
-    // 이제 화면에 aiData.summary 등이 뿌려집니다.
+    dailyAiFeedback.value = formatAiComment(res.data?.aiComment);
   } catch (e) {
-    alert("평가 생성 실패: " + e.message);
+    console.error("AI 피드백 생성 실패:", e);
+    const dateStr = toDateStr(
+      selectedDay.value,
+      currentYear.value,
+      currentMonth.value,
+    );
+    const cached = await fetchDailyAiComment(dateStr);
+    if (!cached) {
+      dailyAiError.value = true;
+      dailyAiFeedback.value =
+        "AI 피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    }
   } finally {
-    loadingDayVideos.value = false;
+    evaluatingDailyAi.value = false;
+  }
+}
+
+async function fetchDailyAiComment(dateStr) {
+  try {
+    const res = await axios.get("/api/logs/daily/ai-comment", {
+      params: { date: dateStr },
+      headers: authHeaders(),
+    });
+    const comment = formatAiComment(res.data?.aiComment);
+    dailyAiFeedback.value = comment;
+    dailyAiError.value = false;
+    return Boolean(comment);
+  } catch (e) {
+    console.error("저장된 AI 피드백 조회 실패:", e);
+    return false;
+  }
+}
+
+function authHeaders() {
+  const token =
+    localStorage.getItem("yamyam_token") || localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function formatAiComment(comment) {
+  if (!comment) return "";
+  const text = String(comment).trim();
+  if (!text.startsWith("{")) return text;
+
+  try {
+    const parsed = JSON.parse(text);
+    return [parsed.summary, parsed.advice].filter(Boolean).join(" ");
+  } catch {
+    return text;
   }
 }
 
@@ -820,7 +887,7 @@ const targets = computed(() => {
   bmr += gender === "MALE" || gender === "M" ? 5 : -161;
 
   // 활동 대사량 (TDEE) - 보통 활동 1.375
-  let tdee = bmr * 1.375;
+  let tdee = bmr * 1.75;
 
   let targetKcal = tdee;
   let carbRatio = 0.5; // 탄수화물 50%
@@ -875,9 +942,11 @@ async function selectDay(d) {
 
     // 차트 트렌드 데이터 최신화
     await fetchAiIntegratedData(dateStr, trendPeriod.value);
+    await requestDailyEvaluation();
   } catch (err) {
     console.error(err);
     dayVideos.value = [];
+    dailyAiFeedback.value = "";
   } finally {
     loadingDayVideos.value = false;
   }
@@ -948,10 +1017,9 @@ const dailyTotals = computed(() => {
 });
 
 const dailyAiComment = computed(() => {
-  const comments = dayVideos.value
-    .filter((v) => v.aiComment && v.aiComment.trim() !== "")
-    .map((v) => v.aiComment);
-  return comments.length > 0 ? comments[0] : null;
+  return evaluatingDailyAi.value
+    ? "AI가 오늘의 영양 균형을 분석하는 중입니다..."
+    : dailyAiFeedback.value;
 });
 
 function percent(current, target) {
@@ -1244,6 +1312,13 @@ onMounted(async () => {
   color: #334155;
   margin: 0;
   word-break: keep-all;
+}
+.retry-ai-btn {
+  margin-top: 12px;
+  width: auto;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12px;
 }
 
 /* =========================================================

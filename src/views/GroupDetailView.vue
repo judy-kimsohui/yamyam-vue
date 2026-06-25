@@ -150,6 +150,13 @@
           <div class="day-ai">
             <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
+          <button
+            v-if="dailyAiError"
+            class="retry-ai-btn"
+            @click="requestDailyEvaluation(calDateStr(selectedDay))"
+          >
+            다시 AI 피드백 받기
+          </button>
         </div>
 
         <div class="member-summary-list">
@@ -535,6 +542,13 @@
           <div class="day-ai">
             <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
+          <button
+            v-if="dailyAiError"
+            class="retry-ai-btn"
+            @click="requestDailyEvaluation(calDateStr(selectedDay))"
+          >
+            다시 AI 피드백 받기
+          </button>
         </div>
 
         <div class="member-summary-list">
@@ -831,6 +845,13 @@
           <div class="day-ai">
             <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
+          <button
+            v-if="dailyAiError"
+            class="retry-ai-btn"
+            @click="requestDailyEvaluation(calDateStr(selectedDay))"
+          >
+            다시 AI 피드백 받기
+          </button>
         </div>
 
         <div class="member-summary-list">
@@ -1153,6 +1174,9 @@ const teamMembers = ref([]);
 const videoMap = ref({});
 const loading = ref(false);
 const showCalendar = ref(false);
+const dailyAiFeedback = ref("");
+const evaluatingDailyAi = ref(false);
+const dailyAiError = ref(false);
 
 // ── 그룹 설정(방장/나가기/추방) ──
 const teamInfo = ref(null);
@@ -1545,6 +1569,7 @@ const submitUpload = async () => {
 
     closeUpload();
     await loadVideos();
+    await selectDay(selectedDay.value);
   } catch (e) {
     showToast("error", "업로드 실패", e.response?.data || "서버 오류");
   }
@@ -1592,6 +1617,72 @@ function calDateStr(day) {
   return `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+async function requestDailyEvaluation(dateStr) {
+  if (myDayRecord.value.calories <= 0) {
+    dailyAiFeedback.value = "";
+    dailyAiError.value = false;
+    return;
+  }
+
+  evaluatingDailyAi.value = true;
+  dailyAiError.value = false;
+  try {
+    const res = await axios.post(
+      `/api/logs/daily/evaluate?date=${dateStr}`,
+      null,
+      {
+        headers: authHeaders(),
+      },
+    );
+    dailyAiFeedback.value = formatAiComment(res.data?.aiComment);
+  } catch (e) {
+    console.error("AI 피드백 생성 실패:", e);
+    const cached = await fetchDailyAiComment(dateStr);
+    if (!cached) {
+      dailyAiError.value = true;
+      dailyAiFeedback.value =
+        "AI 피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    }
+  } finally {
+    evaluatingDailyAi.value = false;
+  }
+}
+
+async function fetchDailyAiComment(dateStr) {
+  try {
+    const res = await axios.get("/api/logs/daily/ai-comment", {
+      params: { date: dateStr },
+      headers: authHeaders(),
+    });
+    const comment = formatAiComment(res.data?.aiComment);
+    dailyAiFeedback.value = comment;
+    dailyAiError.value = false;
+    return Boolean(comment);
+  } catch (e) {
+    console.error("저장된 AI 피드백 조회 실패:", e);
+    return false;
+  }
+}
+
+function authHeaders() {
+  const token =
+    localStorage.getItem("yamyam_token") || localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function formatAiComment(comment) {
+  if (!comment) return "";
+  const text = String(comment).trim();
+  if (!text.startsWith("{")) return text;
+
+  try {
+    const parsed = JSON.parse(text);
+    return [parsed.summary, parsed.advice].filter(Boolean).join(" ");
+  } catch {
+    return text;
+  }
+}
+
 async function selectDay(d) {
   selectedDay.value = d;
   feedDateObj.value = new Date(currentYear.value, currentMonth.value, d);
@@ -1613,6 +1704,7 @@ async function selectDay(d) {
       map[`${v.userId}_${v.mealType}`] = v;
     });
     calendarVideoMap.value = map;
+    await requestDailyEvaluation(calDateStr(d));
   } catch (e) {
     console.error("달력 영상 로드 실패:", e);
   }
@@ -1640,10 +1732,12 @@ const myDayRecord = computed(() => {
     },
     { calories: 0, carbs: 0, protein: 0, fat: 0 },
   );
-  let aiComment = myVideos.find((v) => v.aiComment)?.aiComment;
-  if (!aiComment) {
+  let aiComment = dailyAiFeedback.value;
+  if (evaluatingDailyAi.value) {
+    aiComment = "AI가 오늘의 영양 균형을 분석하는 중입니다...";
+  } else if (!aiComment) {
     if (myVideos.length === 0) aiComment = "이 날 기록된 나의 식단이 없습니다.";
-    else aiComment = "AI 영양 분석이 진행 중이거나 코멘트가 없습니다.";
+    else aiComment = "분석 완료 후 AI 식단 피드백이 표시됩니다.";
   }
   return {
     calories: Math.round(totals.calories),
@@ -2461,6 +2555,17 @@ function onMouseUp(e) {
   border-radius: 20px;
   flex-shrink: 0;
   margin-top: 1px;
+}
+.retry-ai-btn {
+  align-self: flex-start;
+  border: none;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 9px 14px;
 }
 
 .member-summary-list {
