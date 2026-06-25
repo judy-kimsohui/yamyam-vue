@@ -135,7 +135,8 @@
       v-if="isUploadModalOpen"
       :teams="groups"
       :default-meal-type="uploadMealType"
-      @close="isUploadModalOpen = false"
+      :uploading="isVideoUploading"
+      @close="!isVideoUploading && (isUploadModalOpen = false)"
       @upload="onVideoUploadSubmit"
     />
     <!-- 그룹 생성 모달 -->
@@ -232,6 +233,7 @@ const { groups, selectedGroup } = useStore();
 
 const subView = ref("groups");
 const isUploadModalOpen = ref(false);
+const isVideoUploading = ref(false);
 const isCreateModalOpen = ref(false);
 const isJoinModalOpen = ref(false);
 const newGroupName = ref("");
@@ -538,6 +540,8 @@ const onVideoUploadSubmit = async ({
   description,
   file,
 }) => {
+  if (isVideoUploading.value) return;
+  isVideoUploading.value = true;
   try {
     const contentType = file.type || "video/mp4";
 
@@ -595,6 +599,8 @@ const onVideoUploadSubmit = async ({
     showToast("success", "냠냠 로그가 업로드되었습니다!");
   } catch (e) {
     showToast("error", "업로드 실패", e.response?.data || "서버 오류");
+  } finally {
+    isVideoUploading.value = false;
   }
 };
 async function copyInviteCode(group) {

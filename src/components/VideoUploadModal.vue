@@ -1,9 +1,14 @@
 <template>
   <div class="modal-overlay" @click.self="handleClose">
     <div class="modal-window">
+      <div v-if="uploading" class="uploading-cover" aria-live="polite">
+        <div class="uploading-spinner"></div>
+        <div class="uploading-title">업로드 중...</div>
+        <div class="uploading-subtitle">영상 처리까지 잠시 기다려 주세요</div>
+      </div>
       <div class="modal-header">
         <h3 class="modal-title">얌얌 로그 업로드</h3>
-        <button class="modal-close" @click="handleClose">✕</button>
+        <button class="modal-close" :disabled="uploading" @click="handleClose">✕</button>
       </div>
 
       <form @submit.prevent="handleUpload">
@@ -25,12 +30,12 @@
         <div class="form-group">
           <!-- 파일 선택 전 -->
           <div v-if="!videoPreviewUrl" class="file-drop-area">
-            <button type="button" class="drop-btn" @click="fileInput.click()">
+            <button type="button" class="drop-btn" :disabled="uploading" @click="fileInput.click()">
               <i class="ti ti-folder-open" style="font-size:24px"></i>
               <span>파일 선택</span>
             </button>
             <span class="drop-or">또는</span>
-            <button type="button" class="drop-btn camera-btn" @click="openCamera">
+            <button type="button" class="drop-btn camera-btn" :disabled="uploading" @click="openCamera">
               <i class="ti ti-camera" style="font-size:24px"></i>
               <span>카메라 촬영</span>
             </button>
@@ -53,22 +58,22 @@
 
             <!-- 파일 변경 / 카메라 재촬영 -->
             <div class="change-btns">
-              <button type="button" class="btn-change-file" @click="fileInput.click()" title="파일 선택">
+              <button type="button" class="btn-change-file" :disabled="uploading" @click="fileInput.click()" title="파일 선택">
                 <i class="ti ti-folder-open"></i>
               </button>
-              <button type="button" class="btn-change-file" @click="openCamera" title="카메라 재촬영">
+              <button type="button" class="btn-change-file" :disabled="uploading" @click="openCamera" title="카메라 재촬영">
                 <i class="ti ti-camera"></i>
               </button>
             </div>
           </div>
 
-          <input ref="fileInput" type="file" accept="video/*" @change="onFileChange" style="display:none" />
+          <input ref="fileInput" type="file" accept="video/*" :disabled="uploading" @change="onFileChange" style="display:none" />
         </div>
 
         <div class="modal-actions">
-          <button type="button" @click="handleClose" class="btn-cancel">취소</button>
-          <button type="submit" class="btn-submit" :disabled="!canSubmit">
-            {{ selectedTeamIds.length > 1 ? `${selectedTeamIds.length}개 팀에 업로드` : '업로드' }}
+          <button type="button" @click="handleClose" class="btn-cancel" :disabled="uploading">취소</button>
+          <button type="submit" class="btn-submit" :disabled="!canSubmit || uploading">
+            {{ uploading ? '업로드 중...' : (selectedTeamIds.length > 1 ? `${selectedTeamIds.length}개 팀에 업로드` : '업로드') }}
           </button>
         </div>
       </form>
@@ -105,7 +110,11 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useToast } from '../composables/useToast.js'
 const { showToast } = useToast()
 
-const props = defineProps({ teams: Array, defaultMealType: String })
+const props = defineProps({
+  teams: Array,
+  defaultMealType: String,
+  uploading: { type: Boolean, default: false },
+})
 const emit = defineEmits(['close', 'upload'])
 
 const selectedTeamIds = ref([])
@@ -167,6 +176,7 @@ watch(videoPreviewUrl, async (url) => {
 })
 
 async function openCamera() {
+  if (props.uploading) return
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } },
@@ -229,13 +239,14 @@ function stopCamera() {
 }
 
 function handleClose() {
+  if (props.uploading) return
   stopCamera()
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value)
   emit('close')
 }
 
 function handleUpload() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value || props.uploading) return
   emit('upload', {
     teamIds: [...selectedTeamIds.value],
     mealType: mealType.value,
@@ -270,6 +281,7 @@ onUnmounted(() => {
   max-height: 92dvh;
   overflow-y: auto;
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+  position: relative;
 }
 .modal-window::-webkit-scrollbar { width: 4px; }
 .modal-window::-webkit-scrollbar-thumb { background: #e8d5d8; border-radius: 4px; }
@@ -297,6 +309,41 @@ onUnmounted(() => {
   font-size: 13px; color: #666; cursor: pointer; transition: background 0.15s;
 }
 .modal-close:hover { background: #eee; color: #000; }
+.modal-close:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.uploading-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.uploading-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(232, 144, 158, 0.22);
+  border-top-color: #e8909e;
+  border-radius: 50%;
+  animation: upload-spin 0.75s linear infinite;
+  margin-bottom: 14px;
+}
+.uploading-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #222;
+}
+.uploading-subtitle {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #777;
+}
+@keyframes upload-spin { to { transform: rotate(360deg); } }
 
 .form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
 .form-group label {
@@ -336,6 +383,7 @@ onUnmounted(() => {
   transition: all 0.18s; flex: 1;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
+.drop-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .drop-btn:hover { border-color: #e8909e; color: #e8909e; background: #fff5f7; }
 .camera-btn { background: #fff5f7; color: #e8909e; border-color: #f5c6ce; }
 .camera-btn:hover { background: #ffe0e8; color: #c0607a; border-color: #e8909e; }
@@ -391,6 +439,7 @@ onUnmounted(() => {
   font-size: 14px; font-weight: 500; color: #666; cursor: pointer; transition: background 0.15s;
 }
 .btn-cancel:hover { background: #ebebeb; color: #333; }
+.btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-submit {
   padding: 11px 22px; background: #e8909e; color: #fff;
   border: none; border-radius: 10px; font-size: 14px; font-weight: 700;

@@ -1016,12 +1016,17 @@
       @click.self="closeUpload"
     >
       <div class="modal-box">
+        <div v-if="isVideoUploading" class="uploading-cover" aria-live="polite">
+          <div class="uploading-spinner"></div>
+          <div class="uploading-title">업로드 중...</div>
+          <div class="uploading-subtitle">영상 처리까지 잠시 기다려 주세요</div>
+        </div>
         <div class="modal-header">
           <h3 class="modal-title">
             {{ mealTypes.find((m) => m.key === uploadModal.mealType)?.label }}
             업로드
           </h3>
-          <button class="modal-close" @click="closeUpload">✕</button>
+          <button class="modal-close" :disabled="isVideoUploading" @click="closeUpload">✕</button>
         </div>
         <form @submit.prevent="submitUpload">
           <div v-if="videoPreviewUrl" class="preview-wrap">
@@ -1048,22 +1053,22 @@
             >
 
             <div class="change-btns">
-              <button type="button" class="btn-change-file" @click="uploadFileInput.click()" title="파일 선택">
+              <button type="button" class="btn-change-file" :disabled="isVideoUploading" @click="uploadFileInput.click()" title="파일 선택">
                 <i class="ti ti-folder-open"></i>
               </button>
-              <button type="button" class="btn-change-file" @click="openGroupCamera" title="카메라 재촬영">
+              <button type="button" class="btn-change-file" :disabled="isVideoUploading" @click="openGroupCamera" title="카메라 재촬영">
                 <i class="ti ti-camera"></i>
               </button>
             </div>
           </div>
 
           <div v-else class="file-drop-area">
-            <button type="button" class="drop-btn" @click="uploadFileInput.click()">
+            <button type="button" class="drop-btn" :disabled="isVideoUploading" @click="uploadFileInput.click()">
               <i class="ti ti-folder-open" style="font-size:24px"></i>
               <span>파일 선택</span>
             </button>
             <span class="drop-or">또는</span>
-            <button type="button" class="drop-btn camera-btn" @click="openGroupCamera">
+            <button type="button" class="drop-btn camera-btn" :disabled="isVideoUploading" @click="openGroupCamera">
               <i class="ti ti-camera" style="font-size:24px"></i>
               <span>카메라 촬영</span>
             </button>
@@ -1073,20 +1078,21 @@
             ref="uploadFileInput"
             type="file"
             accept="video/*"
+            :disabled="isVideoUploading"
             @change="onUploadFileChange"
             style="display: none"
           />
 
           <div class="modal-actions">
-            <button type="button" @click="closeUpload" class="btn-cancel">
+            <button type="button" @click="closeUpload" class="btn-cancel" :disabled="isVideoUploading">
               취소
             </button>
             <button
               type="submit"
               class="btn-submit"
-              :disabled="!uploadModal.file"
+              :disabled="!uploadModal.file || isVideoUploading"
             >
-              업로드
+              {{ isVideoUploading ? "업로드 중..." : "업로드" }}
             </button>
           </div>
         </form>
@@ -1519,6 +1525,7 @@ const uploadModal = ref({
   description: "",
   file: null,
 });
+const isVideoUploading = ref(false);
 
 const detailModal = ref({ open: false, video: null });
 function openDetail(video) {
@@ -1611,10 +1618,12 @@ watch(videoPreviewUrl, async (url) => {
 });
 
 function openUpload(mealType) {
+  if (isVideoUploading.value) return;
   uploadModal.value = { open: true, mealType, description: "", file: null };
   videoPreviewUrl.value = null;
 }
 function closeUpload() {
+  if (isVideoUploading.value) return;
   stopGroupCamera();
   if (videoPreviewUrl.value) {
     URL.revokeObjectURL(videoPreviewUrl.value);
@@ -1623,6 +1632,7 @@ function closeUpload() {
   uploadModal.value.open = false;
 }
 function onUploadFileChange(e) {
+  if (isVideoUploading.value) return;
   if (!e.target.files.length) return;
   const file = e.target.files[0];
   uploadModal.value.file = file;
@@ -1631,6 +1641,7 @@ function onUploadFileChange(e) {
 }
 
 async function openGroupCamera() {
+  if (isVideoUploading.value) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } },
@@ -1703,9 +1714,10 @@ function stopGroupCamera() {
 // 또한 presigned 시도는 운영(S3) 환경에서만 하고, 로컬 개발(DEV)에서는
 // 곧바로 multipart fallback을 쓰도록 원복합니다.
 const submitUpload = async () => {
-  if (!uploadModal.value.file) return;
+  if (!uploadModal.value.file || isVideoUploading.value) return;
   const file = uploadModal.value.file;
   const contentType = file.type || "video/mp4";
+  isVideoUploading.value = true;
   try {
     let presigned = null;
     if (!import.meta.env.DEV) {
@@ -1747,11 +1759,14 @@ const submitUpload = async () => {
       });
     }
 
+    isVideoUploading.value = false;
     closeUpload();
     await loadVideos();
     await selectDay(selectedDay.value);
   } catch (e) {
     showToast("error", "업로드 실패", e.response?.data || "서버 오류");
+  } finally {
+    isVideoUploading.value = false;
   }
 };
 
@@ -2947,7 +2962,43 @@ function onMouseUp(e) {
   border-radius: 18px;
   width: 100%;
   max-width: 400px;
+  position: relative;
 }
+
+.uploading-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(2px);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.uploading-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #111;
+  border-radius: 50%;
+  animation: upload-spin 0.75s linear infinite;
+  margin-bottom: 14px;
+}
+.uploading-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111;
+}
+.uploading-subtitle {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #777;
+}
+@keyframes upload-spin { to { transform: rotate(360deg); } }
 
 /* 커스텀 확인 모달 */
 .confirm-box {
@@ -3028,6 +3079,10 @@ function onMouseUp(e) {
   color: #888;
   cursor: pointer;
 }
+.modal-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .file-drop-area {
   display: flex;
@@ -3062,6 +3117,10 @@ function onMouseUp(e) {
   border-color: #e8909e;
   color: #e8909e;
   background: #fff5f7;
+}
+.drop-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .camera-btn {
   background: #fff5f7;
@@ -3156,6 +3215,10 @@ function onMouseUp(e) {
 .btn-change-file:hover {
   background: rgba(0, 0, 0, 0.65);
 }
+.btn-change-file:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 .modal-actions {
   display: flex;
@@ -3169,6 +3232,10 @@ function onMouseUp(e) {
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
+}
+.btn-cancel:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .btn-submit {
   padding: 10px 18px;
