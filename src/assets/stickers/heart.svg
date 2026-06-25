@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <defs>
+    <filter id="o" x="-25%" y="-25%" width="150%" height="150%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.5" result="e"/>
+      <feFlood flood-color="white" result="w"/>
+      <feComposite in="w" in2="e" operator="in" result="ol"/>
+      <feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#o)">
+    <!-- 하트 메인 -->
+    <path d="M30,50 C30,50 8,36 8,22 C8,14 14,9 21,11 C25,12 28,15 30,18 C32,15 35,12 39,11 C46,9 52,14 52,22 C52,36 30,50 30,50 Z" fill="#f5a0b8"/>
+    <!-- 하트 하이라이트 -->
+    <path d="M18,16 C16,18 14,22 15,25" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- be kind 텍스트 -->
+    <text x="30" y="31" text-anchor="middle" font-size="7" fill="#c06080" font-family="sans-serif" font-weight="700">be kind</text>
+    <!-- 작은 하트 장식 -->
+    <path d="M24,40 C24,38.8 26,38.8 26,40 C26,41.2 25,42 25,42 C25,42 24,41.2 24,40Z" fill="#e07090"/>
+    <path d="M34,38 C34,36.8 36,36.8 36,38 C36,39.2 35,40 35,40 C35,40 34,39.2 34,38Z" fill="#e07090"/>
+    <!-- 반짝임 -->
+    <path d="M46,14 L47,11 L48,14 L51,15 L48,16 L47,19 L46,16 L43,15 Z" fill="#f5d0a0" opacity="0.9"/>
+    <path d="M12,32 L13,30 L14,32 L16,33 L14,34 L13,36 L12,34 L10,33 Z" fill="#f5d0a0" opacity="0.7"/>
+  </g>
+</svg>

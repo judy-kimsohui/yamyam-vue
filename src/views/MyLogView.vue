@@ -24,7 +24,8 @@
             @click="cell && selectDay(cell)"
           >
             <span class="cal-num">{{ cell }}</span>
-            <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
+            <span v-if="getDayEmoji(cell)" class="cal-expr" v-html="getDayEmoji(cell)"></span>
+            <span v-else-if="hasRecordInMonth(cell)" class="cal-dot"></span>
           </div>
         </div>
       </section>
@@ -66,7 +67,7 @@
           </div>
           <!-- 탄단지 서브 카드 -->
           <div class="macro-sub-grid">
-            <div class="macro-card">
+            <div class="macro-card macro-card--carbs">
               <div class="macro-label">탄수화물</div>
               <div class="macro-value small">
                 <span class="current">{{ Math.round(dailyTotals.carbs) }}</span
@@ -81,7 +82,7 @@
                 ></div>
               </div>
             </div>
-            <div class="macro-card">
+            <div class="macro-card macro-card--protein">
               <div class="macro-label">단백질</div>
               <div class="macro-value small">
                 <span class="current">{{
@@ -98,7 +99,7 @@
                 ></div>
               </div>
             </div>
-            <div class="macro-card">
+            <div class="macro-card macro-card--fat">
               <div class="macro-label">지방</div>
               <div class="macro-value small">
                 <span class="current">{{ Math.round(dailyTotals.fat) }}</span
@@ -117,7 +118,7 @@
         </div>
         <button
           v-if="!dailyAiComment"
-          @click="requestDailyEvaluation"
+          @click="requestDailyEvaluation(true)"
           class="eval-btn"
         >
           오늘 하루 식단 AI 평가받기 ✨
@@ -131,17 +132,17 @@
           <button
             v-if="dailyAiError"
             class="eval-btn retry-ai-btn"
-            @click="requestDailyEvaluation"
+            @click="requestDailyEvaluation(true)"
           >
             다시 AI 피드백 받기
           </button>
         </div>
       </section>
 
-      <!-- 3. 모바일 환경 하단 탭형 차트 요약 (맞춤형 목표선 적용) -->
+      <!-- 3. 모바일 연속 영양 분석 추이 (탄단지 포함 전체) -->
       <section class="daily-insight-panel trend-mobile-section">
         <div class="trend-ctrl-header">
-          <span class="trend-sec-title">연속 영양 분석 추이</span>
+          <span class="trend-sec-title">연속 영양 분석</span>
           <div class="trend-period-tabs">
             <button
               v-for="p in ['day', 'week', 'month']"
@@ -153,67 +154,71 @@
             </button>
           </div>
         </div>
-        <div class="mobile-chart-box">
-          <div class="chart-mini-label">📈 칼로리 섭취 및 목표 매핑 가이드</div>
-          <div class="svg-chart-container">
-            <svg class="insight-svg" viewBox="0 0 300 120">
-              <rect
-                x="0"
-                y="0"
-                width="300"
-                height="120"
-                fill="#fafafa"
-                rx="6"
-              />
-              <!-- 맞춤형 권장 칼로리 목표선 -->
-              <line
-                x1="10"
-                :y1="getSvgY(targets.calories, 'calories', 110, 90)"
-                x2="290"
-                :y2="getSvgY(targets.calories, 'calories', 110, 90)"
-                stroke="#fda4af"
-                stroke-dasharray="4 3"
-                stroke-width="1.5"
-              />
 
-              <g v-for="(pt, idx) in aiTrendData.calories" :key="idx">
-                <rect
-                  :x="barX(idx, aiTrendData.calories.length, 300)"
-                  :y="getSvgY(pt.value, 'calories', 110, 90)"
-                  :width="barWidth(aiTrendData.calories.length, 300)"
-                  :height="
-                    Math.max(
-                      110 - getSvgY(pt.value, 'calories', 110, 90),
-                      pt.hasRecord ? 2 : 0,
-                    )
-                  "
-                  :fill="pt.isForecast ? '#fbcfe8' : '#e8909e'"
-                  rx="3"
-                />
-                <text
-                  :x="barCenterX(idx, aiTrendData.calories.length, 300)"
-                  y="118"
-                  font-size="8"
-                  text-anchor="middle"
-                  fill="#666"
-                >
-                  {{ pt.label }}
-                </text>
-              </g>
-              <text
-                v-if="
-                  !aiTrendData.calories || aiTrendData.calories.length === 0
-                "
-                x="150"
-                y="60"
-                font-size="10"
-                text-anchor="middle"
-                fill="#94a3b8"
-              >
-                데이터를 불러오는 중입니다...
-              </text>
-            </svg>
+        <div class="trend-legend-info">
+          <span class="leg-item"><span class="leg-dot real"></span>실제</span>
+          <span class="leg-item"><span class="leg-dot forecast"></span>AI 권장</span>
+          <span class="leg-item"><span class="leg-line-dashed"></span>목표선</span>
+        </div>
+
+        <div class="trend-chart-card">
+          <div class="tchart-meta">
+            <span class="tchart-lbl">🔥 칼로리</span>
+            <span class="tchart-value-summary">{{ Math.round(dailyTotals.calories) }} / {{ targets.calories }} kcal</span>
           </div>
+          <svg class="trend-mini-svg" viewBox="0 0 280 70">
+            <rect width="280" height="70" fill="#f8fafc" rx="6" />
+            <line x1="5" :y1="getSvgY(targets.calories, 'calories')" x2="275" :y2="getSvgY(targets.calories, 'calories')" stroke="#ef4444" stroke-dasharray="3 2" stroke-width="1" />
+            <g v-for="(pt, i) in aiTrendData.calories" :key="i">
+              <rect :x="barX(i, aiTrendData.calories.length)" :y="getSvgY(pt.value, 'calories')" :width="barWidth(aiTrendData.calories.length)" :height="Math.max(62 - getSvgY(pt.value, 'calories'), pt.hasRecord ? 2 : 0)" :fill="pt.isForecast ? '#fbcfe8' : '#e8909e'" rx="2" />
+              <text :x="barCenterX(i, aiTrendData.calories.length)" y="68" font-size="7" text-anchor="middle" fill="#64748b">{{ pt.label }}</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="trend-chart-card">
+          <div class="tchart-meta">
+            <span class="tchart-lbl">🍞 탄수화물</span>
+            <span class="tchart-value-summary">{{ Math.round(dailyTotals.carbs) }}g / {{ targets.carbs }}g</span>
+          </div>
+          <svg class="trend-mini-svg" viewBox="0 0 280 70">
+            <rect width="280" height="70" fill="#f8fafc" rx="6" />
+            <line x1="5" :y1="getSvgY(targets.carbs, 'carbs')" x2="275" :y2="getSvgY(targets.carbs, 'carbs')" stroke="#3b82f6" stroke-dasharray="3 2" stroke-width="1" />
+            <g v-for="(pt, i) in aiTrendData.carbs" :key="i">
+              <rect :x="barX(i, aiTrendData.carbs.length)" :y="getSvgY(pt.value, 'carbs')" :width="barWidth(aiTrendData.carbs.length)" :height="Math.max(62 - getSvgY(pt.value, 'carbs'), pt.hasRecord ? 2 : 0)" :fill="pt.isForecast ? '#dbeafe' : '#60a5fa'" rx="2" />
+              <text :x="barCenterX(i, aiTrendData.carbs.length)" y="68" font-size="7" text-anchor="middle" fill="#64748b">{{ pt.label }}</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="trend-chart-card">
+          <div class="tchart-meta">
+            <span class="tchart-lbl">🥩 단백질</span>
+            <span class="tchart-value-summary">{{ Math.round(dailyTotals.protein) }}g / {{ targets.protein }}g</span>
+          </div>
+          <svg class="trend-mini-svg" viewBox="0 0 280 70">
+            <rect width="280" height="70" fill="#f8fafc" rx="6" />
+            <line x1="5" :y1="getSvgY(targets.protein, 'protein')" x2="275" :y2="getSvgY(targets.protein, 'protein')" stroke="#10b981" stroke-dasharray="3 2" stroke-width="1" />
+            <g v-for="(pt, i) in aiTrendData.protein" :key="i">
+              <rect :x="barX(i, aiTrendData.protein.length)" :y="getSvgY(pt.value, 'protein')" :width="barWidth(aiTrendData.protein.length)" :height="Math.max(62 - getSvgY(pt.value, 'protein'), pt.hasRecord ? 2 : 0)" :fill="pt.isForecast ? '#d1fae5' : '#34d399'" rx="2" />
+              <text :x="barCenterX(i, aiTrendData.protein.length)" y="68" font-size="7" text-anchor="middle" fill="#64748b">{{ pt.label }}</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="trend-chart-card">
+          <div class="tchart-meta">
+            <span class="tchart-lbl">🥑 지방</span>
+            <span class="tchart-value-summary">{{ Math.round(dailyTotals.fat) }}g / {{ targets.fat }}g</span>
+          </div>
+          <svg class="trend-mini-svg" viewBox="0 0 280 70">
+            <rect width="280" height="70" fill="#f8fafc" rx="6" />
+            <line x1="5" :y1="getSvgY(targets.fat, 'fat')" x2="275" :y2="getSvgY(targets.fat, 'fat')" stroke="#f59e0b" stroke-dasharray="3 2" stroke-width="1" />
+            <g v-for="(pt, i) in aiTrendData.fat" :key="i">
+              <rect :x="barX(i, aiTrendData.fat.length)" :y="getSvgY(pt.value, 'fat')" :width="barWidth(aiTrendData.fat.length)" :height="Math.max(62 - getSvgY(pt.value, 'fat'), pt.hasRecord ? 2 : 0)" :fill="pt.isForecast ? '#fef3c7' : '#fbbf24'" rx="2" />
+              <text :x="barCenterX(i, aiTrendData.fat.length)" y="68" font-size="7" text-anchor="middle" fill="#64748b">{{ pt.label }}</text>
+            </g>
+          </svg>
         </div>
       </section>
 
@@ -255,23 +260,17 @@
                 preload="metadata"
                 class="mylog-video"
               ></video>
+              <span class="mylog-meal-badge">{{ mealLabel(v.mealType) }}</span>
               <div class="macro-tags-overlay" v-if="v.calories">
                 <span class="m-tag c">탄 {{ Math.round(v.carbs || 0) }}g</span>
-                <span class="m-tag p"
-                  >단 {{ Math.round(v.protein || 0) }}g</span
-                >
+                <span class="m-tag p">단 {{ Math.round(v.protein || 0) }}g</span>
                 <span class="m-tag f">지 {{ Math.round(v.fat || 0) }}g</span>
-                <span class="m-tag k"
-                  >{{ Math.round(v.calories || 0) }}kcal</span
-                >
+                <span class="m-tag k">{{ Math.round(v.calories || 0) }}kcal</span>
               </div>
             </div>
-            <div class="video-info-strip">
-              <span class="mylog-vid-tag">{{ mealLabel(v.mealType) }}</span>
-              <span class="vid-desc" v-if="v.description">{{
-                v.description
-              }}</span>
-              <span class="vid-desc empty" v-else>기록된 메모가 없습니다.</span>
+            <div class="mylog-card-footer">
+              <span class="vid-desc" v-if="v.description">{{ v.description }}</span>
+              <span class="vid-desc empty" v-else>메모가 없습니다.</span>
             </div>
           </div>
         </div>
@@ -322,6 +321,7 @@
           </div>
         </div>
 
+        <hr class="cal-divider" />
         <div class="month-stats">
           <div class="month-stats-title">이번 달 요약 인사이트 (AI)</div>
           <div class="month-stats-grid">
@@ -657,7 +657,7 @@
               <button
                 v-if="dailyAiError"
                 class="eval-btn retry-ai-btn"
-                @click="requestDailyEvaluation"
+                @click="requestDailyEvaluation(true)"
               >
                 다시 AI 피드백 받기
               </button>
@@ -703,6 +703,7 @@
                 preload="metadata"
                 class="mylog-video"
               ></video>
+              <span class="mylog-meal-badge">{{ mealLabel(v.mealType) }}</span>
               <div class="macro-tags-overlay" v-if="v.calories">
                 <span class="m-tag c">탄{{ Math.round(v.carbs || 0) }}</span>
                 <span class="m-tag p">단{{ Math.round(v.protein || 0) }}</span>
@@ -710,11 +711,9 @@
                 <span class="m-tag k">{{ Math.round(v.calories || 0) }}</span>
               </div>
             </div>
-            <div class="video-info-strip desk">
-              <span class="mylog-vid-tag">{{ mealLabel(v.mealType) }}</span>
-              <span class="vid-desc" v-if="v.description">{{
-                v.description
-              }}</span>
+            <div class="mylog-card-footer">
+              <span class="vid-desc" v-if="v.description">{{ v.description }}</span>
+              <span class="vid-desc empty" v-else>메모가 없습니다.</span>
             </div>
           </div>
         </div>
@@ -726,6 +725,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject, watch } from "vue";
 import axios from "axios";
+import { emojis } from "../data/mockData.js";
 
 const auth = inject("auth");
 
@@ -809,42 +809,34 @@ function toDateStr(d, y, m) {
 // 🎯 핵심 추가 로직: 프로필 로딩 및 맞춤형 권장량 계산 (Mifflin-St Jeor)
 // ==============================================
 
-async function requestDailyEvaluation() {
+// force=true 면 항상 새로 생성 (버튼 클릭), false면 캐시 우선 (날짜 이동 시)
+async function requestDailyEvaluation(force = false) {
   if (dailyTotals.value.calories <= 0) {
     dailyAiFeedback.value = "";
     dailyAiError.value = false;
     return;
   }
 
+  const dateStr = toDateStr(selectedDay.value, currentYear.value, currentMonth.value);
+
+  if (!force) {
+    const hasCached = await fetchDailyAiComment(dateStr);
+    if (hasCached) return;
+  }
+
   evaluatingDailyAi.value = true;
   dailyAiError.value = false;
   try {
-    const dateStr = toDateStr(
-      selectedDay.value,
-      currentYear.value,
-      currentMonth.value,
-    );
-    const res = await axios.post(
-      `/api/logs/daily/evaluate?date=${dateStr}`,
-      null,
-      {
-        headers: authHeaders(),
-      },
-    );
-
+    const res = await axios.post(`/api/logs/daily/evaluate?date=${dateStr}`, null, {
+      headers: authHeaders(),
+    });
     dailyAiFeedback.value = formatAiComment(res.data?.aiComment);
   } catch (e) {
     console.error("AI 피드백 생성 실패:", e);
-    const dateStr = toDateStr(
-      selectedDay.value,
-      currentYear.value,
-      currentMonth.value,
-    );
     const cached = await fetchDailyAiComment(dateStr);
     if (!cached) {
       dailyAiError.value = true;
-      dailyAiFeedback.value =
-        "AI 피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      dailyAiFeedback.value = "AI 피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
     }
   } finally {
     evaluatingDailyAi.value = false;
@@ -1294,11 +1286,51 @@ function barCenterX(index, count, svgWidth = 280) {
   return barX(index, count, svgWidth) + barWidth(count, svgWidth) / 2;
 }
 
-function hasRecordInMonth(day) {
-  if (day === selectedDay.value && currentMonth.value === todayMonth)
-    return dayVideos.value.length > 0;
-  return false;
+// 달력 이모지 - 월별 일괄 로드
+const monthlyDayMap = ref({}); // { "1": { hasRecord, aiComment }, ... }
+
+function moodFromComment(aiComment) {
+  if (!aiComment) return "neutral";
+  const t = aiComment;
+  if (/훌륭|완벽|이상적|최고|탁월/.test(t)) return "great";
+  if (/과다|과잉|불균형|매우\s*부족|심각/.test(t)) return "bad";
+  if (/부족|아쉬|조금\s*더|보충|낮/.test(t)) return "neutral";
+  if (/좋|균형|적절|충분|잘\s/.test(t)) return "happy";
+  return "good";
 }
+
+function getDayEmoji(day) {
+  if (!day) return "";
+  const entry = monthlyDayMap.value[String(day)];
+  if (!entry || !entry.hasRecord) return "";
+  const mood = moodFromComment(entry.aiComment);
+  return emojis[mood] || "";
+}
+
+function hasRecordInMonth(day) {
+  if (!day) return false;
+  return !!monthlyDayMap.value[String(day)]?.hasRecord;
+}
+
+async function loadMonthlyData() {
+  try {
+    const res = await axios.get("/api/logs/monthly-ai", {
+      params: { year: currentYear.value, month: currentMonth.value + 1 },
+      headers: authHeaders(),
+    });
+    const map = {};
+    (res.data || []).forEach((row) => {
+      const d = new Date(row.mealDate);
+      const day = String(d.getDate());
+      map[day] = { hasRecord: Number(row.recordCount) > 0, aiComment: row.aiComment || "" };
+    });
+    monthlyDayMap.value = map;
+  } catch (e) {
+    console.error("월별 달력 데이터 조회 실패:", e);
+  }
+}
+
+watch([currentYear, currentMonth], loadMonthlyData);
 
 const filteredDayVideos = computed(() =>
   activeFilter.value === "all"
@@ -1315,6 +1347,7 @@ function mealLabel(key) {
 onMounted(async () => {
   await loadMyProfile(); // 1. 먼저 내 키, 몸무게 등 상세 정보 가져옴 -> targets 즉시 갱신
   selectDay(today.getDate()); // 2. 그 다음 오늘 날짜의 영상과 데이터를 가져와 차트를 그림
+  loadMonthlyData(); // 3. 달력 이모지 일괄 로드
 });
 </script>
 
@@ -1325,7 +1358,8 @@ onMounted(async () => {
 .mylog-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background-color: #f8fafc;
 }
 
@@ -1337,6 +1371,7 @@ onMounted(async () => {
 
 .wide-split {
   flex: 1;
+  min-height: 0;
   display: flex;
   overflow: hidden;
 }
@@ -1347,8 +1382,6 @@ onMounted(async () => {
   background: #fff;
   border-right: 1px solid #e2e8f0;
   padding: 20px;
-  display: flex;
-  flex-direction: column;
   overflow-y: auto;
 }
 
@@ -1434,6 +1467,7 @@ onMounted(async () => {
   font-size: 13px;
   color: #334155;
   z-index: 2;
+  margin-bottom: 14px;
 }
 .cal-dot {
   width: 4.5px;
@@ -1441,17 +1475,31 @@ onMounted(async () => {
   background-color: #10b981;
   border-radius: 50%;
   position: absolute;
-  bottom: 6px;
+  bottom: 5px;
 }
 .cal-cell.selected .cal-dot {
   background-color: #fff;
+}
+.cal-expr {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+.cal-expr :deep(svg) {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 /* 데일리 리포팅 인사이트 대시보드 스펙 */
 .daily-insight-panel {
   background: #fff;
-  padding: 20px;
-  margin-bottom: 8px;
+  padding: 16px 16px 20px;
+  margin-bottom: 6px;
 }
 .insight-header {
   display: flex;
@@ -1484,6 +1532,10 @@ onMounted(async () => {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 14px 16px;
+}
+/* 칼로리 메인 카드: 연한 핑크 배경 */
+.kcal-card {
+  background: linear-gradient(135deg, #fff5f6 0%, #fff 60%);
 }
 .macro-sub-grid {
   display: grid;
@@ -1529,13 +1581,34 @@ onMounted(async () => {
   background: linear-gradient(90deg, #ffb6c1, #e8909e);
 }
 .progress-fill.carbs {
-  background: #3b82f6;
+  background: linear-gradient(90deg, #93c5fd, #3b82f6);
 }
 .progress-fill.protein {
-  background: #10b981;
+  background: linear-gradient(90deg, #6ee7b7, #10b981);
 }
 .progress-fill.fat {
-  background: #f59e0b;
+  background: linear-gradient(90deg, #fcd34d, #f59e0b);
+}
+
+/* AI 평가 버튼 */
+.eval-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: linear-gradient(135deg, #e8909e 0%, #f472b6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(232, 144, 158, 0.35);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.eval-btn:active {
+  opacity: 0.85;
+  transform: scale(0.98);
 }
 
 .ai-feedback-card {
@@ -1560,7 +1633,7 @@ onMounted(async () => {
   font-size: 13px;
   line-height: 1.6;
   color: #334155;
-  margin: 0;
+  margin: 10px 0 0;
   word-break: keep-all;
 }
 .retry-ai-btn {
@@ -1681,36 +1754,30 @@ onMounted(async () => {
 .trend-mobile-section {
   margin-top: 0;
   border-top: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.trend-mobile-section .trend-ctrl-header {
+  margin-bottom: 0;
 }
 .trend-sec-title {
   font-size: 14px;
   font-weight: 700;
   color: #111;
 }
-.mobile-chart-box {
-  margin-top: 12px;
-}
-.chart-mini-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 8px;
-}
-.svg-chart-container {
-  width: 100%;
-  overflow: hidden;
-  border-radius: 8px;
-}
-.insight-svg {
-  width: 100%;
-  display: block;
+/* 모바일 차트 카드에 배경 살짝 강조 */
+.trend-mobile-section .trend-chart-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 /* =========================================================
    식단 비디오 컨텐츠 구조 및 리스트 뷰 영역
    ========================================================= */
 .video-list-section {
-  padding: 0 16px 24px;
+  padding: 0 16px 32px;
 }
 .mylog-day-header {
   display: flex;
@@ -1765,10 +1832,15 @@ onMounted(async () => {
 }
 .mylog-card {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07);
+  border: 1px solid #eef2f7;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.mylog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.11);
 }
 .video-overlay-wrap {
   position: relative;
@@ -1783,17 +1855,34 @@ onMounted(async () => {
   display: block;
 }
 
+.mylog-meal-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
 .macro-tags-overlay {
   position: absolute;
   bottom: 10px;
   right: 10px;
   display: flex;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   padding: 5px 8px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 .m-tag {
   font-size: 10px;
@@ -1819,31 +1908,26 @@ onMounted(async () => {
   font-family: monospace;
 }
 
-.video-info-strip {
-  padding: 12px 16px;
+.mylog-card-footer {
+  padding: 10px 14px;
+  border-top: 1px solid #f1f5f9;
+  min-height: 38px;
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-.mylog-vid-tag {
-  background: #f1f5f9;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-  flex-shrink: 0;
 }
 .vid-desc {
-  font-size: 14px;
-  color: #1e293b;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
 }
 .vid-desc.empty {
   color: #94a3b8;
   font-style: italic;
+  font-weight: 400;
 }
 
 .desk-insight-wrap {
@@ -1905,10 +1989,12 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
 }
-.video-info-strip.desk {
-  padding: 10px 4px;
-}
 
+.cal-divider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 16px 0;
+}
 .month-stats-title {
   font-size: 12px;
   font-weight: 700;

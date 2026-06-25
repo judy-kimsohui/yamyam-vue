@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <defs>
+    <filter id="o" x="-25%" y="-25%" width="150%" height="150%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.5" result="e"/>
+      <feFlood flood-color="white" result="w"/>
+      <feComposite in="w" in2="e" operator="in" result="ol"/>
+      <feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#o)">
+    <!-- 구름 모양 -->
+    <circle cx="20" cy="28" r="10" fill="#f0ece8"/>
+    <circle cx="32" cy="23" r="13" fill="#f0ece8"/>
+    <circle cx="44" cy="28" r="9" fill="#f0ece8"/>
+    <rect x="11" y="28" width="38" height="18" rx="2" fill="#f0ece8"/>
+    <!-- 텍스트 -->
+    <text x="30" y="32" text-anchor="middle" font-size="6.5" fill="#a09080" font-family="sans-serif" font-weight="700">take it</text>
+    <text x="30" y="40" text-anchor="middle" font-size="6.5" fill="#a09080" font-family="sans-serif" font-weight="700">easy ♡</text>
+    <!-- 하단 꼬리 -->
+    <path d="M24,44 Q22,50 18,52 Q24,50 28,44Z" fill="#f0ece8"/>
+  </g>
+</svg>

@@ -67,7 +67,8 @@
           >
             <template v-if="cell">
               <span class="cal-num">{{ cell }}</span>
-              <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
+              <span v-if="getDayEmoji(cell)" class="cal-expr" v-html="getDayEmoji(cell)"></span>
+              <span v-else-if="hasRecordInMonth(cell)" class="cal-dot"></span>
             </template>
           </div>
         </div>
@@ -153,7 +154,7 @@
           <button
             v-if="dailyAiError"
             class="retry-ai-btn"
-            @click="requestDailyEvaluation(calDateStr(selectedDay))"
+            @click="requestDailyEvaluation(calDateStr(selectedDay), true)"
           >
             다시 AI 피드백 받기
           </button>
@@ -178,7 +179,7 @@
                 {{ member.nickName }}
                 <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
                 <span v-if="isMe(member.id)" class="mine-badge">나</span>
-                <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
+                <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)" title="추방"><i class="ti ti-trash"></i></button>
               </div>
 
               <div
@@ -277,18 +278,17 @@
                   "
                 >
                   <div class="video-thumb-wrap">
-                    <video
+                    <StickerVideo
                       class="meal-video-full"
                       :src="
                         getVideo(member.id, mealTypes[activeMealIdx].key)
                           .videoUrl
                       "
-                      v-lazy-video
                       loop
                       muted
                       playsinline
                       preload="metadata"
-                    ></video>
+                    />
                     <div
                       v-if="
                         getVideo(
@@ -296,7 +296,7 @@
                           mealTypes[activeMealIdx].key,
                         ).status?.toUpperCase() === 'DONE'
                       "
-                      class="mini-nutri-preview"
+                      class="macro-tags-overlay"
                     >
                       <span class="m-tag c"
                         >탄
@@ -459,7 +459,8 @@
           >
             <template v-if="cell">
               <span class="cal-num">{{ cell }}</span>
-              <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
+              <span v-if="getDayEmoji(cell)" class="cal-expr" v-html="getDayEmoji(cell)"></span>
+              <span v-else-if="hasRecordInMonth(cell)" class="cal-dot"></span>
             </template>
           </div>
         </div>
@@ -545,7 +546,7 @@
           <button
             v-if="dailyAiError"
             class="retry-ai-btn"
-            @click="requestDailyEvaluation(calDateStr(selectedDay))"
+            @click="requestDailyEvaluation(calDateStr(selectedDay), true)"
           >
             다시 AI 피드백 받기
           </button>
@@ -570,7 +571,7 @@
                 {{ member.nickName }}
                 <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
                 <span v-if="isMe(member.id)" class="mine-badge">나</span>
-                <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
+                <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)" title="추방"><i class="ti ti-trash"></i></button>
               </div>
               <div
                 v-if="memberMeals(member.id).length > 0"
@@ -649,7 +650,7 @@
                 <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
               </div>
               <div v-if="isMe(member.id)" class="mine-badge">나</div>
-              <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
+              <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)" title="추방"><i class="ti ti-trash"></i></button>
             </div>
             <div class="meal-slots">
               <div v-for="mt in mealTypes" :key="mt.key" class="meal-slot">
@@ -660,21 +661,20 @@
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
                   <div class="video-thumb-wrap">
-                    <video
+                    <StickerVideo
                       class="meal-video"
                       :src="getVideo(member.id, mt.key).videoUrl"
-                      v-lazy-video
                       loop
                       muted
                       playsinline
                       preload="metadata"
-                    ></video>
+                    />
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
                         'DONE'
                       "
-                      class="mini-nutri-preview"
+                      class="macro-tags-overlay"
                     >
                       <span class="m-tag c"
                         >탄
@@ -762,7 +762,8 @@
           >
             <template v-if="cell">
               <span class="cal-num">{{ cell }}</span>
-              <span v-if="hasRecordInMonth(cell)" class="cal-dot"></span>
+              <span v-if="getDayEmoji(cell)" class="cal-expr" v-html="getDayEmoji(cell)"></span>
+              <span v-else-if="hasRecordInMonth(cell)" class="cal-dot"></span>
             </template>
           </div>
         </div>
@@ -848,7 +849,7 @@
           <button
             v-if="dailyAiError"
             class="retry-ai-btn"
-            @click="requestDailyEvaluation(calDateStr(selectedDay))"
+            @click="requestDailyEvaluation(calDateStr(selectedDay), true)"
           >
             다시 AI 피드백 받기
           </button>
@@ -865,7 +866,7 @@
                   <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
                   <span v-if="isMe(member.id)" class="mine-badge">나</span>
                 </div>
-                <button v-if="isKing && !isMe(member.id)" class="kick-btn" style="margin-left:auto;" @click.stop="kickMember(member.id, member.nickName)">추방</button>
+                <button v-if="isKing && !isMe(member.id)" class="kick-btn" style="margin-left:auto;" @click.stop="kickMember(member.id, member.nickName)" title="추방"><i class="ti ti-trash"></i></button>
               </div>
               <div v-if="memberMeals(member.id).length > 0" class="summary-meals">
                 <span v-for="mt in memberMeals(member.id)" :key="mt.key" class="summary-chip">
@@ -926,7 +927,7 @@
                 <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
               </div>
               <div v-if="isMe(member.id)" class="mine-badge">나</div>
-              <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
+              <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)" title="추방"><i class="ti ti-trash"></i></button>
             </div>
 
             <div class="meal-slots">
@@ -938,21 +939,20 @@
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
                   <div class="video-thumb-wrap">
-                    <video
+                    <StickerVideo
                       class="meal-video"
                       :src="getVideo(member.id, mt.key).videoUrl"
-                      v-lazy-video
                       loop
                       muted
                       playsinline
                       preload="metadata"
-                    ></video>
+                    />
                     <div
                       v-if="
                         getVideo(member.id, mt.key).status?.toUpperCase() ===
                         'DONE'
                       "
-                      class="mini-nutri-preview"
+                      class="macro-tags-overlay"
                     >
                       <span class="m-tag c"
                         >탄
@@ -1128,6 +1128,22 @@
       @updated="onVideoUpdated"
     />
 
+    <!-- 커스텀 확인 모달 -->
+    <div v-if="confirmModal.open" class="modal-overlay" @click.self="resolveConfirm(false)">
+      <div class="modal-box confirm-box">
+        <div class="modal-header">
+          <h3 class="modal-title">{{ confirmModal.title }}</h3>
+          <button class="modal-close" @click="resolveConfirm(false)">✕</button>
+        </div>
+        <p class="confirm-msg">{{ confirmModal.message }}</p>
+        <p v-if="confirmModal.subMessage" class="confirm-sub">{{ confirmModal.subMessage }}</p>
+        <div class="confirm-actions">
+          <button class="btn-confirm-cancel" @click="resolveConfirm(false)">취소</button>
+          <button class="btn-confirm-ok" :class="{ danger: confirmModal.danger }" @click="resolveConfirm(true)">{{ confirmModal.confirmLabel }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 그룹 설정 모달 -->
     <div v-if="showSettings" class="modal-overlay" @click.self="showSettings = false">
       <div class="modal-box settings-box">
@@ -1165,6 +1181,8 @@ import axios from "axios";
 import { useStore } from "../composables/useStore.js";
 import { useToast } from "../composables/useToast.js";
 import VideoDetailModal from "../components/VideoDetailModal.vue";
+import StickerVideo from "../components/StickerVideo.vue";
+import { emojis } from "../data/mockData.js";
 
 const { goTo, goBack } = inject("navigation");
 const auth = inject("auth");
@@ -1194,8 +1212,33 @@ const isKing = computed(() => {
   return teamInfo.value?.kingId === myId;
 });
 
+const confirmModal = ref({
+  open: false,
+  title: "",
+  message: "",
+  subMessage: "",
+  confirmLabel: "확인",
+  danger: false,
+  resolve: null,
+});
+
+function showConfirm(title, message, { subMessage = "", confirmLabel = "확인", danger = false } = {}) {
+  return new Promise((resolve) => {
+    confirmModal.value = { open: true, title, message, subMessage, confirmLabel, danger, resolve };
+  });
+}
+
+function resolveConfirm(result) {
+  confirmModal.value.open = false;
+  confirmModal.value.resolve?.(result);
+}
+
 async function leaveTeam() {
-  if (!confirm("정말 이 그룹을 나가시겠습니까?")) return;
+  const ok = await showConfirm("그룹 나가기", "정말 이 그룹을 나가시겠습니까?", {
+    confirmLabel: "나가기",
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/api/teams/${selectedGroup.value.id}/leave`);
     showToast("success", "그룹을 무사히 나갔습니다.");
@@ -1207,7 +1250,12 @@ async function leaveTeam() {
 }
 
 async function deleteTeam() {
-  if (!confirm("그룹을 완전히 삭제하시겠습니까?\n모든 기록과 팀원이 함께 삭제되며 복구할 수 없습니다.")) return;
+  const ok = await showConfirm("그룹 삭제", "그룹을 완전히 삭제하시겠습니까?", {
+    subMessage: "모든 기록과 팀원이 함께 삭제되며 복구할 수 없습니다.",
+    confirmLabel: "삭제",
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/api/teams/${selectedGroup.value.id}`);
     showToast("success", "그룹이 완전히 삭제되었습니다.");
@@ -1219,7 +1267,11 @@ async function deleteTeam() {
 }
 
 async function kickMember(memberId, memberName) {
-  if (!confirm(`정말 ${memberName}님을 이 그룹에서 추방하시겠습니까?`)) return;
+  const ok = await showConfirm("멤버 추방", `정말 ${memberName}님을 이 그룹에서 추방하시겠습니까?`, {
+    confirmLabel: "추방",
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/api/teams/${selectedGroup.value.id}/members/${memberId}`);
     showToast("success", `${memberName}님을 추방했습니다.`);
@@ -1430,6 +1482,7 @@ onMounted(async () => {
   loading.value = false;
   selectDay(selectedDay.value);
   startTeamRefresh();
+  loadMonthlyData();
 });
 
 const uploadModal = ref({
@@ -1716,31 +1769,32 @@ function calDateStr(day) {
   return `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-async function requestDailyEvaluation(dateStr) {
+// force=true 면 항상 새로 생성 (버튼 클릭), false면 캐시 우선 (날짜 이동 시)
+async function requestDailyEvaluation(dateStr, force = false) {
   if (myDayRecord.value.calories <= 0) {
     dailyAiFeedback.value = "";
     dailyAiError.value = false;
     return;
   }
 
+  if (!force) {
+    const hasCached = await fetchDailyAiComment(dateStr);
+    if (hasCached) return;
+  }
+
   evaluatingDailyAi.value = true;
   dailyAiError.value = false;
   try {
-    const res = await axios.post(
-      `/api/logs/daily/evaluate?date=${dateStr}`,
-      null,
-      {
-        headers: authHeaders(),
-      },
-    );
+    const res = await axios.post(`/api/logs/daily/evaluate?date=${dateStr}`, null, {
+      headers: authHeaders(),
+    });
     dailyAiFeedback.value = formatAiComment(res.data?.aiComment);
   } catch (e) {
     console.error("AI 피드백 생성 실패:", e);
     const cached = await fetchDailyAiComment(dateStr);
     if (!cached) {
       dailyAiError.value = true;
-      dailyAiFeedback.value =
-        "AI 피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      dailyAiFeedback.value = "AI 피드백을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
     }
   } finally {
     evaluatingDailyAi.value = false;
@@ -1853,13 +1907,53 @@ const myDayRecord = computed(() => {
   };
 });
 
-function hasRecordInMonth(day) {
-  if (day === selectedDay.value) {
-    const myId = auth?.loginUser?.value?.id ?? auth?.loginUser?.id;
-    return mealTypes.some((mt) => getCalVideo(myId, mt.key));
-  }
-  return false;
+// 달력 이모지 - 월별 일괄 로드
+const monthlyDayMap = ref({});
+
+function moodFromComment(aiComment) {
+  if (!aiComment) return "neutral";
+  const t = aiComment;
+  if (/훌륭|완벽|이상적|최고|탁월/.test(t)) return "great";
+  if (/과다|과잉|불균형|매우\s*부족|심각/.test(t)) return "bad";
+  if (/부족|아쉬|조금\s*더|보충|낮/.test(t)) return "neutral";
+  if (/좋|균형|적절|충분|잘\s/.test(t)) return "happy";
+  return "good";
 }
+
+function getDayEmoji(day) {
+  if (!day) return "";
+  const entry = monthlyDayMap.value[String(day)];
+  if (!entry || !entry.hasRecord) return "";
+  const mood = moodFromComment(entry.aiComment);
+  return emojis[mood] || "";
+}
+
+function hasRecordInMonth(day) {
+  if (!day) return false;
+  return !!monthlyDayMap.value[String(day)]?.hasRecord;
+}
+
+async function loadMonthlyData() {
+  try {
+    const token = localStorage.getItem("yamyam_token") || localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await axios.get("/api/logs/monthly-ai", {
+      params: { year: currentYear.value, month: currentMonth.value + 1 },
+      headers,
+    });
+    const map = {};
+    (res.data || []).forEach((row) => {
+      const d = new Date(row.mealDate);
+      const day = String(d.getDate());
+      map[day] = { hasRecord: Number(row.recordCount) > 0, aiComment: row.aiComment || "" };
+    });
+    monthlyDayMap.value = map;
+  } catch (e) {
+    console.error("월별 달력 데이터 조회 실패:", e);
+  }
+}
+
+watch([currentYear, currentMonth], loadMonthlyData);
 
 function calPercent(val, total) {
   return Math.min(100, Math.round((val / total) * 100));
@@ -1953,18 +2047,21 @@ function onMouseUp(e) {
 /* 🌟 추방 버튼 */
 .kick-btn {
   margin-left: auto;
-  font-size: 11px;
-  font-weight: 700;
   color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: none;
+  border: none;
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 4px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  line-height: 1;
 }
 .kick-btn:hover {
-  background: #fee2e2;
+  color: #dc2626;
+  background: #fef2f2;
 }
 
 /* 🌟 설정 모달 */
@@ -2569,6 +2666,7 @@ function onMouseUp(e) {
   color: #333;
   line-height: 1;
   z-index: 2;
+  margin-bottom: 14px;
 }
 .cal-dot {
   width: 4.5px;
@@ -2576,10 +2674,24 @@ function onMouseUp(e) {
   background-color: #10b981;
   border-radius: 50%;
   position: absolute;
-  bottom: 6px;
+  bottom: 5px;
 }
 .cal-cell.selected .cal-dot {
   background-color: #059669;
+}
+.cal-expr {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+.cal-expr :deep(svg) {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .day-record {
@@ -2648,6 +2760,7 @@ function onMouseUp(e) {
   display: flex;
   align-items: flex-start;
   gap: 6px;
+  margin-top: 12px;
 }
 .ai-chip {
   font-size: 10px;
@@ -2810,6 +2923,68 @@ function onMouseUp(e) {
   border-radius: 18px;
   width: 100%;
   max-width: 400px;
+}
+
+/* 커스텀 확인 모달 */
+.confirm-box {
+  max-width: 320px;
+  padding: 24px;
+}
+.confirm-msg {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 500;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.confirm-sub {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+.btn-confirm-cancel {
+  flex: 1;
+  padding: 11px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-confirm-cancel:hover {
+  background: #e2e8f0;
+}
+.btn-confirm-ok {
+  flex: 1;
+  padding: 11px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-confirm-ok:hover {
+  background: #2563eb;
+}
+.btn-confirm-ok.danger {
+  background: #ef4444;
+}
+.btn-confirm-ok.danger:hover {
+  background: #dc2626;
 }
 .modal-header {
   display: flex;
@@ -2991,6 +3166,7 @@ function onMouseUp(e) {
   width: 100%;
   height: 100%;
   background: #000;
+  overflow: visible;
 }
 
 .ai-analyzing-badge {
@@ -3014,45 +3190,44 @@ function onMouseUp(e) {
   animation: pulse 1.8s infinite ease-in-out;
 }
 
-.mini-nutri-preview {
+.macro-tags-overlay {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 4px 6px;
-  border-radius: 10px;
   display: flex;
   gap: 4px;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 5px 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 9;
 }
 
 .m-tag {
   font-size: 10px;
   font-weight: 800;
-  padding: 1px 4px;
-  border-radius: 4px;
+  padding: 2px 4px;
+  border-radius: 5px;
 }
 .m-tag.c {
-  background: #e8f4ff;
-  color: #2f80ed;
+  color: #1d4ed8;
+  background: #dbeafe;
 }
 .m-tag.p {
-  background: #fff0f0;
-  color: #eb5757;
+  color: #065f46;
+  background: #d1fae5;
 }
 .m-tag.f {
-  background: #fffde7;
-  color: #b78306;
+  color: #92400e;
+  background: #fef3c7;
 }
 .m-tag.k {
+  color: #0f172a;
   background: none;
-  color: #fff;
-  margin-left: 2px;
+  margin-left: 1px;
+  font-family: monospace;
 }
 
 @keyframes pulse {

@@ -48,12 +48,12 @@
             @click="!todayVideoByMeal(mt.key) && openUploadForMeal(mt.key)"
           >
             <template v-if="todayVideoByMeal(mt.key)">
-              <video
+              <StickerVideo
                 :src="todayVideoByMeal(mt.key).videoUrl"
-                v-lazy-video loop muted playsinline
-                preload="metadata"
+                :label="mt.label + '.'"
+                loop muted playsinline preload="metadata"
                 class="meal-slot-video"
-              ></video>
+              />
               <div class="meal-slot-done-label">
                 <i class="ti ti-check"></i>
                 <span>{{ mt.label }}</span>
@@ -224,6 +224,8 @@ import { useToast } from "../composables/useToast.js";
 import DashboardUserProfile from "@/components/DashboardUserProfile.vue";
 import VideoUploadModal from "@/components/VideoUploadModal.vue";
 import MyLogView from "./MyLogView.vue";
+import StickerVideo from "@/components/StickerVideo.vue";
+
 const { goTo } = inject("navigation");
 const auth = inject("auth");
 const { groups, selectedGroup } = useStore();
@@ -694,7 +696,7 @@ onMounted(async () => {
   background: #f0f0f0;
 }
 .dash-logo-img {
-  height: 26px;
+  height: 28px;
   width: auto;
   display: block;
   user-select: none;

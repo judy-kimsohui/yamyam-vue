@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <defs>
+    <filter id="o" x="-25%" y="-25%" width="150%" height="150%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.5" result="e"/>
+      <feFlood flood-color="white" result="w"/>
+      <feComposite in="w" in2="e" operator="in" result="ol"/>
+      <feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#o)">
+    <!-- 꼬리 -->
+    <path d="M44,42 Q54,38 52,30 Q50,24 46,26" fill="none" stroke="#c0b0a0" stroke-width="5" stroke-linecap="round"/>
+    <!-- 몸 -->
+    <ellipse cx="26" cy="40" rx="20" ry="14" fill="#d4c8b8"/>
+    <!-- 머리 -->
+    <circle cx="18" cy="30" r="12" fill="#d4c8b8"/>
+    <!-- 귀 -->
+    <path d="M9,22 L11,14 L17,20 Z" fill="#d4c8b8"/>
+    <path d="M27,22 L29,14 L23,20 Z" fill="#d4c8b8"/>
+    <path d="M10,21 L12,16 L16,20 Z" fill="#f0d0d0"/>
+    <path d="M26,21 L28,16 L24,20 Z" fill="#f0d0d0"/>
+    <!-- 눈 (감은 눈) -->
+    <path d="M13,29 Q15,27 17,29" fill="none" stroke="#8a7060" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M20,29 Q22,27 24,29" fill="none" stroke="#8a7060" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- 무늬 -->
+    <path d="M12,24 Q13,22 14,24" fill="none" stroke="#b8a898" stroke-width="1" stroke-linecap="round"/>
+    <path d="M22,24 Q23,22 24,24" fill="none" stroke="#b8a898" stroke-width="1" stroke-linecap="round"/>
+    <!-- 코 -->
+    <ellipse cx="18" cy="32" rx="1.5" ry="1" fill="#e08898"/>
+    <!-- 수염 -->
+    <path d="M7,32 L14,32" stroke="#a09080" stroke-width="0.9" stroke-linecap="round"/>
+    <path d="M7,34 L14,33" stroke="#a09080" stroke-width="0.9" stroke-linecap="round"/>
+    <path d="M29,32 L22,32" stroke="#a09080" stroke-width="0.9" stroke-linecap="round"/>
+    <path d="M29,34 L22,33" stroke="#a09080" stroke-width="0.9" stroke-linecap="round"/>
+    <!-- 발 -->
+    <ellipse cx="14" cy="52" rx="6" ry="4" fill="#c8bcac"/>
+    <ellipse cx="28" cy="52" rx="6" ry="4" fill="#c8bcac"/>
+    <!-- Z Z Z -->
+    <text x="38" y="22" font-size="8" fill="#b0a090" font-family="sans-serif" font-weight="700">z</text>
+    <text x="44" y="16" font-size="6" fill="#b0a090" font-family="sans-serif" font-weight="700">z</text>
+    <text x="49" y="11" font-size="5" fill="#b0a090" font-family="sans-serif" font-weight="700">z</text>
+  </g>
+</svg>
