@@ -18,6 +18,7 @@
           !isWide && showCalendar ? "AI 달력" : (selectedGroup?.name ?? "그룹")
         }}</span>
       </div>
+
       <div class="header-actions" v-if="!isWide && !showCalendar">
         <button class="icon-btn" @click="showCalendar = true" title="AI 달력">
           <i class="ti ti-calendar"></i>
@@ -25,10 +26,18 @@
         <button class="icon-btn" @click="goTo('chat')" title="채팅">
           <i class="ti ti-message-circle"></i>
         </button>
+        <button class="icon-btn" @click="showSettings = true" title="그룹 설정">
+          <i class="ti ti-settings"></i>
+        </button>
       </div>
-      <div v-else style="width: 36px"></div>
+      <div v-else class="header-actions">
+        <button class="icon-btn" @click="showSettings = true" title="그룹 설정">
+          <i class="ti ti-settings"></i>
+        </button>
+      </div>
     </header>
 
+    <!-- ══════════════ MOBILE (< 768px) ══════════════ -->
     <main v-if="isMobile" class="scroll-body">
       <section v-if="showCalendar" class="calendar-panel">
         <div class="cal-nav">
@@ -159,8 +168,10 @@
             />
             <div class="summary-info">
               <div class="summary-name">
-                {{ member.nickName
-                }}<span v-if="isMe(member.id)" class="mine-badge">나</span>
+                {{ member.nickName }}
+                <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
+                <span v-if="isMe(member.id)" class="mine-badge">나</span>
+                <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
               </div>
 
               <div
@@ -208,6 +219,7 @@
         </div>
       </section>
 
+      <!-- 피드 (모바일) -->
       <template v-else>
         <div class="feed-wrap">
           <div class="feed-controls-bar">
@@ -324,9 +336,13 @@
                       <img
                         :src="member.profileImg || '/default_avatar.svg'"
                         class="avatar-img"
+                        @error="(e) => (e.target.src = '/default_avatar.svg')"
                       />
                     </div>
-                    <div class="member-name">{{ member.nickName }}</div>
+                    <div class="member-name" style="display:flex; align-items:center; gap:4px;">
+                      {{ member.nickName }}
+                      <span v-if="teamInfo?.kingId === member.id" class="king-badge" style="transform: scale(0.85); transform-origin: left center;">방장</span>
+                    </div>
                     <div v-if="isMe(member.id)" class="mine-badge">나</div>
                   </div>
                   <span
@@ -341,9 +357,14 @@
                     }}</span
                   >
                   <div class="vid-bottom">
-                    <span class="vid-tag">{{
-                      mealTypes[activeMealIdx].label
-                    }}</span>
+                    <span class="vid-tag"
+                      >{{ mealTypes[activeMealIdx].label }} ·
+                      {{
+                        videoTime(
+                          getVideo(member.id, mealTypes[activeMealIdx].key),
+                        )
+                      }}</span
+                    >
                     <button
                       class="like-btn"
                       :class="{
@@ -370,7 +391,7 @@
                     <div class="member-avatar mine">
                       <img src="/default_avatar.svg" class="avatar-img" />
                     </div>
-                    <div class="member-name-dark">나</div>
+                    <div class="member-name-dark" style="display:flex; align-items:center; gap:4px;">나</div>
                   </div>
                   <i class="ti ti-upload"></i
                   ><span>{{ mealTypes[activeMealIdx].label }} 업로드</span>
@@ -381,12 +402,19 @@
                       <img
                         :src="member.profileImg || '/default_avatar.svg'"
                         class="avatar-img"
+                        @error="(e) => (e.target.src = '/default_avatar.svg')"
                       />
                     </div>
-                    <div class="member-name-dark">{{ member.nickName }}</div>
+                    <div class="member-name-dark" style="display:flex; align-items:center; gap:4px;">
+                      {{ member.nickName }}
+                      <span v-if="teamInfo?.kingId === member.id" class="king-badge" style="transform: scale(0.85); transform-origin: left center; background:#b4b4b4;">방장</span>
+                    </div>
                   </div>
                   <i class="ti ti-minus"></i><span>미기록</span>
                 </div>
+              </div>
+              <div v-if="teamMembers.length === 0" class="empty-feed">
+                멤버 정보를 불러올 수 없습니다.
               </div>
             </section>
           </template>
@@ -394,7 +422,9 @@
       </template>
     </main>
 
+    <!-- ══════════════ TABLET / iPad (768–1199px): 3열 그리드 ══════════════ -->
     <main v-else-if="!isWide" class="scroll-body">
+      <!-- AI 달력 패널 -->
       <section v-if="showCalendar" class="calendar-panel">
         <div class="cal-nav">
           <button class="cal-arrow" @click="prevMonth">
@@ -426,6 +456,7 @@
             </template>
           </div>
         </div>
+
         <div class="day-record">
           <div class="day-record-title">
             내 일일 영양 기록 ({{ currentMonth + 1 }}/{{ selectedDay }})
@@ -505,6 +536,7 @@
             <span class="ai-chip">AI</span>{{ myDayRecord.aiComment }}
           </div>
         </div>
+
         <div class="member-summary-list">
           <div class="summary-title">
             {{ currentMonth + 1 }}월 {{ selectedDay }}일 · 참가자 식단
@@ -517,11 +549,14 @@
             <img
               :src="member.profileImg || '/default_avatar.svg'"
               class="summary-avatar"
+              @error="(e) => (e.target.src = '/default_avatar.svg')"
             />
             <div class="summary-info">
               <div class="summary-name">
-                {{ member.nickName
-                }}<span v-if="isMe(member.id)" class="mine-badge">나</span>
+                {{ member.nickName }}
+                <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
+                <span v-if="isMe(member.id)" class="mine-badge">나</span>
+                <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
               </div>
               <div
                 v-if="memberMeals(member.id).length > 0"
@@ -558,8 +593,17 @@
               <div v-else class="summary-no-record">이 날 기록 없음</div>
             </div>
           </div>
+          <div
+            v-if="teamMembers.length === 0"
+            class="summary-no-record"
+            style="padding: 12px 0"
+          >
+            멤버 정보 없음
+          </div>
         </div>
       </section>
+
+      <!-- 피드 (태블릿) -->
       <template v-else>
         <div class="feed-date-label desk-date">
           <button class="date-nav-btn" @click="prevDay">
@@ -581,17 +625,24 @@
               <div class="member-avatar" :class="{ mine: isMe(member.id) }">
                 <img
                   :src="member.profileImg || '/default_avatar.svg'"
+                  :alt="member.nickName"
                   class="avatar-img"
+                  @error="(e) => (e.target.src = '/default_avatar.svg')"
                 />
               </div>
-              <div class="member-name">{{ member.nickName }}</div>
+              <div class="member-name" style="display:flex; align-items:center;">
+                {{ member.nickName }}
+                <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
+              </div>
               <div v-if="isMe(member.id)" class="mine-badge">나</div>
+              <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
             </div>
             <div class="meal-slots">
               <div v-for="mt in mealTypes" :key="mt.key" class="meal-slot">
                 <div
                   v-if="getVideo(member.id, mt.key)"
                   class="video-wrap"
+                  style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
                   <div class="video-thumb-wrap">
@@ -615,27 +666,38 @@
                         >탄
                         {{
                           Math.round(getVideo(member.id, mt.key).carbs || 0)
-                        }}</span
+                        }}g</span
                       >
                       <span class="m-tag p"
                         >단
                         {{
                           Math.round(getVideo(member.id, mt.key).protein || 0)
-                        }}</span
+                        }}g</span
                       >
                       <span class="m-tag f"
                         >지
                         {{
                           Math.round(getVideo(member.id, mt.key).fat || 0)
-                        }}</span
+                        }}g</span
                       >
-                      <span class="m-tag k">{{
-                        Math.round(getVideo(member.id, mt.key).calories || 0)
-                      }}</span>
+                      <span class="m-tag k"
+                        >{{
+                          Math.round(getVideo(member.id, mt.key).calories || 0)
+                        }}kcal</span
+                      >
                     </div>
                   </div>
+
+                  <span
+                    v-if="getVideo(member.id, mt.key).description"
+                    class="vid-center-desc"
+                    >{{ getVideo(member.id, mt.key).description }}</span
+                  >
                   <div class="vid-bottom">
-                    <span class="vid-tag">{{ mt.label }}</span>
+                    <span class="vid-tag"
+                      >{{ mt.label }} ·
+                      {{ videoTime(getVideo(member.id, mt.key)) }}</span
+                    >
                     <button
                       class="like-btn"
                       :class="{ liked: getVideo(member.id, mt.key).liked }"
@@ -660,34 +722,28 @@
               </div>
             </div>
           </div>
+          <div v-if="teamMembers.length === 0" class="empty-feed">
+            멤버 정보를 불러올 수 없습니다.
+          </div>
         </section>
       </template>
     </main>
 
+    <!-- ══════════════ WIDE DESKTOP (≥1200px): 1/3 달력 + 2/3 피드 ══════════════ -->
     <div v-else class="desktop-split">
       <aside class="left-panel">
         <div class="cal-nav">
-          <button class="cal-arrow" @click="prevMonth">
-            <i class="ti ti-chevron-left"></i>
-          </button>
+          <button class="cal-arrow" @click="prevMonth"><i class="ti ti-chevron-left"></i></button>
           <span class="cal-month">{{ monthLabel }}</span>
-          <button class="cal-arrow" @click="nextMonth">
-            <i class="ti ti-chevron-right"></i>
-          </button>
+          <button class="cal-arrow" @click="nextMonth"><i class="ti ti-chevron-right"></i></button>
         </div>
         <div class="cal-weekdays">
-          <span
-            v-for="d in ['일', '월', '화', '수', '목', '금', '토']"
-            :key="d"
-            >{{ d }}</span
-          >
+          <span v-for="d in ['일', '월', '화', '수', '목', '금', '토']" :key="d">{{ d }}</span>
         </div>
         <div class="cal-grid">
           <div
-            v-for="(cell, i) in calendarCells"
-            :key="i"
-            class="cal-cell"
-            :class="{ empty: !cell, selected: cell === selectedDay }"
+            v-for="(cell, i) in calendarCells" :key="i"
+            class="cal-cell" :class="{ empty: !cell, selected: cell === selectedDay }"
             @click="cell && selectDay(cell)"
           >
             <template v-if="cell">
@@ -778,32 +834,20 @@
         </div>
 
         <div class="member-summary-list">
-          <div class="summary-title">
-            {{ currentMonth + 1 }}월 {{ selectedDay }}일 · 참가자 식단
-          </div>
-          <div
-            v-for="member in teamMembers"
-            :key="member.id"
-            class="summary-row"
-          >
-            <img
-              :src="member.profileImg || '/default_avatar.svg'"
-              class="summary-avatar"
-            />
+          <div class="summary-title">{{ currentMonth + 1 }}월 {{ selectedDay }}일 · 참가자 식단</div>
+          <div v-for="member in teamMembers" :key="member.id" class="summary-row">
+            <img :src="member.profileImg || '/default_avatar.svg'" class="summary-avatar" @error="(e) => (e.target.src = '/default_avatar.svg')" />
             <div class="summary-info">
-              <div class="summary-info order">
-                <div class="summary-name">{{ member.nickName }}</div>
-                <span v-if="isMe(member.id)" class="mine-badge">나</span>
+              <div class="summary-info order" style="flex-direction:row; align-items:center;">
+                <div class="summary-name" style="margin-bottom:0;">
+                  {{ member.nickName }}
+                  <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
+                  <span v-if="isMe(member.id)" class="mine-badge">나</span>
+                </div>
+                <button v-if="isKing && !isMe(member.id)" class="kick-btn" style="margin-left:auto;" @click.stop="kickMember(member.id, member.nickName)">추방</button>
               </div>
-              <div
-                v-if="memberMeals(member.id).length > 0"
-                class="summary-meals"
-              >
-                <span
-                  v-for="mt in memberMeals(member.id)"
-                  :key="mt.key"
-                  class="summary-chip"
-                >
+              <div v-if="memberMeals(member.id).length > 0" class="summary-meals">
+                <span v-for="mt in memberMeals(member.id)" :key="mt.key" class="summary-chip">
                   <span class="summary-meal-type">{{ mt.label }}</span>
                   <div
                     class="summary-macros"
@@ -830,6 +874,13 @@
               <div v-else class="summary-no-record">이 날 기록 없음</div>
             </div>
           </div>
+          <div
+            v-if="teamMembers.length === 0"
+            class="summary-no-record"
+            style="padding: 12px 0"
+          >
+            멤버 정보 없음
+          </div>
         </div>
         <button class="chat-btn-desk" @click="goTo('chat')">
           <i class="ti ti-message-circle"></i> 그룹 채팅
@@ -838,36 +889,31 @@
 
       <main class="right-panel">
         <div class="feed-date-label desk-date">
-          <button class="date-nav-btn" @click="prevDay">
-            <i class="ti ti-chevron-left"></i>
-          </button>
+          <button class="date-nav-btn" @click="prevDay"><i class="ti ti-chevron-left"></i></button>
           <span>{{ feedDate }} 식단 기록</span>
-          <button class="date-nav-btn" @click="nextDay">
-            <i class="ti ti-chevron-right"></i>
-          </button>
+          <button class="date-nav-btn" @click="nextDay"><i class="ti ti-chevron-right"></i></button>
         </div>
         <div v-if="loading" class="loading-msg">불러오는 중...</div>
         <section v-else class="feed">
-          <div
-            v-for="member in teamMembers"
-            :key="member.id"
-            class="member-log"
-          >
+          <div v-for="member in teamMembers" :key="member.id" class="member-log">
             <div class="member-row">
               <div class="member-avatar" :class="{ mine: isMe(member.id) }">
-                <img
-                  :src="member.profileImg || '/default_avatar.svg'"
-                  class="avatar-img"
-                />
+                <img :src="member.profileImg || '/default_avatar.svg'" class="avatar-img" @error="(e) => (e.target.src = '/default_avatar.svg')" />
               </div>
-              <div class="member-name">{{ member.nickName }}</div>
+              <div class="member-name" style="display:flex; align-items:center;">
+                {{ member.nickName }}
+                <span v-if="teamInfo?.kingId === member.id" class="king-badge">방장</span>
+              </div>
               <div v-if="isMe(member.id)" class="mine-badge">나</div>
+              <button v-if="isKing && !isMe(member.id)" class="kick-btn" @click.stop="kickMember(member.id, member.nickName)">추방</button>
             </div>
+
             <div class="meal-slots">
               <div v-for="mt in mealTypes" :key="mt.key" class="meal-slot">
                 <div
                   v-if="getVideo(member.id, mt.key)"
                   class="video-wrap"
+                  style="cursor: pointer"
                   @click="openDetail(getVideo(member.id, mt.key))"
                 >
                   <div class="video-thumb-wrap">
@@ -891,55 +937,58 @@
                         >탄
                         {{
                           Math.round(getVideo(member.id, mt.key).carbs || 0)
-                        }}</span
+                        }}g</span
                       >
                       <span class="m-tag p"
                         >단
                         {{
                           Math.round(getVideo(member.id, mt.key).protein || 0)
-                        }}</span
+                        }}g</span
                       >
                       <span class="m-tag f"
                         >지
                         {{
                           Math.round(getVideo(member.id, mt.key).fat || 0)
-                        }}</span
+                        }}g</span
                       >
-                      <span class="m-tag k">{{
-                        Math.round(getVideo(member.id, mt.key).calories || 0)
-                      }}</span>
+                      <span class="m-tag k"
+                        >{{
+                          Math.round(getVideo(member.id, mt.key).calories || 0)
+                        }}kcal</span
+                      >
                     </div>
                   </div>
+
+                  <span
+                    v-if="getVideo(member.id, mt.key).description"
+                    class="vid-center-desc"
+                    >{{ getVideo(member.id, mt.key).description }}</span
+                  >
                   <div class="vid-bottom">
-                    <span class="vid-tag">{{ mt.label }}</span>
-                    <button
-                      class="like-btn"
-                      :class="{ liked: getVideo(member.id, mt.key).liked }"
-                      @click.stop="
-                        toggleLike(getVideo(member.id, mt.key), $event)
-                      "
+                    <span class="vid-tag"
+                      >{{ mt.label }} ·
+                      {{ videoTime(getVideo(member.id, mt.key)) }}</span
                     >
+                    <button class="like-btn" :class="{ liked: getVideo(member.id, mt.key).liked }" @click.stop="toggleLike(getVideo(member.id, mt.key), $event)">
                       <span class="heart-icon">♥</span>
                     </button>
                   </div>
                 </div>
-                <div
-                  v-else-if="isMe(member.id)"
-                  class="video-thumb upload-slot"
-                  @click="openUpload(mt.key)"
-                >
+                <div v-else-if="isMe(member.id)" class="video-thumb upload-slot" @click="openUpload(mt.key)">
                   <i class="ti ti-upload"></i><span>업로드</span>
                 </div>
-                <div v-else class="video-thumb empty">
-                  <i class="ti ti-minus"></i>
-                </div>
+                <div v-else class="video-thumb empty"><i class="ti ti-minus"></i></div>
               </div>
             </div>
+          </div>
+          <div v-if="teamMembers.length === 0" class="empty-feed">
+            멤버 정보를 불러올 수 없습니다.
           </div>
         </section>
       </main>
     </div>
 
+    <!-- 업로드 모달 -->
     <div
       v-if="uploadModal.open"
       class="modal-overlay"
@@ -964,6 +1013,7 @@
               playsinline
               preload="metadata"
             ></video>
+
             <textarea
               ref="memoTextRef"
               v-model="uploadModal.description"
@@ -975,42 +1025,29 @@
             <span class="memo-counter"
               >{{ uploadModal.description.length }}/30</span
             >
+
             <div class="change-btns">
-              <button
-                type="button"
-                class="btn-change-file"
-                @click="uploadFileInput.click()"
-              >
+              <button type="button" class="btn-change-file" @click="uploadFileInput.click()" title="파일 선택">
                 <i class="ti ti-folder-open"></i>
               </button>
-              <button
-                type="button"
-                class="btn-change-file"
-                @click="openGroupCamera"
-              >
+              <button type="button" class="btn-change-file" @click="openGroupCamera" title="카메라 재촬영">
                 <i class="ti ti-camera"></i>
               </button>
             </div>
           </div>
+
           <div v-else class="file-drop-area">
-            <button
-              type="button"
-              class="drop-btn"
-              @click="uploadFileInput.click()"
-            >
-              <i class="ti ti-folder-open" style="font-size: 24px"></i
-              ><span>파일 선택</span>
+            <button type="button" class="drop-btn" @click="uploadFileInput.click()">
+              <i class="ti ti-folder-open" style="font-size:24px"></i>
+              <span>파일 선택</span>
             </button>
             <span class="drop-or">또는</span>
-            <button
-              type="button"
-              class="drop-btn camera-btn"
-              @click="openGroupCamera"
-            >
-              <i class="ti ti-camera" style="font-size: 24px"></i
-              ><span>카메라 촬영</span>
+            <button type="button" class="drop-btn camera-btn" @click="openGroupCamera">
+              <i class="ti ti-camera" style="font-size:24px"></i>
+              <span>카메라 촬영</span>
             </button>
           </div>
+
           <input
             ref="uploadFileInput"
             type="file"
@@ -1018,6 +1055,7 @@
             @change="onUploadFileChange"
             style="display: none"
           />
+
           <div class="modal-actions">
             <button type="button" @click="closeUpload" class="btn-cancel">
               취소
@@ -1034,45 +1072,23 @@
       </div>
     </div>
 
+    <!-- 카메라 촬영 오버레이 -->
     <Teleport to="body">
       <div v-if="showGroupCamera" class="camera-overlay">
-        <video
-          ref="groupCameraVideoEl"
-          class="camera-feed"
-          autoplay
-          playsinline
-          muted
-        ></video>
+        <video ref="groupCameraVideoEl" class="camera-feed" autoplay playsinline muted></video>
         <div class="camera-ui">
-          <button
-            v-if="!groupIsRecording"
-            type="button"
-            class="btn-close-camera"
-            @click="stopGroupCamera"
-          >
-            ✕
-          </button>
-          <div class="camera-tip" v-if="!groupIsRecording">
-            음식을 화면에 맞추고 촬영 버튼을 누르세요
-          </div>
+          <button v-if="!groupIsRecording" type="button" class="btn-close-camera" @click="stopGroupCamera">✕</button>
+          <div class="camera-tip" v-if="!groupIsRecording">음식을 화면에 맞추고 촬영 버튼을 누르세요</div>
           <div class="camera-bottom">
             <div v-if="groupIsRecording" class="record-progress-wrap">
               <div class="record-label">
                 <span class="rec-dot"></span> 촬영 중...
               </div>
               <div class="record-progress-bar">
-                <div
-                  class="record-fill"
-                  :style="{ width: groupRecordProgress + '%' }"
-                ></div>
+                <div class="record-fill" :style="{ width: groupRecordProgress + '%' }"></div>
               </div>
             </div>
-            <button
-              v-if="!groupIsRecording"
-              type="button"
-              class="btn-shutter"
-              @click="startGroupRecording"
-            >
+            <button v-if="!groupIsRecording" type="button" class="btn-shutter" @click="startGroupRecording">
               <span class="shutter-inner"></span>
             </button>
           </div>
@@ -1080,6 +1096,7 @@
       </div>
     </Teleport>
 
+    <!-- 비디오 상세 모달 -->
     <VideoDetailModal
       v-if="detailModal.open && detailModal.video"
       :video="detailModal.video"
@@ -1088,6 +1105,27 @@
       @deleted="onVideoDeleted"
       @reupload="onReupload"
     />
+
+    <!-- 그룹 설정 모달 -->
+    <div v-if="showSettings" class="modal-overlay" @click.self="showSettings = false">
+      <div class="modal-box settings-box">
+        <div class="modal-header">
+          <h3 class="modal-title">그룹 설정</h3>
+          <button class="modal-close" @click="showSettings = false">✕</button>
+        </div>
+        <div class="settings-actions">
+          <button v-if="!isKing" class="btn-leave" @click="leaveTeam">
+            <i class="ti ti-logout"></i> 그룹 나가기
+          </button>
+
+          <button v-if="isKing" class="btn-delete" @click="deleteTeam">
+            <i class="ti ti-trash"></i> 그룹 삭제하기 (방장 전용)
+          </button>
+
+          <p v-if="isKing" class="settings-warning">※ 방장은 팀을 나갈 수 없으며, 팀 자체를 삭제해야 합니다.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1115,6 +1153,51 @@ const teamMembers = ref([]);
 const videoMap = ref({});
 const loading = ref(false);
 const showCalendar = ref(false);
+
+// ── 그룹 설정(방장/나가기/추방) ──
+const teamInfo = ref(null);
+const showSettings = ref(false);
+
+const isKing = computed(() => {
+  const myId = auth?.loginUser?.value?.id ?? auth?.loginUser?.id;
+  return teamInfo.value?.kingId === myId;
+});
+
+async function leaveTeam() {
+  if (!confirm("정말 이 그룹을 나가시겠습니까?")) return;
+  try {
+    await axios.delete(`/api/teams/${selectedGroup.value.id}/leave`);
+    showToast("success", "그룹을 무사히 나갔습니다.");
+    showSettings.value = false;
+    goTo("groups");
+  } catch (e) {
+    showToast("error", "나가기 실패", e.response?.data || "서버 오류");
+  }
+}
+
+async function deleteTeam() {
+  if (!confirm("그룹을 완전히 삭제하시겠습니까?\n모든 기록과 팀원이 함께 삭제되며 복구할 수 없습니다.")) return;
+  try {
+    await axios.delete(`/api/teams/${selectedGroup.value.id}`);
+    showToast("success", "그룹이 완전히 삭제되었습니다.");
+    showSettings.value = false;
+    goTo("groups");
+  } catch (e) {
+    showToast("error", "삭제 실패", e.response?.data || "서버 오류");
+  }
+}
+
+async function kickMember(memberId, memberName) {
+  if (!confirm(`정말 ${memberName}님을 이 그룹에서 추방하시겠습니까?`)) return;
+  try {
+    await axios.delete(`/api/teams/${selectedGroup.value.id}/members/${memberId}`);
+    showToast("success", `${memberName}님을 추방했습니다.`);
+    await loadTeamDetail();
+    await loadVideos();
+  } catch (e) {
+    showToast("error", "추방 실패", e.response?.data || "서버 오류");
+  }
+}
 
 function spawnHearts(e) {
   const rect = e.currentTarget.getBoundingClientRect();
@@ -1208,14 +1291,17 @@ function getVideo(userId, mealType) {
   return videoMap.value[`${userId}_${mealType}`] || null;
 }
 
+// 🌟 teamInfo(방장 정보 등) 저장이 빠지지 않도록 유지
 const loadTeamDetail = async () => {
   if (!selectedGroup.value?.id) return;
   try {
     const res = await axios.get(`/api/teams/${selectedGroup.value.id}`);
+    teamInfo.value = res.data.teamInfo;
     teamMembers.value = res.data.members || [];
   } catch (e) {
+    const myId = auth.loginUser.value?.id ?? auth.loginUser?.id;
     teamMembers.value = [
-      { id: auth.loginUser.value?.id, nickName: "나", profileImg: "" },
+      { id: myId, nickName: "나", profileImg: "" },
     ];
   }
 };
@@ -1227,13 +1313,11 @@ const loadVideos = async () => {
       query: `query GetTeamVideos($teamId: ID, $date: String!) {
         videos(teamId: $teamId, date: $date) {
           id userId uploaderNickName teamId mealType mealDate videoUrl
-          description calories carbs protein fat aiComment likeCount liked createdAt status
+          description calories carbs protein fat aiComment likeCount liked createdAt
+          status
         }
       }`,
-      variables: {
-        teamId: String(selectedGroup.value.id),
-        date: feedDate.value,
-      },
+      variables: { teamId: String(selectedGroup.value.id), date: feedDate.value },
     });
     const map = {};
     const list = res.data?.data?.videos ?? [];
@@ -1260,6 +1344,7 @@ const uploadModal = ref({
   description: "",
   file: null,
 });
+
 const detailModal = ref({ open: false, video: null });
 function openDetail(video) {
   detailModal.value = { open: true, video };
@@ -1352,11 +1437,7 @@ async function openGroupCamera() {
     await nextTick();
     if (groupCameraVideoEl.value) groupCameraVideoEl.value.srcObject = stream;
   } catch {
-    showToast(
-      "error",
-      "카메라를 열 수 없습니다.",
-      "카메라 권한을 허용해 주세요.",
-    );
+    showToast("error", "카메라를 열 수 없습니다.", "카메라 권한을 허용해 주세요.");
   }
 }
 
@@ -1379,13 +1460,9 @@ function startGroupRecording() {
     if (e.data.size > 0) groupRecordedChunks.push(e.data);
   };
   groupMediaRecorder.onstop = () => {
-    const blob = new Blob(groupRecordedChunks, {
-      type: mimeType || "video/webm",
-    });
+    const blob = new Blob(groupRecordedChunks, { type: mimeType || "video/webm" });
     const ext = mimeType.includes("mp4") ? "mp4" : "webm";
-    const file = new File([blob], `meal_${Date.now()}.${ext}`, {
-      type: blob.type,
-    });
+    const file = new File([blob], `meal_${Date.now()}.${ext}`, { type: blob.type });
     uploadModal.value.file = file;
     if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
     videoPreviewUrl.value = URL.createObjectURL(blob);
@@ -1395,11 +1472,9 @@ function startGroupRecording() {
   groupMediaRecorder.start();
   const startTime = Date.now();
   groupProgressTimer = setInterval(() => {
-    groupRecordProgress.value = Math.min(
-      100,
-      ((Date.now() - startTime) / 2000) * 100,
-    );
+    groupRecordProgress.value = Math.min(100, ((Date.now() - startTime) / 2000) * 100);
   }, 30);
+
   setTimeout(() => {
     clearInterval(groupProgressTimer);
     groupRecordProgress.value = 100;
@@ -1418,24 +1493,36 @@ function stopGroupCamera() {
   groupIsRecording.value = false;
 }
 
+// 🔧 [수정] presigned S3 업로드는 axios가 아니라 fetch로 보내야 합니다.
+// axios 인스턴스에 Authorization 헤더 인터셉터가 걸려 있으면, presigned URL에
+// 서명되지 않은 헤더가 함께 전송되어 S3가 403/CORS 오류로 거부합니다.
+// 또한 presigned 시도는 운영(S3) 환경에서만 하고, 로컬 개발(DEV)에서는
+// 곧바로 multipart fallback을 쓰도록 원복합니다.
 const submitUpload = async () => {
   if (!uploadModal.value.file) return;
   const file = uploadModal.value.file;
   const contentType = file.type || "video/mp4";
   try {
     let presigned = null;
-    try {
-      const res = await axios.get("/api/videos/presigned-upload", {
-        params: { contentType },
-      });
-      presigned = res.data;
-    } catch {}
+    if (!import.meta.env.DEV) {
+      try {
+        const res = await axios.get("/api/videos/presigned-upload", {
+          params: { contentType },
+        });
+        presigned = res.data;
+      } catch {
+        // presigned 미지원 시 multipart fallback
+      }
+    }
 
     if (presigned) {
-      await axios.put(presigned.uploadUrl, file, {
+      // S3 presigned PUT — axios 기본 헤더(Authorization 등) 제외하려고 fetch 사용
+      const s3Res = await fetch(presigned.uploadUrl, {
+        method: "PUT",
+        body: file,
         headers: { "Content-Type": contentType },
-        withCredentials: false,
       });
+      if (!s3Res.ok) throw new Error(`S3 업로드 실패: ${s3Res.status}`);
       await axios.post("/api/videos/register", {
         key: presigned.key,
         teamId: selectedGroup.value.id,
@@ -1455,6 +1542,7 @@ const submitUpload = async () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
     }
+
     closeUpload();
     await loadVideos();
   } catch (e) {
@@ -1462,13 +1550,11 @@ const submitUpload = async () => {
   }
 };
 
-// ── 달력 및 영양 데이터 연산 (Mock Data 제거 및 실데이터 연동) ──
+// ── 달력 ──
 const today = new Date();
-const todayMonth = today.getMonth();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth());
 const selectedDay = ref(today.getDate());
-
 const monthLabel = computed(
   () => `${currentYear.value}년 ${currentMonth.value + 1}월`,
 );
@@ -1479,7 +1565,6 @@ function daysInMonth(y, m) {
 function firstDayOfWeek(y, m) {
   return new Date(y, m, 1).getDay();
 }
-
 const calendarCells = computed(() => {
   const total = daysInMonth(currentYear.value, currentMonth.value);
   const offset = firstDayOfWeek(currentYear.value, currentMonth.value);
@@ -1503,12 +1588,8 @@ function nextMonth() {
 }
 
 const calendarVideoMap = ref({});
-
 function calDateStr(day) {
-  const y = currentYear.value;
-  const m = String(currentMonth.value + 1).padStart(2, "0");
-  const d = String(day).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 async function selectDay(d) {
@@ -1524,10 +1605,7 @@ async function selectDay(d) {
           description calories carbs protein fat aiComment likeCount liked createdAt status
         }
       }`,
-      variables: {
-        teamId: String(selectedGroup.value.id),
-        date: calDateStr(d),
-      },
+      variables: { teamId: String(selectedGroup.value.id), date: calDateStr(d) },
     });
     const map = {};
     const list = res.data?.data?.videos ?? [];
@@ -1543,21 +1621,15 @@ async function selectDay(d) {
 function getCalVideo(userId, mealType) {
   return calendarVideoMap.value[`${userId}_${mealType}`] || null;
 }
-
-// 참가자별 달력 요약 데이터를 매핑
 function memberMeals(memberId) {
   return mealTypes
     .map((mt) => ({ ...mt, video: getCalVideo(memberId, mt.key) }))
     .filter((mt) => mt.video);
 }
 
-// 달력에 표시할 나의 일일 영양 종합 데이터
 const myDayRecord = computed(() => {
   const myId = auth?.loginUser?.value?.id ?? auth?.loginUser?.id;
-  const myVideos = mealTypes
-    .map((mt) => getCalVideo(myId, mt.key))
-    .filter((v) => v);
-
+  const myVideos = mealTypes.map((mt) => getCalVideo(myId, mt.key)).filter((v) => v);
   const totals = myVideos.reduce(
     (acc, v) => {
       acc.calories += v.calories || 0;
@@ -1568,13 +1640,11 @@ const myDayRecord = computed(() => {
     },
     { calories: 0, carbs: 0, protein: 0, fat: 0 },
   );
-
   let aiComment = myVideos.find((v) => v.aiComment)?.aiComment;
   if (!aiComment) {
     if (myVideos.length === 0) aiComment = "이 날 기록된 나의 식단이 없습니다.";
     else aiComment = "AI 영양 분석이 진행 중이거나 코멘트가 없습니다.";
   }
-
   return {
     calories: Math.round(totals.calories),
     targetCalories: 2200,
@@ -1589,7 +1659,6 @@ const myDayRecord = computed(() => {
 });
 
 function hasRecordInMonth(day) {
-  // 현재는 선택된 날짜의 데이터만 서버에서 가져오므로 선택일에만 점검 가능
   if (day === selectedDay.value) {
     const myId = auth?.loginUser?.value?.id ?? auth?.loginUser?.id;
     return mealTypes.some((mt) => getCalVideo(myId, mt.key));
@@ -1601,6 +1670,20 @@ function calPercent(val, total) {
   return Math.min(100, Math.round((val / total) * 100));
 }
 
+// 🔧 [복원] 영상 카드에 업로드/촬영 시각을 표시하기 위한 함수 (수정 중 누락되어 있었음)
+const MEAL_DEMO_TIMES = { BREAKFAST: "08:23", LUNCH: "12:45", DINNER: "19:12" };
+function videoTime(video) {
+  if (!video) return null;
+  const ts = video.uploadedAt || video.createdAt || video.recordedAt;
+  if (ts) {
+    const d = new Date(ts);
+    if (!isNaN(d))
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+  return MEAL_DEMO_TIMES[video.mealType] || null;
+}
+
+// ── 반응형 ──
 const isMobile = ref(window.innerWidth < 768);
 const isWide = ref(window.innerWidth >= 1200);
 const onResize = () => {
@@ -1615,10 +1698,12 @@ onUnmounted(() => {
   if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
 });
 
+// ── 모바일 스와이프 + 마우스 드래그 ──
 const activeMealIdx = ref(0);
 let touchStartX = 0;
 let touchStartY = 0;
 let swipeEnabled = false;
+
 function onTouchStart(e) {
   if (e.target.closest(".like-btn")) {
     swipeEnabled = false;
@@ -1657,7 +1742,81 @@ function onMouseUp(e) {
 </script>
 
 <style scoped>
-/* (기존 최상단 및 공통 레이아웃 스타일은 유지됩니다.) */
+/* 🌟 방장 배지 */
+.king-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: #f59e0b;
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: 4px;
+}
+
+/* 🌟 추방 버튼 */
+.kick-btn {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ef4444;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.kick-btn:hover {
+  background: #fee2e2;
+}
+
+/* 🌟 설정 모달 */
+.settings-box {
+  max-width: 320px;
+}
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.btn-leave {
+  width: 100%;
+  padding: 14px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.btn-delete {
+  width: 100%;
+  padding: 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.settings-warning {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  line-height: 1.4;
+}
+
 .screen {
   height: 100vh;
   height: 100dvh;
@@ -1668,6 +1827,7 @@ function onMouseUp(e) {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
+
 .header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-light, #e5e5e5);
@@ -1758,6 +1918,7 @@ function onMouseUp(e) {
   display: flex;
   flex-direction: column;
 }
+
 .desktop-split {
   flex: 1;
   display: flex;
@@ -1916,6 +2077,7 @@ function onMouseUp(e) {
   border: 1px solid #fff;
   padding: 2px 7px;
   border-radius: 20px;
+  margin-left: 4px;
 }
 
 .meal-slots {
@@ -2140,7 +2302,6 @@ function onMouseUp(e) {
   color: #bbb;
 }
 
-/* ── 달력 공통 ── */
 .calendar-panel {
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
@@ -2212,8 +2373,6 @@ function onMouseUp(e) {
   line-height: 1;
   z-index: 2;
 }
-
-/* 🌟 [수정] 이모지 대신 기록 유무를 표시하는 Dot 스타일 */
 .cal-dot {
   width: 4.5px;
   height: 4.5px;
@@ -2272,7 +2431,6 @@ function onMouseUp(e) {
 .bar-fill.protein {
   background: #10b981;
 }
-/* 🌟 [추가] 탄수화물, 지방 프로그레스 바 스타일 */
 .bar-fill.carbs {
   background: #3b82f6;
 }
@@ -2286,7 +2444,6 @@ function onMouseUp(e) {
   text-align: right;
   flex-shrink: 0;
 }
-
 .day-ai {
   font-size: 12px;
   color: #666;
@@ -2352,6 +2509,7 @@ function onMouseUp(e) {
   display: flex;
   align-items: center;
   gap: 5px;
+  margin-bottom: 2px;
 }
 .summary-meals {
   display: flex;
@@ -2378,8 +2536,6 @@ function onMouseUp(e) {
   font-size: 12px;
   color: #bbb;
 }
-
-/* 🌟 [신규] 참가자 요약용 탄단지 뱃지 스타일 */
 .summary-macros {
   display: flex;
   gap: 4px;
@@ -2431,7 +2587,6 @@ function onMouseUp(e) {
   z-index: 2;
 }
 
-/* 업로드 모달 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2535,6 +2690,7 @@ function onMouseUp(e) {
   object-fit: cover;
   display: block;
 }
+
 .memo-direct {
   position: absolute;
   top: 50%;
@@ -2567,6 +2723,7 @@ function onMouseUp(e) {
   z-index: 2;
   pointer-events: none;
 }
+
 .change-btns {
   position: absolute;
   top: 10px;
@@ -2582,11 +2739,12 @@ function onMouseUp(e) {
   background: rgba(0, 0, 0, 0.45);
   border: none;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .btn-change-file:hover {
   background: rgba(0, 0, 0, 0.65);
@@ -2647,6 +2805,7 @@ function onMouseUp(e) {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   animation: pulse 1.8s infinite ease-in-out;
 }
+
 .mini-nutri-preview {
   position: absolute;
   top: 8px;
@@ -2663,6 +2822,7 @@ function onMouseUp(e) {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 9;
 }
+
 .m-tag {
   font-size: 10px;
   font-weight: 800;
@@ -2709,6 +2869,7 @@ function onMouseUp(e) {
     font-size: 18px;
   }
 }
+
 @media (max-width: 390px) {
   .header {
     padding: 0 8px;
