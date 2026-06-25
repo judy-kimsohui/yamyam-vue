@@ -168,9 +168,9 @@
               <!-- 맞춤형 권장 칼로리 목표선 -->
               <line
                 x1="10"
-                :y1="getSvgY(targets.calories, 'calories')"
+                :y1="getSvgY(targets.calories, 'calories', 110, 90)"
                 x2="290"
-                :y2="getSvgY(targets.calories, 'calories')"
+                :y2="getSvgY(targets.calories, 'calories', 110, 90)"
                 stroke="#fda4af"
                 stroke-dasharray="4 3"
                 stroke-width="1.5"
@@ -178,15 +178,20 @@
 
               <g v-for="(pt, idx) in aiTrendData.calories" :key="idx">
                 <rect
-                  :x="15 + idx * 40"
-                  :y="getSvgY(pt.value, 'calories')"
-                  width="20"
-                  :height="Math.max(110 - getSvgY(pt.value, 'calories'), 2)"
+                  :x="barX(idx, aiTrendData.calories.length, 300)"
+                  :y="getSvgY(pt.value, 'calories', 110, 90)"
+                  :width="barWidth(aiTrendData.calories.length, 300)"
+                  :height="
+                    Math.max(
+                      110 - getSvgY(pt.value, 'calories', 110, 90),
+                      pt.hasRecord ? 2 : 0,
+                    )
+                  "
                   :fill="pt.isForecast ? '#fbcfe8' : '#e8909e'"
                   rx="3"
                 />
                 <text
-                  :x="25 + idx * 40"
+                  :x="barCenterX(idx, aiTrendData.calories.length, 300)"
                   y="118"
                   font-size="8"
                   text-anchor="middle"
@@ -398,15 +403,20 @@
                 />
                 <g v-for="(pt, i) in aiTrendData.calories" :key="i">
                   <rect
-                    :x="12 + i * 38"
+                    :x="barX(i, aiTrendData.calories.length)"
                     :y="getSvgY(pt.value, 'calories')"
-                    width="16"
-                    :height="Math.max(62 - getSvgY(pt.value, 'calories'), 2)"
+                    :width="barWidth(aiTrendData.calories.length)"
+                    :height="
+                      Math.max(
+                        62 - getSvgY(pt.value, 'calories'),
+                        pt.hasRecord ? 2 : 0,
+                      )
+                    "
                     :fill="pt.isForecast ? '#fbcfe8' : '#e8909e'"
                     rx="2"
                   />
                   <text
-                    :x="20 + i * 38"
+                    :x="barCenterX(i, aiTrendData.calories.length)"
                     y="68"
                     font-size="7"
                     text-anchor="middle"
@@ -439,15 +449,20 @@
                 />
                 <g v-for="(pt, i) in aiTrendData.carbs" :key="i">
                   <rect
-                    :x="12 + i * 38"
+                    :x="barX(i, aiTrendData.carbs.length)"
                     :y="getSvgY(pt.value, 'carbs')"
-                    width="16"
-                    :height="Math.max(62 - getSvgY(pt.value, 'carbs'), 2)"
+                    :width="barWidth(aiTrendData.carbs.length)"
+                    :height="
+                      Math.max(
+                        62 - getSvgY(pt.value, 'carbs'),
+                        pt.hasRecord ? 2 : 0,
+                      )
+                    "
                     :fill="pt.isForecast ? '#dbeafe' : '#60a5fa'"
                     rx="2"
                   />
                   <text
-                    :x="20 + i * 38"
+                    :x="barCenterX(i, aiTrendData.carbs.length)"
                     y="68"
                     font-size="7"
                     text-anchor="middle"
@@ -480,15 +495,20 @@
                 />
                 <g v-for="(pt, i) in aiTrendData.protein" :key="i">
                   <rect
-                    :x="12 + i * 38"
+                    :x="barX(i, aiTrendData.protein.length)"
                     :y="getSvgY(pt.value, 'protein')"
-                    width="16"
-                    :height="Math.max(62 - getSvgY(pt.value, 'protein'), 2)"
+                    :width="barWidth(aiTrendData.protein.length)"
+                    :height="
+                      Math.max(
+                        62 - getSvgY(pt.value, 'protein'),
+                        pt.hasRecord ? 2 : 0,
+                      )
+                    "
                     :fill="pt.isForecast ? '#d1fae5' : '#34d399'"
                     rx="2"
                   />
                   <text
-                    :x="20 + i * 38"
+                    :x="barCenterX(i, aiTrendData.protein.length)"
                     y="68"
                     font-size="7"
                     text-anchor="middle"
@@ -520,15 +540,20 @@
                 />
                 <g v-for="(pt, i) in aiTrendData.fat" :key="i">
                   <rect
-                    :x="12 + i * 38"
+                    :x="barX(i, aiTrendData.fat.length)"
                     :y="getSvgY(pt.value, 'fat')"
-                    width="16"
-                    :height="Math.max(62 - getSvgY(pt.value, 'fat'), 2)"
+                    :width="barWidth(aiTrendData.fat.length)"
+                    :height="
+                      Math.max(
+                        62 - getSvgY(pt.value, 'fat'),
+                        pt.hasRecord ? 2 : 0,
+                      )
+                    "
                     :fill="pt.isForecast ? '#fef3c7' : '#fbbf24'"
                     rx="2"
                   />
                   <text
-                    :x="20 + i * 38"
+                    :x="barCenterX(i, aiTrendData.fat.length)"
                     y="68"
                     font-size="7"
                     text-anchor="middle"
@@ -738,6 +763,7 @@ const todayYear = today.getFullYear();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth());
 const selectedDay = ref(today.getDate());
+const trendBaseDate = toDateString(today);
 
 const monthLabel = computed(
   () => `${currentYear.value}년 ${currentMonth.value + 1}월`,
@@ -940,8 +966,8 @@ async function selectDay(d) {
     });
     dayVideos.value = res.data?.data?.videos ?? [];
 
-    // 차트 트렌드 데이터 최신화
-    await fetchAiIntegratedData(dateStr, trendPeriod.value);
+    // 차트는 선택일이 아니라 오늘 기준으로 고정
+    await fetchAiIntegratedData(trendBaseDate, trendPeriod.value);
     await requestDailyEvaluation();
   } catch (err) {
     console.error(err);
@@ -952,52 +978,186 @@ async function selectDay(d) {
   }
 }
 
-// 1. 월간 AI 통계 요약 (임시값)
+// 1. 월간 통계 요약
 const aiSummaryStats = ref({ avgCalories: 0, recordedDays: 0 });
 
-// 2. AI 차트 트렌드 배열
+// 2. 차트 트렌드 배열
 const aiTrendData = ref({ calories: [], carbs: [], protein: [], fat: [] });
+let trendRequestSeq = 0;
 
-// 3. 백엔드 AI 분석 통합 API 호출 함수 (임시 방어 로직)
+// 3. GraphQL 일자별 조회 기반 트렌드 구성
 async function fetchAiIntegratedData(dateString, period) {
-  // TODO: 백엔드 트렌드 API 연동 위치
-  if (!aiTrendData.value.calories.length || period === "day") {
-    aiTrendData.value = {
-      calories: [
-        {
-          label: "오늘",
-          value: dailyTotals.value.calories || 0,
-          isForecast: false,
-        },
-      ],
-      carbs: [
-        {
-          label: "오늘",
-          value: dailyTotals.value.carbs || 0,
-          isForecast: false,
-        },
-      ],
-      protein: [
-        {
-          label: "오늘",
-          value: dailyTotals.value.protein || 0,
-          isForecast: false,
-        },
-      ],
-      fat: [
-        { label: "오늘", value: dailyTotals.value.fat || 0, isForecast: false },
-      ],
-    };
+  const requestSeq = ++trendRequestSeq;
+  const buckets = buildTrendBuckets(dateString, period);
+  const filledBuckets = [];
+
+  for (const bucket of buckets) {
+    const totals = await fetchBucketTotals(bucket.dates);
+    filledBuckets.push({ ...bucket, totals });
+  }
+
+  if (requestSeq !== trendRequestSeq) return;
+
+  aiTrendData.value = toTrendSeries(filledBuckets);
+  updateMonthlyStats(filledBuckets);
+}
+
+function buildTrendBuckets(dateString, period) {
+  const base = parseLocalDate(dateString);
+
+  if (period === "day") {
+    return Array.from({ length: 7 }, (_, idx) => {
+      const date = addDays(base, idx - 6);
+      return {
+        label: idx === 6 ? "오늘" : `${date.getMonth() + 1}/${date.getDate()}`,
+        dates: [toDateString(date)],
+      };
+    });
+  }
+
+  if (period === "week") {
+    return Array.from({ length: 4 }, (_, idx) => {
+      const start = addDays(base, (idx - 3) * 7 - 6);
+      const end = addDays(start, 6);
+      return {
+        label: idx === 3 ? "이번주" : `${4 - idx}주전`,
+        dates: eachDate(start, end),
+      };
+    });
+  }
+
+  const first = new Date(base.getFullYear(), base.getMonth(), 1);
+  const last = new Date(base);
+  const buckets = [];
+  let cursor = new Date(first);
+  let week = 1;
+
+  while (cursor <= last) {
+    const start = new Date(cursor);
+    const end = new Date(Math.min(addDays(start, 6).getTime(), last.getTime()));
+    buckets.push({
+      label: `${week}주`,
+      dates: eachDate(start, end),
+    });
+    cursor = addDays(end, 1);
+    week += 1;
+  }
+
+  return buckets;
+}
+
+async function fetchBucketTotals(dates) {
+  const totals = { calories: 0, carbs: 0, protein: 0, fat: 0, count: 0 };
+
+  for (const date of dates) {
+    const videos = await fetchVideosByDate(date);
+    const dayTotal = sumVideos(videos);
+    if (dayTotal.count > 0) {
+      totals.count += 1;
+    }
+    totals.calories += dayTotal.calories;
+    totals.carbs += dayTotal.carbs;
+    totals.protein += dayTotal.protein;
+    totals.fat += dayTotal.fat;
+  }
+
+  return totals;
+}
+
+async function fetchVideosByDate(date) {
+  try {
+    const res = await axios.post("/graphql", {
+      query: `query GetMyVideos($userId: ID, $date: String!) {
+        videos(userId: $userId, date: $date) {
+          id mealType calories carbs protein fat status
+        }
+      }`,
+      variables: { userId: String(auth.loginUser.value?.id), date },
+    });
+
+    return res.data?.data?.videos ?? [];
+  } catch (e) {
+    console.error("트렌드 영상 조회 실패:", date, e);
+    return [];
   }
 }
 
-watch(trendPeriod, async (newPeriod) => {
-  const dateStr = toDateStr(
-    selectedDay.value,
-    currentYear.value,
-    currentMonth.value,
+function sumVideos(videos) {
+  return videos.reduce(
+    (acc, v) => {
+      if (v.status === "DONE" || v.calories) {
+        acc.calories += Number(v.calories || 0);
+        acc.carbs += Number(v.carbs || 0);
+        acc.protein += Number(v.protein || 0);
+        acc.fat += Number(v.fat || 0);
+        acc.count += 1;
+      }
+      return acc;
+    },
+    { calories: 0, carbs: 0, protein: 0, fat: 0, count: 0 },
   );
-  await fetchAiIntegratedData(dateStr, newPeriod);
+}
+
+function toTrendSeries(buckets) {
+  return {
+    calories: buckets.map((b) => trendPoint(b, "calories")),
+    carbs: buckets.map((b) => trendPoint(b, "carbs")),
+    protein: buckets.map((b) => trendPoint(b, "protein")),
+    fat: buckets.map((b) => trendPoint(b, "fat")),
+  };
+}
+
+function trendPoint(bucket, key) {
+  return {
+    label: bucket.label,
+    value: Math.round(bucket.totals[key] || 0),
+    isForecast: false,
+    hasRecord: bucket.totals.count > 0,
+  };
+}
+
+function updateMonthlyStats(buckets) {
+  const recordedBuckets = buckets.filter((b) => b.totals.count > 0);
+  const totalCalories = recordedBuckets.reduce(
+    (sum, b) => sum + b.totals.calories,
+    0,
+  );
+
+  aiSummaryStats.value = {
+    avgCalories: recordedBuckets.length
+      ? Math.round(totalCalories / recordedBuckets.length)
+      : 0,
+    recordedDays: buckets.reduce((sum, b) => sum + b.totals.count, 0),
+  };
+}
+
+function parseLocalDate(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function toDateString(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function eachDate(start, end) {
+  const dates = [];
+  let cursor = new Date(start);
+  while (cursor <= end) {
+    dates.push(toDateString(cursor));
+    cursor = addDays(cursor, 1);
+  }
+  return dates;
+}
+
+watch(trendPeriod, async (newPeriod) => {
+  await fetchAiIntegratedData(trendBaseDate, newPeriod);
 });
 
 // UI 연산 헬퍼
@@ -1028,20 +1188,35 @@ function percent(current, target) {
   return p > 100 ? 100 : p;
 }
 
-// 차트 Y축 스케일링 동적 할당 (나의 타겟 칼로리에 맞춰 차트 높이가 조절됨)
-function getSvgY(value, type) {
+// 차트 Y축 스케일링 동적 할당
+function getSvgY(value, type, baseline = 62, chartHeight = 50) {
   if (value === undefined || value === null) value = 0;
 
-  // 나의 목표치에 1.5배의 여유고도를 줘서 그래프가 예쁘게 그려지도록 동적 보정
   let maxDomain = 2000;
   if (type === "calories") maxDomain = targets.value.calories * 1.5;
   else if (type === "carbs") maxDomain = targets.value.carbs * 1.5;
   else if (type === "protein") maxDomain = targets.value.protein * 1.5;
   else if (type === "fat") maxDomain = targets.value.fat * 1.5;
 
-  const chartHeight = 50;
-  const paddingBottom = 60;
-  return paddingBottom - (value / maxDomain) * chartHeight;
+  const ratio = Math.min(Number(value || 0) / maxDomain, 1);
+  return baseline - ratio * chartHeight;
+}
+
+function barWidth(count, svgWidth = 280) {
+  if (!count) return 0;
+  const plotWidth = svgWidth - 24;
+  return Math.max(8, Math.min(22, plotWidth / count - 8));
+}
+
+function barX(index, count, svgWidth = 280) {
+  if (!count) return 0;
+  const plotWidth = svgWidth - 24;
+  const step = plotWidth / count;
+  return 12 + index * step + (step - barWidth(count, svgWidth)) / 2;
+}
+
+function barCenterX(index, count, svgWidth = 280) {
+  return barX(index, count, svgWidth) + barWidth(count, svgWidth) / 2;
 }
 
 function hasRecordInMonth(day) {
